@@ -1,9 +1,15 @@
+GMP
+=============
 
-# gmp
+Guaranteed Minimum Pension micro service
 
 [![Build Status](https://travis-ci.org/hmrc/gmp.svg?branch=master)](https://travis-ci.org/hmrc/gmp) [ ![Download](https://api.bintray.com/packages/hmrc/releases/gmp/images/download.svg) ](https://bintray.com/hmrc/releases/gmp/_latestVersion)
+API
+----
 
-This is a placeholder README.md for a new repository
+| PATH | Supported Methods | Description |
+|------|-------------------|-------------|
+| ```/``` | GET | N/A |
 
 ### License
 
