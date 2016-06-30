@@ -1,8 +1,9 @@
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
 resolvers ++= Seq(
-  Resolver.url("hmrc-sbt-plugin-releases", url("https://dl.bintray.com/hmrc/sbt-plugin-releases"))(Resolver.ivyStylePatterns),
-  Resolver.url("scoverage-bintray", url("https://dl.bintray.com/sksamuel/sbt-plugins/"))(Resolver.ivyStylePatterns)
+  "hmrc-sbt-plugin-releases" at "https://dl.bintray.com/hmrc/sbt-plugin-releases",
+  "scoverage-bintray" at "https://dl.bintray.com/sksamuel/sbt-plugins/",
+  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/"
 )
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-auto-build" % "1.0.0")
