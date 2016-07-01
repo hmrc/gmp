@@ -18,12 +18,13 @@ package repositories
 
 import java.util.UUID
 
+import helpers.mongo.MongoMocks
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.mockito.Matchers
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import reactivemongo.api.{Cursor, CursorProducer}
+import reactivemongo.api.{Collection, Cursor, CursorProducer}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
@@ -31,7 +32,11 @@ import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 import scala.concurrent.Future
 
 
-class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar {
+class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar with MongoMocks {
+
+  class MockedCalculationRepository extends CalculationMongoRepository {
+    override lazy val collection = mockCollection()
+  }
 
   "CalculationMongoRepository" must {
 
@@ -40,11 +45,14 @@ class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with Mon
     "inserting a calculation" must {
 
       "persist a calculation in the repo" in {
+
+        val repo = new MockedCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
 
         val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
         val response = GmpCalculationResponse("f surname", nino, "SCON", None, None, List(), 0, None, None, None, false, 1)
-        val cached = await(calculationRepository.insertByRequest(request, response))
+        val cached = await(repo.insertByRequest(request, response))
+
         cached must be(true)
       }
     }
@@ -52,23 +60,33 @@ class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with Mon
     "searching for a calculation" must {
 
       "return None when not found" in {
+
+        val repo = new MockedCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
 
-        val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
-        val found = await(calculationRepository.findByRequest(request))
-        found must be(None)
+        setupFindFor(repo.collection, List[CachedCalculation]())
 
+        val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
+        val found = await(repo.findByRequest(request))
+
+        found must be(None)
       }
 
       "return response when calculation found" in {
+
+        val repo = new MockedCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
 
+        val captor = ArgumentCaptor.forClass(classOf[CachedCalculation])
         val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
-        val response = GmpCalculationResponse("f surname", nino, "SCON", None, None, List(), 0, None, None, None,false, 1)
-        await(calculationRepository.insertByRequest(request, response))
+        val response = GmpCalculationResponse("f surname", nino, "SCON", None, None, List(), 0, None, None, None, false, 1)
 
-        val found = await(calculationRepository.findByRequest(request))
-        found must be(Some(response))
+        await(repo.insertByRequest(request, response))
+
+        verifyInsertOn(repo.collection, captor)
+
+        captor.getValue.request must be(request.hashCode)
+        captor.getValue.response must be(response)
       }
 
       "return None when mongo find returns error" in {
@@ -80,17 +98,17 @@ class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with Mon
 
         class TestCalculationRepository extends CalculationMongoRepository{
           override lazy val collection = mockCollection
-
         }
+
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
         when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
 
         val testRepository = new TestCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
-
         val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
 
         val found = await(testRepository.findByRequest(request))
+
         found must be(None)
       }
 
