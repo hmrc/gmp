@@ -19,38 +19,68 @@ package repositories
 import java.util.UUID
 
 import controllers.CalculationController
+import helpers.mongo.MongoMocks
 import models.{CalculationRequest, GmpValidateSconResponse, ValidateSconResponse}
-import org.mockito.Matchers
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 
 import org.scalatestplus.play.{PlaySpec, OneServerPerSuite}
+import play.api.libs.json.Json
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 
 import scala.concurrent.Future
 
-class ValidateSconRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar {
+class ValidateSconRepositorySpec extends PlaySpec
+  with OneServerPerSuite
+  with MongoSpecSupport
+  with Awaiting
+  with MockitoSugar
+  with MongoMocks
+  with BeforeAndAfter {
 
-  val repository = new ValidateSconMongoRepository()
+  class MockedSconRepository extends ValidateSconMongoRepository {
+    override lazy val collection = mockCollection()
+  }
+
+  val repository = new MockedSconRepository()
+
+  before {
+    reset(repository.collection)
+  }
 
   "ValidateSconMongoRepository" must {
 
     "return None when scon not found" in {
       val scon = UUID.randomUUID().toString
       val response = GmpValidateSconResponse(true)
+
+      setupFindFor(repository.collection, Json.obj("scon" -> scon), List())
+
       val found = await(repository.findByScon(scon))
+
       found must be(None)
     }
 
     "successfully save a validate scon response" in {
+
       val scon = UUID.randomUUID().toString
       val response = GmpValidateSconResponse(true)
+      val captor = ArgumentCaptor.forClass(classOf[ValidateSconMongoModel])
+
+      setupAnyInsertOn(repository.collection, fails = false)
+
       val created = await(repository.insertByScon(scon, response))
+
       created must be(true)
-      val found = await(repository.findByScon(scon))
-      found must be(Some(response))
+
+      verifyInsertOn(repository.collection, captor)
+
+      captor.getValue.scon must be(scon)
+      captor.getValue.response must be(response)
     }
 
     "return None when mongo find returns error" in {
@@ -59,18 +89,12 @@ class ValidateSconRepositorySpec extends PlaySpec with OneServerPerSuite with Mo
       val mockIndexesManager = mock[CollectionIndexesManager]
 
       when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
-
-      class TestCalculationRepository extends ValidateSconMongoRepository{
-        override lazy val collection = mockCollection
-
-      }
       when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
       when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
 
-      val testRepository = new TestCalculationRepository
       val scon = UUID.randomUUID().toString
 
-      val found = await(testRepository.findByScon(scon))
+      val found = await(repository.findByScon(scon))
       found must be(None)
     }
 
