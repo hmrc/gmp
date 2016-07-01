@@ -25,7 +25,7 @@ import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.{OneAppPerSuite, OneServerPerSuite, PlaySpec}
 import play.api.libs.json.{JsNumber, JsString, JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -35,7 +35,7 @@ import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
 
-class DesConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
+class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 

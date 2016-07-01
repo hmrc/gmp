@@ -20,27 +20,20 @@ import java.util.UUID
 
 import helpers.mongo.MongoMocks
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import reactivemongo.api.{Collection, Cursor, CursorProducer}
-import reactivemongo.api.indexes.CollectionIndexesManager
-import reactivemongo.json.collection.JSONCollection
-import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
-
-import scala.concurrent.Future
+import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import uk.gov.hmrc.mongo.Awaiting
 
 
-class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with MongoSpecSupport with Awaiting with MockitoSugar with MongoMocks {
+class CalculationRepositorySpec extends PlaySpec with OneAppPerSuite with Awaiting with MockitoSugar with MongoMocks {
 
-  class MockedCalculationRepository extends CalculationMongoRepository {
+  class MockedCalculationRepository extends CalculationMongoRepository()(() => mockMongoDb) {
     override lazy val collection = mockCollection()
   }
 
   "CalculationMongoRepository" must {
-
-    val calculationRepository = new CalculationMongoRepository
 
     "inserting a calculation" must {
 
@@ -91,23 +84,14 @@ class CalculationRepositorySpec extends PlaySpec with OneServerPerSuite with Mon
 
       "return None when mongo find returns error" in {
 
-        val mockCollection = mock[JSONCollection]
-        val mockIndexesManager = mock[CollectionIndexesManager]
+        val repo = new MockedCalculationRepository
 
-        when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
+        when(repo.collection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
 
-        class TestCalculationRepository extends CalculationMongoRepository{
-          override lazy val collection = mockCollection
-        }
-
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
-        when(mockCollection.indexesManager.ensure(Matchers.any())).thenReturn(Future.successful(true))
-
-        val testRepository = new TestCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
         val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
 
-        val found = await(testRepository.findByRequest(request))
+        val found = await(repo.findByRequest(request))
 
         found must be(None)
       }
