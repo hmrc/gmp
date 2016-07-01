@@ -55,7 +55,7 @@ Example JSON response:
 
 An API method to validate whether a user's SCON exists or not.
 
-__POST request fields __
+__POST fields__
 
 | Field | Description |
 | --- | --- |
