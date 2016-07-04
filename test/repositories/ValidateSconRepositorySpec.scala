@@ -65,6 +65,22 @@ class ValidateSconRepositorySpec extends PlaySpec
       found must be(None)
     }
 
+    "return a response when the scon is found" in {
+
+      val scon = UUID.randomUUID().toString
+      val sconModel = mock[ValidateSconMongoModel]
+      val response = mock[GmpValidateSconResponse]
+
+      when(sconModel.response) thenReturn response
+
+      setupFindFor(repository.collection, Json.obj("scon" -> scon), List(sconModel))
+
+      val result = await(repository.findByScon(scon))
+
+      result must be(defined)
+      result.get must be(response)
+    }
+
     "successfully save a validate scon response" in {
 
       val scon = UUID.randomUUID().toString

@@ -41,16 +41,21 @@ class CalculationRepositorySpec extends PlaySpec with OneAppPerSuite with Awaiti
 
         val repo = new MockedCalculationRepository
         val nino = s"NINO-${UUID.randomUUID()}"
-
+        val captor = ArgumentCaptor.forClass(classOf[CachedCalculation])
         val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
         val response = GmpCalculationResponse("f surname", nino, "SCON", None, None, List(), 0, None, None, None, false, 1)
+
         val cached = await(repo.insertByRequest(request, response))
 
+        verifyInsertOn(repo.collection, captor)
+
+        captor.getValue.request must be(request.hashCode)
+        captor.getValue.response must be(response)
         cached must be(true)
       }
     }
 
-    "searching for a calculation" must {
+    "search for a calculation" must {
 
       "return None when not found" in {
 
@@ -68,18 +73,19 @@ class CalculationRepositorySpec extends PlaySpec with OneAppPerSuite with Awaiti
       "return response when calculation found" in {
 
         val repo = new MockedCalculationRepository
-        val nino = s"NINO-${UUID.randomUUID()}"
 
-        val captor = ArgumentCaptor.forClass(classOf[CachedCalculation])
-        val request = CalculationRequest("SCON", nino, "surname", "f", None, None, None)
-        val response = GmpCalculationResponse("f surname", nino, "SCON", None, None, List(), 0, None, None, None, false, 1)
+        val request = mock[CalculationRequest]
+        val response = mock[GmpCalculationResponse]
+        val cachedCalc = mock[CachedCalculation]
 
-        await(repo.insertByRequest(request, response))
+        when(cachedCalc.response) thenReturn response
 
-        verifyInsertOn(repo.collection, captor)
+        setupFindFor(repo.collection, List(cachedCalc))
 
-        captor.getValue.request must be(request.hashCode)
-        captor.getValue.response must be(response)
+        val result = await(repo.findByRequest(request))
+
+        result must be(defined)
+        result.get must be(response)
       }
 
       "return None when mongo find returns error" in {
