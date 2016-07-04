@@ -3,7 +3,7 @@ GMP
 
 Guaranteed Minimum Pension micro service
 
-[![Build Status](https://travis-ci.org/hmrc/gmp.svg?branch=master)](https://travis-ci.org/hmrc/gmp)
+[![Build Status](https://travis-ci.org/hmrc/gmp.svg?branch=master)](https://travis-ci.org/hmrc/gmp) [ ![Download](https://api.bintray.com/packages/hmrc/releases/gmp/images/download.svg) ](https://bintray.com/hmrc/releases/gmp/_latestVersion)
 
 API
 ----
