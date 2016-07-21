@@ -20,7 +20,7 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import config.{ApplicationConfig, GmpGlobal, WSHttp}
 import metrics.Metrics
-import models.{CalculationRequest, ValidateSconResponse, CalculationResponse}
+import models.{Scon, CalculationRequest, ValidateSconResponse, CalculationResponse}
 import play.api.Logger
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{EventTypes, DataEvent}
@@ -131,6 +131,16 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
+        case BAD_REQUEST => {
+          Logger.info("[DesConnector][calculate] : NPS returned code 400")
+          CalculationResponse(request.nino,
+                              400,
+                              None,
+                              None,
+                              None,
+                              Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+                              Nil)
+        }
         case errorStatus: Int => {
           Logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
           throw new Upstream5xxResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)

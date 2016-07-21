@@ -124,6 +124,18 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         calcResponse.rejection_reason must be(0)
       }
 
+      "return a response when 400 returned" in {
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(400, None)))
+
+        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None ,None, None, None))
+        val calcResponse = await(result)
+
+        calcResponse.rejection_reason must be(400)
+      }
+
       "generate a DES url" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
