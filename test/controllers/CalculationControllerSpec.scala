@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.DesConnector
+import connectors.{CitizensDetailsConnector, DesConnector}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -47,16 +47,20 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[CalculationRepository]
   val mockAuditConnector = mock[AuditConnector]
+  val mockCitizensDetailsConnector = mock[CitizensDetailsConnector]
 
   object testCalculationController extends CalculationController {
     override val desConnector = mockDesConnector
     override val repository = mockRepo
     override val auditConnector = mockAuditConnector
+    override val citizensDetailsConnector = mockCitizensDetailsConnector
   }
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
+    reset(mockCitizensDetailsConnector)
+    when(mockCitizensDetailsConnector.getDesignatoryDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(200))
   }
 
   "CalculationController" must {
@@ -406,6 +410,23 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         val result = testCalculationController.requestCalculation("0000").apply(fakeRequest)
 
         contentAsString(result) must not include "dateOfDeath"
+      }
+    }
+
+    "when citizens details return 423" must {
+      "return a global error" in {
+        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
+        when(mockCitizensDetailsConnector.getDesignatoryDetails(Matchers.eq("AB123456C"))(Matchers.any())).thenReturn(Future.successful(423))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+          body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
+
+        calcResponse.globalErrorCode must be(423)
       }
     }
   }

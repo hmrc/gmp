@@ -51,6 +51,7 @@ class CitizensDetailsConnectorSpec extends PlaySpec with OneAppPerSuite with Moc
 
       val result = await(TestConnector.getDesignatoryDetails(nino))
 
+      verify(mockHttp).GET[HttpResponse](Matchers.contains(s"/citizen-details/${nino}/designatory-details"))(Matchers.any(), Matchers.any())
       result must be(OK)
 
     }

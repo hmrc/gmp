@@ -22,15 +22,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
-class CitizensDetailsConnector extends ApplicationConfig with RawResponseReads{
+trait CitizensDetailsConnector extends ApplicationConfig with RawResponseReads{
 
   val http: HttpGet = WSHttp
+  lazy val serviceURL = baseUrl("citizens-details")
 
   def getDesignatoryDetails(nino: String)(implicit headerCarrier: HeaderCarrier): Future[Int] = {
-
-    val uri = s"/citizen-details/${nino}/designatory-details"
-
+    val uri = s"$serviceURL/citizen-details/${nino}/designatory-details"
     http.GET[HttpResponse](uri)(httpReads, headerCarrier).map { response => response.status }
   }
+
+}
+
+object CitizensDetailsConnector extends CitizensDetailsConnector{
 
 }

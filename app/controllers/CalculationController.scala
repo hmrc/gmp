@@ -19,6 +19,7 @@ package controllers
 
 import config.GmpGlobal
 import connectors.DesConnector
+import connectors.CitizensDetailsConnector
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
@@ -36,7 +37,9 @@ trait CalculationController extends BaseController {
 
   val desConnector: DesConnector
   val repository: CalculationRepository
+  val citizensDetailsConnector: CitizensDetailsConnector
   val auditConnector: AuditConnector = GmpGlobal.auditConnector
+
 
   def requestCalculation(userId: String) = Action.async(parse.json) {
 
@@ -50,24 +53,33 @@ trait CalculationController extends BaseController {
             Future.successful(Ok(Json.toJson(cr)))
           }
           case None => {
-            val result = desConnector.calculate(userId, calculationRequest)
-            result.map {
-              calculation => {
-                Logger.debug(s"[CalculationController][requestCalculation] : $calculation")
-
-                val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                  calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
-
-                Logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                repository.insertByRequest(calculationRequest, transformedResult)
-                sendResultsEvent(transformedResult, false, userId)
-
-                Ok(Json.toJson(transformedResult))
+            citizensDetailsConnector.getDesignatoryDetails(calculationRequest.nino).flatMap {
+              case LOCKED => { ???
+//                val a = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype)
+//                val a = GmpCalculationResponse("","","",None,None,List(),1,None,None,None,true,1)
+//                Ok(Json.toJson())
               }
-            }.recover {
-              case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
-                Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
-                InternalServerError(e.getMessage)
+              case _ => {
+                val result = desConnector.calculate(userId, calculationRequest)
+                result.map {
+                  calculation => {
+                    Logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+
+                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
+                      calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+
+                    Logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                    repository.insertByRequest(calculationRequest, transformedResult)
+                    sendResultsEvent(transformedResult, false, userId)
+
+                    Ok(Json.toJson(transformedResult))
+                  }
+                }.recover {
+                  case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
+                    Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                    InternalServerError(e.getMessage)
+                  }
+                }
               }
             }
           }
@@ -92,5 +104,6 @@ object CalculationController extends CalculationController {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val desConnector = DesConnector
   override val repository = CalculationRepository()
+  override val citizensDetailsConnector = CitizensDetailsConnector
   // $COVERAGE-ON$
 }
