@@ -20,17 +20,24 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import config.{ApplicationConfig, GmpGlobal, WSHttp}
 import metrics.Metrics
-import models.{Scon, CalculationRequest, ValidateSconResponse, CalculationResponse}
+import models._
 import play.api.Logger
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{EventTypes, DataEvent}
-import uk.gov.hmrc.play.http.{Upstream5xxResponse, HttpResponse, HeaderCarrier, HttpGet}
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http._
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import play.api.http.Status._
 
 import scala.concurrent.Future
+
+trait DesGetResponse
+sealed trait DesPostResponse
+
+case object DesGetSuccessResponse extends DesGetResponse
+case object DesGetHiddenRecordResponse extends DesGetResponse
+case object DesGetNotFoundResponse extends DesGetResponse
+case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 
 trait DesConnector extends ApplicationConfig with RawResponseReads {
 
@@ -51,6 +58,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
   lazy val serviceURL = baseUrl("nps")
+  lazy val desUrl = baseUrl("des")
 
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
@@ -193,6 +201,29 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       case e: Throwable => Logger.warn("[DesConnector][doAudit] : auditResult: " + e.getMessage, e)
     }
   }
+
+  def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
+    val newHc = HeaderCarrier(extraHeaders = Seq(
+      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+      "Authorization" -> ("Bearer " + getConfString("des.bearer-token","")),
+      "Environment" -> getConfString("des.environment","")))
+    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map {
+      r =>
+        val etag = r.header("ETag").getOrElse(throw new RuntimeException("Missing ETag in DES response!"))
+        (r.json \ "manualCorrespondenceInd").as[Boolean] match {
+          case false => DesGetSuccessResponse
+          case true  => DesGetHiddenRecordResponse
+        }
+
+    } recover {
+      case e: NotFoundException =>
+        DesGetNotFoundResponse
+      case e: Exception =>
+        Logger.warn("Exception thrown getting individual record from DES", e)
+        DesGetErrorResponse(e)
+    }
+  }
+
 }
 
 object DesConnector extends DesConnector {

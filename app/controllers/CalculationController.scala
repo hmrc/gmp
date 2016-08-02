@@ -18,8 +18,7 @@ package controllers
 
 
 import config.GmpGlobal
-import connectors.DesConnector
-import connectors.CitizensDetailsConnector
+import connectors.{DesGetHiddenRecordResponse, DesConnector, CitizensDetailsConnector}
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
@@ -53,11 +52,10 @@ trait CalculationController extends BaseController {
             Future.successful(Ok(Json.toJson(cr)))
           }
           case None => {
-            citizensDetailsConnector.getDesignatoryDetails(calculationRequest.nino).flatMap {
-              case LOCKED => { ???
-//                val a = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype)
-//                val a = GmpCalculationResponse("","","",None,None,List(),1,None,None,None,true,1)
-//                Ok(Json.toJson())
+            desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+              case DesGetHiddenRecordResponse => {
+                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype.getOrElse(-1))
+                Future.successful(Ok(Json.toJson(response)))
               }
               case _ => {
                 val result = desConnector.calculate(userId, calculationRequest)
