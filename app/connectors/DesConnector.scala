@@ -218,6 +218,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     } recover {
       case e: NotFoundException =>
         DesGetNotFoundResponse
+      case e: RuntimeException => throw e
       case e: Exception =>
         Logger.warn("Exception thrown getting individual record from DES", e)
         DesGetErrorResponse(e)

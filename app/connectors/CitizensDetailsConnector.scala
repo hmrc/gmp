@@ -29,7 +29,7 @@ trait CitizensDetailsConnector extends ApplicationConfig with RawResponseReads{
 
   def getDesignatoryDetails(nino: String)(implicit headerCarrier: HeaderCarrier): Future[Int] = {
     val uri = s"$serviceURL/citizen-details/${nino}/designatory-details"
-    http.GET[HttpResponse](uri)(httpReads, headerCarrier).map { response => println("************ " + response.status);response.status }
+    http.GET[HttpResponse](uri)(httpReads, headerCarrier).map { response => response.status }
   }
 
 }
