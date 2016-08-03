@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, CitizensDetailsConnector, DesConnector}
+import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -47,19 +47,16 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[CalculationRepository]
   val mockAuditConnector = mock[AuditConnector]
-  val mockCitizensDetailsConnector = mock[CitizensDetailsConnector]
 
   object testCalculationController extends CalculationController {
     override val desConnector = mockDesConnector
     override val repository = mockRepo
     override val auditConnector = mockAuditConnector
-    override val citizensDetailsConnector = mockCitizensDetailsConnector
   }
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
-    reset(mockCitizensDetailsConnector)
     when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
 

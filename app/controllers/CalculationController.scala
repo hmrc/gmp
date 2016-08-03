@@ -18,7 +18,7 @@ package controllers
 
 
 import config.GmpGlobal
-import connectors.{DesGetHiddenRecordResponse, DesConnector, CitizensDetailsConnector}
+import connectors.{DesGetHiddenRecordResponse, DesConnector}
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
@@ -36,7 +36,6 @@ trait CalculationController extends BaseController {
 
   val desConnector: DesConnector
   val repository: CalculationRepository
-  val citizensDetailsConnector: CitizensDetailsConnector
   val auditConnector: AuditConnector = GmpGlobal.auditConnector
 
 
@@ -102,6 +101,5 @@ object CalculationController extends CalculationController {
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val desConnector = DesConnector
   override val repository = CalculationRepository()
-  override val citizensDetailsConnector = CitizensDetailsConnector
   // $COVERAGE-ON$
 }
