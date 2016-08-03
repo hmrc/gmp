@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.DesConnector
+import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -57,6 +57,7 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
   before {
     reset(mockRepo)
     reset(mockDesConnector)
+    when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
 
   "CalculationController" must {
@@ -406,6 +407,20 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         val result = testCalculationController.requestCalculation("0000").apply(fakeRequest)
 
         contentAsString(result) must not include "dateOfDeath"
+      }
+    }
+
+    "when citizens details return 423" must {
+      "return a global error" in {
+        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.getPersonDetails(Matchers.eq("AB123456C"))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
+
+        calcResponse.globalErrorCode must be(LOCKED)
       }
     }
   }

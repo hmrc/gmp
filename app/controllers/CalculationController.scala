@@ -18,7 +18,7 @@ package controllers
 
 
 import config.GmpGlobal
-import connectors.DesConnector
+import connectors.{DesGetHiddenRecordResponse, DesConnector}
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
@@ -38,6 +38,7 @@ trait CalculationController extends BaseController {
   val repository: CalculationRepository
   val auditConnector: AuditConnector = GmpGlobal.auditConnector
 
+
   def requestCalculation(userId: String) = Action.async(parse.json) {
 
     implicit request => {
@@ -50,24 +51,32 @@ trait CalculationController extends BaseController {
             Future.successful(Ok(Json.toJson(cr)))
           }
           case None => {
-            val result = desConnector.calculate(userId, calculationRequest)
-            result.map {
-              calculation => {
-                Logger.debug(s"[CalculationController][requestCalculation] : $calculation")
-
-                val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                  calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
-
-                Logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                repository.insertByRequest(calculationRequest, transformedResult)
-                sendResultsEvent(transformedResult, false, userId)
-
-                Ok(Json.toJson(transformedResult))
+            desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+              case DesGetHiddenRecordResponse => {
+                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype.getOrElse(-1))
+                Future.successful(Ok(Json.toJson(response)))
               }
-            }.recover {
-              case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
-                Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
-                InternalServerError(e.getMessage)
+              case _ => {
+                val result = desConnector.calculate(userId, calculationRequest)
+                result.map {
+                  calculation => {
+                    Logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+
+                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
+                      calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+
+                    Logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                    repository.insertByRequest(calculationRequest, transformedResult)
+                    sendResultsEvent(transformedResult, false, userId)
+
+                    Ok(Json.toJson(transformedResult))
+                  }
+                }.recover {
+                  case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
+                    Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                    InternalServerError(e.getMessage)
+                  }
+                }
               }
             }
           }
