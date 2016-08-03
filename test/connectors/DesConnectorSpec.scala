@@ -428,20 +428,6 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         await(pd) must be(DesGetErrorResponse(ex))
 
       }
-
-      "return exception when no ETag" in {
-
-        val r = HttpResponse(200, Some(desResponse.as[JsObject]))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {Future.successful(r)}
-
-
-        val ex = intercept[RuntimeException]{
-//          await(TestDesConnector.getPersonDetails("AB123456C"))(5 seconds)
-          Await.result(TestDesConnector.getPersonDetails("AB123456C"), 20 seconds)
-        }
-
-
-      }
     }
   }
 

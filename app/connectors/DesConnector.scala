@@ -209,16 +209,13 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> getConfString("des.environment","")))
     http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map {
       r =>
-        val etag = r.header("ETag").getOrElse(throw new RuntimeException("Missing ETag in DES response!"))
         (r.json \ "manualCorrespondenceInd").as[Boolean] match {
           case false => DesGetSuccessResponse
           case true  => DesGetHiddenRecordResponse
         }
 
     } recover {
-      case e: NotFoundException =>
-        DesGetNotFoundResponse
-      case e: RuntimeException => throw e
+      case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
         Logger.warn("Exception thrown getting individual record from DES", e)
         DesGetErrorResponse(e)
