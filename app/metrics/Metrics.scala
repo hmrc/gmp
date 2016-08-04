@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit
 import com.kenshoo.play.metrics.MetricsRegistry
 
 trait Metrics {
-
   def desConnectorTimer(diff: Long, unit: TimeUnit): Unit
-
+  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
+  def recordMciLockResult(): Unit
 }
 
 object Metrics extends Metrics {
-
   override def desConnectorTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("nps-connector-timer").update(diff, unit)
-
+  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
+  override def recordMciLockResult() = MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
 }

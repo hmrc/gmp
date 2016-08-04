@@ -46,9 +46,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
   object TestDesConnector extends DesConnector {
     override val http: HttpGet = mockHttp
-    override val metrics = new Metrics {
-      override def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = {}
-    }
+    override val metrics = mock[Metrics]
   }
 
   val calcResponseJson = Json.parse(
@@ -323,9 +321,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         object TestDesConnector extends DesConnector {
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp
-          override val metrics = new Metrics {
-            override def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = {}
-          }
+          override val metrics = mock[Metrics]
         }
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
@@ -368,15 +364,14 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         object TestNpsConnector extends DesConnector {
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp
-          override val metrics = new Metrics {
-            override def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = {}
-          }
+          override val metrics = mock[Metrics]
         }
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
           (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
-        val result = TestNpsConnector.validateScon("PSAID", "S1401234Q")
+
+        TestNpsConnector.validateScon("PSAID", "S1401234Q")
 
       }
     }
@@ -388,11 +383,14 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
         val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
         val r = HttpResponse(200, Some(badPerson), Map("ETag" -> Seq("115")))
+
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {Future.successful(r)}
 
         val pd = TestDesConnector.getPersonDetails(nino)
 
         await(pd) must be(DesGetHiddenRecordResponse)
+
+        verify(TestDesConnector.metrics, times(1)).recordMciLockResult()
       }
 
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
@@ -426,7 +424,6 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         val pd = TestDesConnector.getPersonDetails("AB123456C")
 
         await(pd) must be(DesGetErrorResponse(ex))
-
       }
     }
   }
