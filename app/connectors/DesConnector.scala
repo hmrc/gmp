@@ -206,7 +206,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
     val newHc = HeaderCarrier(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
-      "Authorization" -> ("Bearer " + getConfString("des.bearer-token","")),
+      "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> getConfString("des.environment","")))
 
     val startTime = System.currentTimeMillis()
