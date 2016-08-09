@@ -204,27 +204,33 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
-    val newHc = HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
-      "Authorization" -> s"Bearer $serviceKey",
-      "Environment" -> getConfString("des.environment","")))
+      val newHc = HeaderCarrier(extraHeaders = Seq(
+        "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+        "Authorization" -> s"Bearer $serviceKey",
+        "Environment" -> getConfString("des.environment","")))
 
-    val startTime = System.currentTimeMillis()
+      val startTime = System.currentTimeMillis()
 
-    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
+      http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
+      Logger.info(s"[DesConnector][getPersonDetails] : $r")
+
       (r.json \ "manualCorrespondenceInd").as[Boolean] match {
-          case false => DesGetSuccessResponse
+          case false =>
+            Logger.info(s"[DesConnector][calculate] : I am here")
+            DesGetSuccessResponse
           case true  =>
             metrics.recordMciLockResult()
+            Logger.info(s"[DesConnector][calculate] : I am here 2")
             DesGetHiddenRecordResponse
         }
 
     } recover {
-      case e: NotFoundException => DesGetNotFoundResponse
+      case e: NotFoundException => Logger.info(s"[DesConnector][calculate] : I am here 3"); DesGetNotFoundResponse
       case e: Exception =>
+        Logger.info(s"[DesConnector][calculate] : I am here 4")
         Logger.warn("Exception thrown getting individual record from DES", e)
         DesGetErrorResponse(e)
     }
