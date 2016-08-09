@@ -215,7 +215,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
-      Logger.info(s"[DesConnector][getPersonDetails] : $r")
+      Logger.info(s"[DesConnector][getPersonDetails] : ${r.body}")
 
       (r.json \ "manualCorrespondenceInd").as[Boolean] match {
           case false =>
