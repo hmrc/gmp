@@ -53,12 +53,10 @@ trait CalculationController extends BaseController {
           case None => {
             desConnector.getPersonDetails(calculationRequest.nino).flatMap {
               case DesGetHiddenRecordResponse => {
-                Logger.info(s"[CalculationController][requestCalculation] : I am here");
                 val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype.getOrElse(-1))
                 Future.successful(Ok(Json.toJson(response)))
               }
               case _ => {
-                Logger.info(s"[CalculationController][requestCalculation] : I am here 2");
                 val result = desConnector.calculate(userId, calculationRequest)
                 result.map {
                   calculation => {
