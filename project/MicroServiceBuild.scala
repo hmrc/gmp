@@ -81,7 +81,7 @@ private object AppDependencies {
     }.test
   }
 
-  private val hmrctestVersion = "1.6.0"
+  private val hmrctestVersion = "1.8.0"
 
   object IntegrationTest {
     def apply() = new TestDependencies {
