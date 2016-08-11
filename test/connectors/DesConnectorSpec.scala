@@ -38,7 +38,7 @@ import uk.gov.hmrc.play.http.logging.SessionId
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig{
+class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig {
 
   implicit val hc = HeaderCarrier()
 
@@ -384,7 +384,9 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
         val r = HttpResponse(200, Some(badPerson), Map("ETag" -> Seq("115")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {Future.successful(r)}
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.successful(r)
+        }
 
         val pd = TestDesConnector.getPersonDetails(nino)
 
@@ -396,7 +398,9 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
 
         val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {Future.successful(r)}
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+          Future.successful(r)
+        }
 
         val pd = TestDesConnector.getPersonDetails("AB123456C")
 
@@ -405,7 +409,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "return a DesNotFoundResponse when HOD returns 404" in {
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
           Future.failed(new NotFoundException("Not found"))
         }
 
@@ -417,7 +421,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
         val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(),any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
           Future.failed(ex)
         }
 
@@ -425,13 +429,27 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         await(pd) must be(DesGetErrorResponse(ex))
       }
+
+      "handles a response that does not include the MCI flag" in {
+
+        val json = Json.parse("{}")
+
+        val response = HttpResponse(200, Some(json), Map("ETag" -> Seq("115")))
+
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any[HeaderCarrier])) thenReturn {
+          Future.successful(response)
+        }
+
+        val pd = TestDesConnector.getPersonDetails(nino)
+
+        await(pd) must be(DesGetSuccessResponse)
+      }
     }
   }
 
   private def successfulCalcHttpResponse(responseJson: Option[JsValue]): JsValue = {
     responseJson.get
   }
-
 
 
 }
