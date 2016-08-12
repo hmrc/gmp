@@ -162,9 +162,10 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier = {
 
-    HeaderCarrier().withExtraHeaders("Authorization" -> s"Bearer $serviceKey")
-      .withExtraHeaders("Environment" -> serviceEnvironment)
-
+    HeaderCarrier(extraHeaders = Seq(
+      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
+      "Authorization" -> s"Bearer $serviceKey",
+      "Environment" -> serviceEnvironment))
   }
 
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
@@ -207,7 +208,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     val newHc = HeaderCarrier(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
-      "Environment" -> getConfString("des.environment","")))
+      "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
 
