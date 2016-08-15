@@ -76,13 +76,14 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       }/validate"""
 
     doAudit("gmpSconValidation", userId, scon, None, None, None)
-    Logger.debug(s"[DesConnector][validateScon] : $uri")
+    Logger.debug(s"[DesConnector][validateScon] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
     val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.desConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
@@ -129,13 +130,14 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       }"""
 
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
-    Logger.debug(s"[DesConnector][calculate] : $uri")
+    Logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
     val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.desConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
@@ -160,13 +162,11 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
   }
 
-  private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier = {
-
+  private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
     HeaderCarrier(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
-  }
 
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
     val encoded = for {
@@ -211,14 +211,17 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
+    val mciCheckUrl = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
 
-    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
+    Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $mciCheckUrl")
+
+    http.GET[HttpResponse](mciCheckUrl)(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       (r.json \ "manualCorrespondenceInd").asOpt[Boolean] match {
           case Some(true) =>
-            metrics.recordMciLockResult()
+            metrics.mciLockCount()
             DesGetHiddenRecordResponse
           case _  => DesGetSuccessResponse
         }
@@ -226,7 +229,8 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.warn("Exception thrown getting individual record from DES", e)
+        Logger.error("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
+        metrics.mciErrorCount()
         DesGetErrorResponse(e)
     }
   }
