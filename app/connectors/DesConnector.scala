@@ -76,7 +76,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       }/validate"""
 
     doAudit("gmpSconValidation", userId, scon, None, None, None)
-    Logger.debug(s"[DesConnector][validateScon] : $uri")
+    Logger.debug(s"[DesConnector][validateScon] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
