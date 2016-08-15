@@ -226,7 +226,8 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.warn("Exception thrown getting individual record from DES", e)
+        Logger.warn("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
+        metrics.mciErrorCount()
         DesGetErrorResponse(e)
     }
   }

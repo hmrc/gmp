@@ -25,6 +25,7 @@ trait Metrics {
   def desConnectorStatus(code: Int): Unit
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
   def mciLockCount(): Unit
+  def mciErrorCount(): Unit
 }
 
 object Metrics extends Metrics {
@@ -32,4 +33,5 @@ object Metrics extends Metrics {
   override def desConnectorStatus(code: Int) = MetricsRegistry.defaultRegistry.counter(s"nps-connector-status-$code").inc()
   override def mciConnectionTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
   override def mciLockCount() = MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
+  override def mciErrorCount() = MetricsRegistry.defaultRegistry.counter("mci-error-count").inc()
 }
