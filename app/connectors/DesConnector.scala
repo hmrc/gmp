@@ -211,8 +211,11 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
+    val mciCheckUrl = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
 
-    http.GET[HttpResponse](s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}")(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
+    Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $mciCheckUrl")
+
+    http.GET[HttpResponse](mciCheckUrl)(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
@@ -226,7 +229,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.warn("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
+        Logger.error("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
         metrics.mciErrorCount()
         DesGetErrorResponse(e)
     }
