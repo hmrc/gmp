@@ -32,8 +32,8 @@ private object AppDependencies {
   import play.core.PlayVersion
 
   private val playHealthVersion = "1.1.0"
-  private val metricsPlayVersion = "0.4.1"
-  private val metricsGraphiteVersion = "3.1.2"
+//  private val metricsPlayVersion = "0.4.1"
+//  private val metricsGraphiteVersion = "3.1.2"
   private val playMicroserviceBootstrap = "4.2.1"
   private val playConfig = "2.0.1"
   private val playUrlBinders = "1.0.0"
@@ -41,6 +41,8 @@ private object AppDependencies {
   private val playAuthorisationVersion = "3.1.0"
   private val playJsonLogger = "2.1.1"
   private val playReactivemongoVersion = "4.8.0"
+  private val playMetrics = "2.3.0_0.2.1"
+  private val metricsGraphite = "3.0.2"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
@@ -48,8 +50,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-config" % playConfig, ws,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "http-verbs" % httpVerbsVersion,
-    "com.kenshoo" %% "metrics-play" % metricsPlayVersion,
-    "io.dropwizard.metrics" % "metrics-graphite" % metricsGraphiteVersion,
+    "com.kenshoo" %% "metrics-play" % playMetrics,
+    "com.codahale.metrics" % "metrics-graphite" % metricsGraphite,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthorisationVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLogger
