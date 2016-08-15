@@ -83,6 +83,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.desConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
@@ -129,13 +130,14 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       }"""
 
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
-    Logger.debug(s"[DesConnector][calculate] : $uri")
+    Logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
     val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.desConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
@@ -160,13 +162,11 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
   }
 
-  private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier = {
-
+  private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
     HeaderCarrier(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
-  }
 
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
     val encoded = for {
