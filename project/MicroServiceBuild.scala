@@ -32,8 +32,6 @@ private object AppDependencies {
   import play.core.PlayVersion
 
   private val playHealthVersion = "1.1.0"
-//  private val metricsPlayVersion = "0.4.1"
-//  private val metricsGraphiteVersion = "3.1.2"
   private val playMicroserviceBootstrap = "4.2.1"
   private val playConfig = "2.0.1"
   private val playUrlBinders = "1.0.0"
