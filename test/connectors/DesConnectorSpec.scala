@@ -392,7 +392,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         await(pd) must be(DesGetHiddenRecordResponse)
 
-        verify(TestDesConnector.metrics, times(1)).recordMciLockResult()
+        verify(TestDesConnector.metrics, times(1)).mciLockCount()
       }
 
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {

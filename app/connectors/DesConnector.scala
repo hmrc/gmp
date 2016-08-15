@@ -218,7 +218,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
       (r.json \ "manualCorrespondenceInd").asOpt[Boolean] match {
           case Some(true) =>
-            metrics.recordMciLockResult()
+            metrics.mciLockCount()
             DesGetHiddenRecordResponse
           case _  => DesGetSuccessResponse
         }
