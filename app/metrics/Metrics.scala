@@ -19,6 +19,7 @@ package metrics
 import java.util.concurrent.TimeUnit
 
 import com.kenshoo.play.metrics.MetricsRegistry
+import play.api.Logger
 
 trait Metrics {
   def desConnectorTimer(diff: Long, unit: TimeUnit): Unit
@@ -29,6 +30,22 @@ trait Metrics {
 }
 
 object Metrics extends Metrics {
+
+  private val timer = (name: String) => MetricsRegistry.defaultRegistry.timer(name)
+  private val counter = (name: String) => MetricsRegistry.defaultRegistry.counter(name)
+
+  Logger.info("[Metrics][constructor] Preloading metrics keys")
+
+  Seq(
+    ("nps-connector-timer", timer),
+    ("nps-connector-status-200", counter),
+    ("nps-connector-status-400", counter),
+    ("nps-connector-status-500", counter),
+    ("mci-connection-timer", timer),
+    ("mci-lock-result-count", counter),
+    ("mci-error-count", counter)
+  ) foreach { t => t._2(t._1) }
+
   override def desConnectorTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("nps-connector-timer").update(diff, unit)
   override def desConnectorStatus(code: Int) = MetricsRegistry.defaultRegistry.counter(s"nps-connector-status-$code").inc()
   override def mciConnectionTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
