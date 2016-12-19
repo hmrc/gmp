@@ -28,17 +28,19 @@ object MicroServiceBuild extends Build with MicroService {
 
 private object AppDependencies {
 
-  import play.PlayImport._
+  import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val playHealthVersion = "1.1.0"
-  private val playMicroserviceBootstrap = "4.4.0"
-  private val playConfig = "2.0.1"
-  private val playUrlBinders = "1.0.0"
-  private val playAuthorisationVersion = "3.3.0"
-  private val playJsonLogger = "2.1.1"
-  private val playReactivemongoVersion = "4.8.0"
-  private val playMetrics = "2.3.0_0.2.1"
+  private val playHealthVersion = "2.0.0"
+  private val playMicroserviceBootstrap = "5.8.0"
+  private val playConfig = "3.0.0"
+  private val playUrlBinders = "2.0.0"
+  private val playAuthorisationVersion = "4.2.0"
+  //private val playJsonLogger = "2.1.1"
+  private val logbackJsonLogger = "3.1.0"
+  private val playReactivemongoVersion = "5.1.0"
+  //private val playMetrics = "2.3.0_0.2.1"
+  private val playGraphite = "3.1.0"
   private val metricsGraphite = "3.0.2"
 
   val compile = Seq(
@@ -46,20 +48,22 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders,
     "uk.gov.hmrc" %% "play-config" % playConfig, ws,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
-    "com.kenshoo" %% "metrics-play" % playMetrics,
-    "com.codahale.metrics" % "metrics-graphite" % metricsGraphite,
+    //"com.kenshoo" %% "metrics-play" % playMetrics,
+    "uk.gov.hmrc" %% "play-graphite" % playGraphite,
+    //"com.codahale.metrics" % "metrics-graphite" % metricsGraphite,// Check it
     "uk.gov.hmrc" %% "play-authorisation" % playAuthorisationVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-    "uk.gov.hmrc" %% "play-json-logger" % playJsonLogger
+    //"uk.gov.hmrc" %% "play-json-logger" % playJsonLogger
+    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLogger
   )
 
   trait TestDependencies {
     lazy val scope: String = "test"
-    lazy val test: Seq[ModuleID] = ???
+    lazy val test: Seq[ModuleID] = Seq.empty
   }
 
   private val scalatestVersion = "2.2.6"
-  private val scalatestPlusPlayVersion = "1.2.0"
+  private val scalatestPlusPlayVersion = "1.5.1"
   private val pegdownVersion = "1.6.0"
   private val reactiveMongoTest = "1.6.0"
 
@@ -69,17 +73,17 @@ private object AppDependencies {
         "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
         "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders % scope,
         "uk.gov.hmrc" %% "play-config" % playConfig % scope,
-        "org.scalatest" %% "scalatest" % scalatestVersion % scope,
-        "org.scalatestplus" %% "play" % scalatestPlusPlayVersion % scope,
-        "org.pegdown" % "pegdown" % pegdownVersion % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "org.scalatest" %% "scalatest" % scalatestVersion % scope, // Check it
+        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
+        "org.pegdown" % "pegdown" % pegdownVersion % scope, // Check it
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope, // Check it
         "uk.gov.hmrc" %% "hmrctest" % hmrctestVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope
       )
     }.test
   }
 
-  private val hmrctestVersion = "1.8.0"
+  private val hmrctestVersion = "2.2.0"
 
   object IntegrationTest {
     def apply() = new TestDependencies {

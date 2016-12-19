@@ -18,8 +18,9 @@ package metrics
 
 import java.util.concurrent.TimeUnit
 
-import com.kenshoo.play.metrics.MetricsRegistry
+//import com.kenshoo.play.metrics.MetricsRegistry
 import play.api.Logger
+import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
 trait Metrics {
   def desConnectorTimer(diff: Long, unit: TimeUnit): Unit
@@ -29,10 +30,11 @@ trait Metrics {
   def mciErrorCount(): Unit
 }
 
-object Metrics extends Metrics {
+object Metrics extends Metrics with MicroserviceMetrics {
+  val registry = metrics.defaultRegistry
 
-  private val timer = (name: String) => MetricsRegistry.defaultRegistry.timer(name)
-  private val counter = (name: String) => MetricsRegistry.defaultRegistry.counter(name)
+  private val timer = (name: String) => registry.timer(name)
+  private val counter = (name: String) => registry.counter(name)
 
   Logger.info("[Metrics][constructor] Preloading metrics keys")
 
@@ -46,9 +48,9 @@ object Metrics extends Metrics {
     ("mci-error-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  override def desConnectorTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("nps-connector-timer").update(diff, unit)
-  override def desConnectorStatus(code: Int) = MetricsRegistry.defaultRegistry.counter(s"nps-connector-status-$code").inc()
-  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = MetricsRegistry.defaultRegistry.timer("mci-connection-timer").update(diff, unit)
-  override def mciLockCount() = MetricsRegistry.defaultRegistry.counter("mci-lock-result-count").inc()
-  override def mciErrorCount() = MetricsRegistry.defaultRegistry.counter("mci-error-count").inc()
+  override def desConnectorTimer(diff: Long, unit: TimeUnit) = registry.timer("nps-connector-timer").update(diff, unit)
+  override def desConnectorStatus(code: Int) = registry.counter(s"nps-connector-status-$code").inc()
+  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = registry.timer("mci-connection-timer").update(diff, unit)
+  override def mciLockCount() = registry.counter("mci-lock-result-count").inc()
+  override def mciErrorCount() = registry.counter("mci-error-count").inc()
 }

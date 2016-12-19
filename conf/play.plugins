@@ -1,3 +1,0 @@
-1:com.kenshoo.play.metrics.MetricsPlugin
-1000:uk.gov.hmrc.play.health.HealthPlugin
-400:play.modules.reactivemongo.ReactiveMongoPlugin
