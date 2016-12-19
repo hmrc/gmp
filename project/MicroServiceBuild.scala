@@ -66,6 +66,7 @@ private object AppDependencies {
   private val scalatestPlusPlayVersion = "1.5.1"
   private val pegdownVersion = "1.6.0"
   private val reactiveMongoTest = "1.6.0"
+  private val mockitoCoreVersion = "1.9.5"
 
   object Test {
     def apply() = new TestDependencies {
@@ -78,7 +79,8 @@ private object AppDependencies {
         "org.pegdown" % "pegdown" % pegdownVersion % scope, // Check it
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope, // Check it
         "uk.gov.hmrc" %% "hmrctest" % hmrctestVersion % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope,
+        "org.mockito" % "mockito-core" % mockitoCoreVersion %scope
       )
     }.test
   }
