@@ -58,7 +58,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
       when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       status(result) must be(OK)
@@ -69,7 +70,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
       when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       contentType(result).get must be("application/json")
@@ -80,7 +82,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
       when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
@@ -91,7 +94,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
       when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(ValidateSconResponse(1)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
@@ -102,7 +106,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
       when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
         .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
 
@@ -111,7 +116,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
 
     "return cached response" in {
       when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(Some(validateSconResponse)))
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
       await(testValidateSconController.validateScon("PSAID").apply(fakeRequest))
 
       val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
