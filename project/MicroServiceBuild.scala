@@ -65,7 +65,7 @@ private object AppDependencies {
   private val scalatestVersion = "2.2.6"
   private val scalatestPlusPlayVersion = "1.5.1"
   private val pegdownVersion = "1.6.0"
-  private val reactiveMongoTest = "1.6.0"
+  private val reactiveMongoTest = "2.0.0"
   private val mockitoCoreVersion = "1.9.5"
 
   object Test {
