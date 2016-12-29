@@ -41,7 +41,7 @@ private object AppDependencies {
   private val playReactivemongoVersion = "5.1.0"
   //private val playMetrics = "2.3.0_0.2.1"
   private val playGraphite = "3.1.0"
-  private val metricsGraphite = "3.0.2"
+  //private val metricsGraphite = "3.0.2"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
