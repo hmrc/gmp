@@ -30,12 +30,15 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.play.http.{HeaderCarrier, Upstream5xxResponse}
-
+import play.api.inject.guice.GuiceApplicationBuilder
 import scala.concurrent.Future
 
 class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
+
+  implicit lazy override val app = new GuiceApplicationBuilder().build()
+
   val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]

@@ -24,10 +24,13 @@ import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.Awaiting
 
 
 class CalculationRepositorySpec extends PlaySpec with OneAppPerSuite with Awaiting with MockitoSugar with MongoMocks {
+
+  implicit lazy override val app = new GuiceApplicationBuilder().build()
 
   class MockedCalculationRepository extends CalculationMongoRepository()(() => mockMongoDb) {
     override lazy val collection = mockCollection()

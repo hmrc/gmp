@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -37,6 +38,8 @@ import scala.concurrent.Future
 class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
+
+  implicit lazy override val app = new GuiceApplicationBuilder().build()
 
   val calculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
   val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None,dualCalc = true, 1)
