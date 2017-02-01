@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.{DesGetSuccessResponse, DesGetHiddenRecordResponse, DesConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -24,6 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -37,6 +38,8 @@ import scala.concurrent.Future
 class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
+
+  implicit lazy override val app = new GuiceApplicationBuilder().build()
 
   val calculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
   val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None,dualCalc = true, 1)
@@ -92,7 +95,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
               }"""
             ).as[CalculationResponse]))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         status(result) must be(OK)
@@ -123,7 +127,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
               }
               ]
               }""").as[CalculationResponse]))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         contentType(result).get must be("application/json")
@@ -167,7 +172,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
               }"""
             ).as[CalculationResponse]
           ))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest.copy(revaluationDate = Some("1990-01-01"), revaluationRate = Some(1))))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -183,7 +189,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
           .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
@@ -219,7 +226,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
             ).as[CalculationResponse]
           ))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
@@ -258,7 +266,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
               }"""
             ).as[CalculationResponse]
           ))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
@@ -291,7 +300,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         ).as[CalculationResponse]
 
         when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(npsResponse))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         status(result) must be(OK)
@@ -304,7 +314,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         status(result) must be(OK)
@@ -315,7 +326,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         verify(mockDesConnector, never()).calculate(Matchers.any(), Matchers.any())(Matchers.any())
@@ -326,7 +338,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
       "return false" in {
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -363,7 +376,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(npsResponse))
         when(mockRepo.insertByRequest(Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -376,7 +390,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(new LocalDate("2016-01-01"))))))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -388,7 +403,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
       when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
       when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+      //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
         body = Json.toJson(calculationRequest))
 
       val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -401,7 +417,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))),
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("0000").apply(fakeRequest)
@@ -416,7 +433,8 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
         when(mockDesConnector.getPersonDetails(Matchers.eq("AB123456C"))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        //val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
 

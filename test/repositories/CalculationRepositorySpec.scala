@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,13 @@ import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.Awaiting
 
 
 class CalculationRepositorySpec extends PlaySpec with OneAppPerSuite with Awaiting with MockitoSugar with MongoMocks {
+
+  implicit lazy override val app = new GuiceApplicationBuilder().build()
 
   class MockedCalculationRepository extends CalculationMongoRepository()(() => mockMongoDb) {
     override lazy val collection = mockCollection()
