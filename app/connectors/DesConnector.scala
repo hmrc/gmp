@@ -58,7 +58,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
   lazy val serviceURL = baseUrl("nps")
-  lazy val desUrl = baseUrl("des")
+  //lazy val desUrl = baseUrl("des")
 
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
@@ -211,7 +211,8 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val mciCheckUrl = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    //val mciCheckUrl = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    val mciCheckUrl = s"/citizen-details/$nino/designatory-details"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $mciCheckUrl")
 
