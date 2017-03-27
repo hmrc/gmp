@@ -384,7 +384,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
         val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
-        val r = HttpResponse(200, Some(badPerson), Map("ETag" -> Seq("115")))
+        val r = HttpResponse(423, Some(badPerson), Map("ETag" -> Seq("115")))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
           Future.successful(r)
