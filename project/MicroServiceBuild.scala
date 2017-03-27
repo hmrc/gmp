@@ -27,28 +27,23 @@ private object AppDependencies {
   import play.core.PlayVersion
 
   private val playHealthVersion = "2.1.0"
-  private val playMicroserviceBootstrap = "5.13.0"
+  private val playMicroserviceBootstrap = "5.14.0"
   private val playConfig = "4.3.0"
   private val playUrlBinders = "2.1.0"
   private val playAuthorisationVersion = "4.3.0"
-  //private val playJsonLogger = "2.1.1"
   private val logbackJsonLogger = "3.1.0"
   private val playReactivemongoVersion = "5.2.0"
-  //private val playMetrics = "2.3.0_0.2.1"
-  private val playGraphite = "3.1.0"
-  //private val metricsGraphite = "3.0.2"
+  private val playGraphite = "3.2.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders,
     "uk.gov.hmrc" %% "play-config" % playConfig, ws,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
-    //"com.kenshoo" %% "metrics-play" % playMetrics,
     "uk.gov.hmrc" %% "play-graphite" % playGraphite,
     //"com.codahale.metrics" % "metrics-graphite" % metricsGraphite,// Check it
     "uk.gov.hmrc" %% "play-authorisation" % playAuthorisationVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-    //"uk.gov.hmrc" %% "play-json-logger" % playJsonLogger
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLogger
   )
 
@@ -62,6 +57,7 @@ private object AppDependencies {
   private val pegdownVersion = "1.6.0"
   private val reactiveMongoTest = "2.0.0"
   private val mockitoCoreVersion = "1.9.5"
+  private val hmrctestVersion = "2.3.0"
 
   object Test {
     def apply() = new TestDependencies {
@@ -79,8 +75,6 @@ private object AppDependencies {
       )
     }.test
   }
-
-  private val hmrctestVersion = "2.2.0"
 
   object IntegrationTest {
     def apply() = new TestDependencies {
