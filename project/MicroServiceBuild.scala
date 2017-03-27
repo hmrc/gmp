@@ -17,12 +17,7 @@
 import sbt._
 
 object MicroServiceBuild extends Build with MicroService {
-
-  import scala.util.Properties.envOrElse
-
   val appName = "gmp"
-  val appVersion = envOrElse("GMP_VERSION", "999-SNAPSHOT")
-
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 }
 
