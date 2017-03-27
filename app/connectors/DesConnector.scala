@@ -38,6 +38,7 @@ case object DesGetSuccessResponse extends DesGetResponse
 case object DesGetHiddenRecordResponse extends DesGetResponse
 case object DesGetNotFoundResponse extends DesGetResponse
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
+case object DesGetUnexpectedResponse extends DesGetResponse
 
 trait DesConnector extends ApplicationConfig with RawResponseReads {
 
@@ -58,8 +59,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
   lazy val serviceURL = baseUrl("nps")
-  lazy val desUrl = baseUrl("des")
-
+  def citizenDetailsUrl: String = baseUrl("citizen-details")
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
 
@@ -211,20 +211,23 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val mciCheckUrl = s"$desUrl/pay-as-you-earn/individuals/${nino.take(8)}"
+    val url = s"${citizenDetailsUrl}/citizen-details/${nino.take(8)}/etag"
 
-    Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $mciCheckUrl")
+    Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](mciCheckUrl)(implicitly[HttpReads[HttpResponse]], newHc) map { r =>
+    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc) map { response =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
-      (r.json \ "manualCorrespondenceInd").asOpt[Boolean] match {
-          case Some(true) =>
-            metrics.mciLockCount()
-            DesGetHiddenRecordResponse
-          case _  => DesGetSuccessResponse
-        }
+      response.status match {
+        case LOCKED =>
+          metrics.mciLockCount()
+          DesGetHiddenRecordResponse
+        case NOT_FOUND => DesGetNotFoundResponse
+        case OK => DesGetSuccessResponse
+        case INTERNAL_SERVER_ERROR => DesGetUnexpectedResponse
+        case _ => DesGetUnexpectedResponse
+      }
 
     } recover {
       case e: NotFoundException => DesGetNotFoundResponse
