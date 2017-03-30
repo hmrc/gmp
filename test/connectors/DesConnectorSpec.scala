@@ -79,62 +79,11 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }"""
   )
 
-  val desResponse = Json.parse(
-    """{
-        "brailleOutputRequired" : false,
-        "deceased" : false,
-        "dateOfBirth" : "1969-03-05",
-        "manualCorrespondenceInd" : false,
-        "hasSelfAssessmentAccount" : false,
-        "dateOfRegistration" : "2000-01-01",
-        "ninoSuffix" : "C",
-        "phoneNumber" : {
-          "1" : {
-          "telephoneNumber" : "01999123456",
-          "telephoneType" : 1
-        }
-        },
-        "registrationType" : 0,
-        "names" : {
-          "1" : {
-          "sequenceNumber" : 12345,
-          "firstForenameOrInitial" : "Angus",
-          "secondForenameOrInitial" : "John",
-          "startDate" : "2000-01-01",
-          "surname" : "Smith",
-          "title" : 1,
-          "honours" : null
-        }
-        },
-        "nino" : "AB123456",
-        "audioOutputRequired" : false,
-        "welshOutputRequired" : false,
-        "sex" : "M",
-        "dateOfEntry" : "2000-01-01",
-        "addresses" : {
-          "1" : {
-          "sequenceNumber" : 1,
-          "line1" : 123456,
-          "line2" : 23456,
-          "line3" : 3456,
-          "line4" : 456,
-          "postcode" : 98765,
-          "startDate" : "2000-01-01"
-        },
-          "2" : {
-          "sequenceNumber" : 1,
-          "line1" : "1 Main Street",
-          "line2" : "Central",
-          "line3" : "Anothertown",
-          "line4" : "Anothershire",
-          "postcode" : "NE27 5FG",
-          "startDate" : "2012-07-01"
-        }
-        },
-        "largePrintOutputRequired" : false,
-        "accountStatus" : 0
-      }"""
-  )
+  val citizenDetailsJson = Json.parse(
+            """{
+                  "etag" : "115"
+                }
+            """.stripMargin)
 
   before {
     reset(mockHttp)
@@ -383,29 +332,25 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       val nino = "AB123456C"
 
       "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
-        val badPerson = desResponse.as[JsObject] + ("manualCorrespondenceInd" -> JsBoolean(true))
-        val r = HttpResponse(423, Some(badPerson), Map("ETag" -> Seq("115")))
+
+        val response = HttpResponse(423, Some(citizenDetailsJson))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
-          Future.successful(r)
+          Future.successful(response)
         }
 
         val pd = TestDesConnector.getPersonDetails(nino)
-
         await(pd) must be(DesGetHiddenRecordResponse)
-
-        verify(TestDesConnector.metrics, times(1)).mciLockCount()
       }
 
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
 
-        val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
+        val response = HttpResponse(200, Some(citizenDetailsJson))
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
-          Future.successful(r)
+          Future.successful(response)
         }
 
-        val pd = TestDesConnector.getPersonDetails("AB123456C")
-
+        val pd = TestDesConnector.getPersonDetails(nino)
         await(pd) must be(DesGetSuccessResponse)
       }
 
@@ -415,38 +360,43 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
           Future.failed(new NotFoundException("Not found"))
         }
 
-        val pd = TestDesConnector.getPersonDetails("AB123456C")
-
+        val pd = TestDesConnector.getPersonDetails(nino)
         await(pd) must be(DesGetNotFoundResponse)
       }
 
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
-        val r = HttpResponse(200, Some(desResponse.as[JsObject]), Map("ETag" -> Seq("115")))
+        val r = HttpResponse(200,  Some(citizenDetailsJson))
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
           Future.failed(ex)
         }
 
-        val pd = TestDesConnector.getPersonDetails("AB123456C")
-
-        await(pd) must be(DesGetErrorResponse(ex))
-      }
-
-      "handles a response that does not include the MCI flag" in {
-
-        val json = Json.parse("{}")
-
-        val response = HttpResponse(200, Some(json), Map("ETag" -> Seq("115")))
-
-        when(mockHttp.GET[HttpResponse](anyString)(any(), any[HeaderCarrier])) thenReturn {
-          Future.successful(response)
-        }
-
         val pd = TestDesConnector.getPersonDetails(nino)
+        await(pd) must be(DesGetErrorResponse(ex))
 
-        await(pd) must be(DesGetSuccessResponse)
       }
+
+      "return a success response if the MCI flag does not appear in the response" in {
+        val json = Json.parse("{}")
+        val response = HttpResponse(200, Some(json))
+
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any())) thenReturn Future.successful(response)
+
+        val result = TestDesConnector.getPersonDetails(nino)
+        await(result) must be(DesGetSuccessResponse)
+      }
+
+      "return an Unexpected Response with Internal Server response or DES is down" in {
+        val response = HttpResponse(500, Some(citizenDetailsJson))
+
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any())) thenReturn Future.successful(response)
+
+        val result = TestDesConnector.getPersonDetails(nino)
+        await(result) must be(DesGetUnexpectedResponse)
+      }
+
     }
+
   }
 
   private def successfulCalcHttpResponse(responseJson: Option[JsValue]): JsValue = {
