@@ -35,13 +35,19 @@ private object AppDependencies {
   private val playReactivemongoVersion = "5.2.0"
   private val playGraphite = "3.2.0"
 
+  private val scalatestVersion = "2.2.6"
+  private val scalatestPlusPlayVersion = "1.5.1"
+  private val pegdownVersion = "1.6.0"
+  private val reactiveMongoTest = "2.0.0"
+  private val mockitoCoreVersion = "1.9.5"
+  private val hmrctestVersion = "2.3.0"
+
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders,
     "uk.gov.hmrc" %% "play-config" % playConfig, ws,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-graphite" % playGraphite,
-    //"com.codahale.metrics" % "metrics-graphite" % metricsGraphite,// Check it
     "uk.gov.hmrc" %% "play-authorisation" % playAuthorisationVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLogger
@@ -52,23 +58,16 @@ private object AppDependencies {
     lazy val test: Seq[ModuleID] = Seq.empty
   }
 
-  private val scalatestVersion = "2.2.6"
-  private val scalatestPlusPlayVersion = "1.5.1"
-  private val pegdownVersion = "1.6.0"
-  private val reactiveMongoTest = "2.0.0"
-  private val mockitoCoreVersion = "1.9.5"
-  private val hmrctestVersion = "2.3.0"
-
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
         "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders % scope,
         "uk.gov.hmrc" %% "play-config" % playConfig % scope,
-        "org.scalatest" %% "scalatest" % scalatestVersion % scope, // Check it
+        "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
-        "org.pegdown" % "pegdown" % pegdownVersion % scope, // Check it
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope, // Check it
+        "org.pegdown" % "pegdown" % pegdownVersion % scope,
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "hmrctest" % hmrctestVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope,
         "org.mockito" % "mockito-core" % mockitoCoreVersion %scope
