@@ -32,7 +32,7 @@ trait MicroService {
   import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
 
   val appName: String
-  lazy val appDependencies: Seq[ModuleID] = Seq.empty
+  lazy val appDependencies: Seq[ModuleID] = ???
   lazy val plugins: Seq[Plugins] = Seq(play.sbt.PlayScala)
   lazy val playSettings: Seq[Setting[_]] = Seq.empty
 

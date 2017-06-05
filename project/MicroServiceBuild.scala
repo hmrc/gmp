@@ -44,7 +44,6 @@ private object AppDependencies {
 
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
-    "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders,
     "uk.gov.hmrc" %% "play-config" % playConfig, ws,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-graphite" % playGraphite,
@@ -62,7 +61,6 @@ private object AppDependencies {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
-        "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders % scope,
         "uk.gov.hmrc" %% "play-config" % playConfig % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
@@ -82,7 +80,6 @@ private object AppDependencies {
 
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
-        "uk.gov.hmrc" %% "play-url-binders" % playUrlBinders % scope,
         "uk.gov.hmrc" %% "play-config" % playConfig % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
