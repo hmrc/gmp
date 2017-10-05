@@ -32,12 +32,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpResponse, NotFoundException, Upstream5xxResponse }
+import uk.gov.hmrc.http.logging.SessionId
 
 class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig {
 
@@ -98,7 +98,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
         val calcResponse = await(result)
@@ -111,7 +111,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(500, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
@@ -124,7 +124,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(422, Some(calcResponseJson))))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
@@ -136,7 +136,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return a response when 400 returned" in {
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(400, None)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
@@ -148,10 +148,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "generate a DES url" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must endWith("/scon/S/1401234/Q/nino/CB433298A/surname/SMI/firstname/B/calculation/?calctype=0")
       }
@@ -164,10 +164,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must endWith("/?calctype=0")
       }
@@ -175,10 +175,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "truncate surname to 3 chars if length greater than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("/surname/SMI/")
       }
@@ -186,10 +186,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "not truncate surname if length less than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("surname/FR/")
       }
@@ -197,10 +197,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "remove any whitespace from names" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("surname/LEB/")
 
@@ -210,10 +210,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("/surname/O%27S/")
       }
@@ -222,10 +222,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("CB433298A")
       }
@@ -234,10 +234,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("S/1401234/Q")
       }
@@ -246,10 +246,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("revalrate")
       }
@@ -258,10 +258,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any())
+        verify(mockHttp).GET[HttpResponse](urlCaptor.capture())(Matchers.any(), Matchers.any(), Matchers.any())
 
         urlCaptor.getValue must include("request_earnings")
       }
@@ -277,7 +277,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
       }
@@ -288,7 +288,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
@@ -300,7 +300,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(500, Some(validateSconResponseJson))))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
@@ -320,7 +320,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
 
         TestNpsConnector.validateScon("PSAID", "S1401234Q")
 
@@ -335,7 +335,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
         val response = HttpResponse(423, Some(citizenDetailsJson))
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
           Future.successful(response)
         }
 
@@ -346,7 +346,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
 
         val response = HttpResponse(200, Some(citizenDetailsJson))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
           Future.successful(response)
         }
 
@@ -356,7 +356,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "return a DesNotFoundResponse when HOD returns 404" in {
 
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
           Future.failed(new NotFoundException("Not found"))
         }
 
@@ -367,7 +367,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
         val r = HttpResponse(200,  Some(citizenDetailsJson))
-        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any())) thenReturn {
+        when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
           Future.failed(ex)
         }
 
@@ -380,7 +380,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
         val json = Json.parse("{}")
         val response = HttpResponse(200, Some(json))
 
-        when(mockHttp.GET[HttpResponse](anyString)(any(), any())) thenReturn Future.successful(response)
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any(), any())) thenReturn Future.successful(response)
 
         val result = TestDesConnector.getPersonDetails(nino)
         await(result) must be(DesGetSuccessResponse)
@@ -389,7 +389,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "return an Unexpected Response with Internal Server response or DES is down" in {
         val response = HttpResponse(500, Some(citizenDetailsJson))
 
-        when(mockHttp.GET[HttpResponse](anyString)(any(), any())) thenReturn Future.successful(response)
+        when(mockHttp.GET[HttpResponse](anyString)(any(), any(), any())) thenReturn Future.successful(response)
 
         val result = TestDesConnector.getPersonDetails(nino)
         await(result) must be(DesGetUnexpectedResponse)

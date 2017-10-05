@@ -19,15 +19,15 @@ package config
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Play}
-import uk.gov.hmrc.play.audit.filters.AuditFilter
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.hooks.HttpHooks
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.http.ws._
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
@@ -68,8 +68,11 @@ object GmpGlobal extends DefaultMicroserviceGlobal with RunMode {
 
 }
 
-object WSHttp extends WSGet with WSPut with WSPost with WSDelete with WSPatch with AppName with RunMode with HttpAuditing {
+trait Hooks extends HttpHooks with HttpAuditing {
   //implicit auditing off
-  override val hooks = NoneRequired //Seq(AuditingHook)
+  override val hooks = Seq(AuditingHook)
   override val auditConnector = MicroserviceAuditFilter.auditConnector
 }
+
+trait WSHttp extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName
+object WSHttp extends WSHttp

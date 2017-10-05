@@ -26,11 +26,11 @@ import play.api.libs.json._
 import play.api.mvc.Action
 import repositories.CalculationRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, Upstream5xxResponse }
 
 trait CalculationController extends BaseController {
 

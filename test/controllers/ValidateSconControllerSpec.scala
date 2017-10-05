@@ -29,9 +29,9 @@ import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.ValidateSconRepository
-import uk.gov.hmrc.play.http.{HeaderCarrier, Upstream5xxResponse}
 import play.api.inject.guice.GuiceApplicationBuilder
 import scala.concurrent.Future
+import uk.gov.hmrc.http.{ HeaderCarrier, Upstream5xxResponse }
 
 class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 
