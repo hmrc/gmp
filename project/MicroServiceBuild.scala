@@ -26,13 +26,8 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val playHealthVersion = "2.1.0"
-  private val playMicroserviceBootstrap = "5.14.0"
-  private val playConfig = "4.3.0"
-  private val playAuthorisationVersion = "4.3.0"
-  private val logbackJsonLogger = "3.1.0"
+  private val microserviceBootstrap = "6.9.0"
   private val playReactivemongoVersion = "5.2.0"
-  private val playGraphite = "3.2.0"
 
   private val scalatestVersion = "2.2.6"
   private val scalatestPlusPlayVersion = "1.5.1"
@@ -42,13 +37,9 @@ private object AppDependencies {
   private val hmrctestVersion = "2.3.0"
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap,
-    "uk.gov.hmrc" %% "play-config" % playConfig, ws,
-    "uk.gov.hmrc" %% "play-health" % playHealthVersion,
-    "uk.gov.hmrc" %% "play-graphite" % playGraphite,
-    "uk.gov.hmrc" %% "play-authorisation" % playAuthorisationVersion,
+    "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrap,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLogger
+    ws
   )
 
   trait TestDependencies {
@@ -59,8 +50,7 @@ private object AppDependencies {
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
-        "uk.gov.hmrc" %% "play-config" % playConfig % scope,
+        "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrap % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
@@ -78,8 +68,7 @@ private object AppDependencies {
       override lazy val scope: String = "it"
 
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "microservice-bootstrap" % playMicroserviceBootstrap % scope,
-        "uk.gov.hmrc" %% "play-config" % playConfig % scope,
+        "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrap % scope,
         "org.scalatest" %% "scalatest" % scalatestVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,

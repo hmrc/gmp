@@ -18,18 +18,19 @@ package connectors
 
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+
 import config.{ApplicationConfig, GmpGlobal, WSHttp}
 import metrics.Metrics
 import models._
 import play.api.Logger
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.audit.model.{EventTypes, DataEvent}
-import uk.gov.hmrc.play.http._
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.play.audit.AuditExtensions._
 import play.api.http.Status._
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 trait DesGetResponse
 sealed trait DesPostResponse
@@ -80,7 +81,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
+    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -134,7 +135,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads).map { response =>
+    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -215,7 +216,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
     Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc) map { response =>
+    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc, ec = ExecutionContext.global) map { response =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 

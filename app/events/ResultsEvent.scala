@@ -16,7 +16,7 @@
 
 package events
 
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class ResultsEvent(successful:Boolean,
                    errorCodes:List[Int],
