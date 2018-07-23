@@ -1,5 +1,5 @@
 GMP
-=============
+============
 
 Guaranteed Minimum Pension micro service
 
