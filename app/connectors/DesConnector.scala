@@ -212,7 +212,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
-    val url = s"${citizenDetailsUrl}/citizen-details/${nino.take(8)}/etag"
+    val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
