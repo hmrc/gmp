@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{PlaySpec, OneServerPerSuite}
 import play.api.libs.json.Json
 import reactivemongo.api.indexes.CollectionIndexesManager
-import reactivemongo.json.collection.JSONCollection
+import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.{Awaiting, MongoSpecSupport}
 
 import scala.concurrent.Future

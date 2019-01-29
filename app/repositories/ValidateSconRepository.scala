@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import reactivemongo.api.{ReadPreference, DefaultDB}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{Repository, ReactiveRepository}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -87,7 +88,7 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
     collection.insert(model).map { lastError =>
-      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${lastError.errmsg} }")
+      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${lastError} }")
       lastError.ok
     }
   }

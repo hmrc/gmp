@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit
 import config.{ApplicationConfig, GmpGlobal, WSHttp}
 import metrics.Metrics
 import models._
-import play.api.Logger
+import play.api.Mode.Mode
+import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
@@ -242,6 +243,8 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 }
 
 object DesConnector extends DesConnector {
+  override protected def mode: Mode = Play.current.mode
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
   // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
   override val metrics = Metrics
   // $COVERAGE-ON$

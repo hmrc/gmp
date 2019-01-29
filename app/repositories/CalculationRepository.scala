@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import reactivemongo.api.{ReadPreference, DefaultDB}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -102,7 +103,7 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
     collection.insert(CachedCalculation(request.hashCode, response)).map { lastError =>
-      Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${lastError.errmsg} }")
+      Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${lastError} }")
       lastError.ok
     }
   }

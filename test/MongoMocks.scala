@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import play.api.libs.json.JsObject
 import reactivemongo.api.commands.{UpdateWriteResult, WriteConcern, WriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.api.{CollectionProducer, Cursor, DefaultDB, FailoverStrategy}
-import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
+import reactivemongo.play.json.collection.{JSONCollection, JSONQueryBuilder}
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ExecutionContext, Future}
