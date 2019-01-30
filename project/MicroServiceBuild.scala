@@ -29,7 +29,7 @@ private object AppDependencies {
   private val microserviceBootstrap = "10.2.0"
   private val playReactivemongoVersion = "6.2.0"
 
-  private val scalatestVersion = "2.2.6"
+  private val scalatestVersion = "3.0.2"
   private val scalatestPlusPlayVersion = "2.0.1"
   private val pegdownVersion = "1.6.0"
   private val reactiveMongoTest = "3.1.0"
