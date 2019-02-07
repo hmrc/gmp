@@ -43,7 +43,6 @@ object CachedCalculation {
   implicit val formats = Json.format[CachedCalculation]
 
 }
-// $COVERAGE-OFF$
 trait CalculationRepository extends Repository[CachedCalculation, BSONObjectID] {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
@@ -111,4 +110,3 @@ object CalculationRepository extends MongoDbConnection {
 
   def apply(): CalculationMongoRepository = calculationRepository
 }
-// $COVERAGE-ON$

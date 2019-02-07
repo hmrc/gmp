@@ -41,7 +41,6 @@ object ValidateSconMongoModel {
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
   implicit val formats = Json.format[ValidateSconMongoModel]
 }
-// $COVERAGE-OFF$
 trait ValidateSconRepository extends Repository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
@@ -113,4 +112,3 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
 
   }
 }
-// $COVERAGE-ON$
