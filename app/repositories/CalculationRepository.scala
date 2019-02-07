@@ -43,7 +43,7 @@ object CachedCalculation {
   implicit val formats = Json.format[CachedCalculation]
 
 }
-
+// $COVERAGE-OFF$
 trait CalculationRepository extends Repository[CachedCalculation, BSONObjectID] {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
@@ -69,16 +69,12 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
     collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
       options = BSONDocument(expireAfterSeconds -> ttl))) map {
       result => {
-        // $COVERAGE-OFF$
         Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        // $COVERAGE-ON$
         result
       }
     } recover {
-      // $COVERAGE-OFF$
       case e => Logger.error("Failed to set TTL index", e)
         false
-      // $COVERAGE-ON$
     }
   }
 
@@ -115,3 +111,4 @@ object CalculationRepository extends MongoDbConnection {
 
   def apply(): CalculationMongoRepository = calculationRepository
 }
+// $COVERAGE-ON$

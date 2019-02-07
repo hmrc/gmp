@@ -41,7 +41,7 @@ object ValidateSconMongoModel {
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
   implicit val formats = Json.format[ValidateSconMongoModel]
 }
-
+// $COVERAGE-OFF$
 trait ValidateSconRepository extends Repository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
@@ -72,16 +72,12 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
     collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
       options = BSONDocument(expireAfterSeconds -> ttl))) map {
       result => {
-        // $COVERAGE-OFF$
         Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        // $COVERAGE-ON$
         result
       }
     } recover {
-      // $COVERAGE-OFF$
       case e => Logger.error("Failed to set TTL index", e)
         false
-      // $COVERAGE-ON$
     }
   }
 
@@ -117,3 +113,4 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
 
   }
 }
+// $COVERAGE-ON$
