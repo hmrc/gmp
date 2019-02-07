@@ -38,7 +38,7 @@ object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with 
 
   override protected def appNameConfiguration: Configuration = Play.current.configuration
 
-  override protected def actorSystem: ActorSystem = akka.actor.ActorSystem()
+  override protected def actorSystem: ActorSystem = Play.current.actorSystem
 
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
 

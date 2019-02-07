@@ -85,7 +85,7 @@ trait WSHttp extends HttpGet with WSGet with HttpPut with WSPut with HttpPost wi
 object WSHttp extends WSHttp {
   override protected def appNameConfiguration: Configuration = Play.current.configuration
 
-  override protected def actorSystem: ActorSystem = akka.actor.ActorSystem()
+  override protected def actorSystem: ActorSystem = Play.current.actorSystem
 
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
 }

@@ -26,7 +26,7 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrap = "10.2.0"
+  private val microserviceBootstrap = "10.3.0"
   private val playReactivemongoVersion = "6.2.0"
 
   private val scalatestVersion = "3.0.2"
