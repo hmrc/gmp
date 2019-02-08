@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,17 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
+import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{ReadPreference, DefaultDB}
+import reactivemongo.api.{DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{Repository, ReactiveRepository}
+import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 case class ValidateSconMongoModel(scon: String,
                                   response: GmpValidateSconResponse,
@@ -40,7 +42,6 @@ object ValidateSconMongoModel {
   implicit val idFormat = ReactiveMongoFormats.objectIdFormats
   implicit val formats = Json.format[ValidateSconMongoModel]
 }
-
 trait ValidateSconRepository extends Repository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
@@ -71,27 +72,24 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
     collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
       options = BSONDocument(expireAfterSeconds -> ttl))) map {
       result => {
-        // $COVERAGE-OFF$
         Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        // $COVERAGE-ON$
         result
       }
     } recover {
-      // $COVERAGE-OFF$
       case e => Logger.error("Failed to set TTL index", e)
         false
-      // $COVERAGE-ON$
     }
   }
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
     collection.insert(model).map { lastError =>
-      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${lastError.errmsg} }")
+      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
   }
-
+ "" +
+   ""
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
     val result = Try {

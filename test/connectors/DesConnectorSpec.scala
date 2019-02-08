@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,10 @@ import org.mockito.Matchers._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, OneServerPerSuite, PlaySpec}
+import play.api.{Configuration, Play}
+import play.api.Mode.Mode
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
@@ -36,7 +38,7 @@ import uk.gov.hmrc.play.http._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpGet, HttpResponse, NotFoundException, Upstream5xxResponse }
+import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpResponse, NotFoundException, Upstream5xxResponse}
 import uk.gov.hmrc.http.logging.SessionId
 
 class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig {
@@ -49,6 +51,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
   object TestDesConnector extends DesConnector {
     override val http: HttpGet = mockHttp
     override val metrics = mock[Metrics]
+
+    override protected def mode: Mode = Play.current.mode
+
+    override protected def runModeConfiguration: Configuration = Play.current.configuration
   }
 
   val calcResponseJson = Json.parse(
@@ -273,6 +279,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp
           override val metrics = mock[Metrics]
+
+          override protected def mode: Mode = Play.current.mode
+
+          override protected def runModeConfiguration: Configuration = Play.current.configuration
         }
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
@@ -316,6 +326,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp
           override val metrics = mock[Metrics]
+
+          override protected def mode: Mode = Play.current.mode
+
+          override protected def runModeConfiguration: Configuration = Play.current.configuration
         }
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
@@ -403,5 +417,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
     responseJson.get
   }
 
+  override protected def mode: Mode = Play.current.mode
 
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.joda.time.LocalDate
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
@@ -375,6 +375,7 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
     }
 
     "when date of death returned" must {
+      "do this" in {
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(new LocalDate("2016-01-01"))))))
 
@@ -384,18 +385,21 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
         (contentAsJson(result) \ "dateOfDeath").as[JsString].value must be("2016-01-01")
+      }
     }
 
     "when date of death not returned" must {
-      when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-      when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
+      "do this" in {
+        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
-        body = Json.toJson(calculationRequest))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(calculationRequest))
 
-      val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
-      contentAsString(result) must not include "dateOfDeath"
+        contentAsString(result) must not include "dateOfDeath"
+      }
     }
 
     "when response audit causes exception" must {
