@@ -21,16 +21,17 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
+import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{ReadPreference, DefaultDB}
+import reactivemongo.api.{DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{Repository, ReactiveRepository}
+import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 case class ValidateSconMongoModel(scon: String,
                                   response: GmpValidateSconResponse,
@@ -83,11 +84,12 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
     collection.insert(model).map { lastError =>
-      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${lastError} }")
+      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
   }
-
+ "" +
+   ""
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
     val result = Try {

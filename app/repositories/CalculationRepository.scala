@@ -27,6 +27,7 @@ import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import reactivemongo.api.commands.WriteResult.Message
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -98,7 +99,7 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
     collection.insert(CachedCalculation(request.hashCode, response)).map { lastError =>
-      Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${lastError} }")
+      Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
   }
