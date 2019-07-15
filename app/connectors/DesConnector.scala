@@ -19,12 +19,13 @@ package connectors
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
+import com.google.inject.{Inject, Singleton}
 import config.{ApplicationConfig, GmpGlobal, WSHttp}
 import metrics.Metrics
 import models._
 import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
+import play.api.{Configuration, Logger}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -42,7 +43,11 @@ case object DesGetNotFoundResponse extends DesGetResponse
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 case object DesGetUnexpectedResponse extends DesGetResponse
 
-trait DesConnector extends ApplicationConfig with RawResponseReads {
+@Singleton
+class DesConnector @Inject()(val mode: Mode,
+                             val runModeConfiguration : Configuration,
+                             metrics: Metrics)
+                             extends ApplicationConfig with RawResponseReads {
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -51,7 +56,6 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-  val metrics: Metrics
   val serviceKey = getConfString("nps.key", "")
   val serviceEnvironment = getConfString("nps.environment", "")
   val http: HttpGet = WSHttp
@@ -242,10 +246,4 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
 }
 
-object DesConnector extends DesConnector {
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val metrics = Metrics
-  // $COVERAGE-ON$
-}
+

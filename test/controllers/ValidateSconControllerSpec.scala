@@ -44,10 +44,7 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[ValidateSconRepository]
 
-  object testValidateSconController extends ValidateSconController {
-    override val desConnector = mockDesConnector
-    override val repository = mockRepo
-  }
+  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo)
 
   before {
     reset(mockRepo)

@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.google.inject.{Inject, Singleton}
 import connectors.DesConnector
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logger
@@ -28,11 +29,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.http.Upstream5xxResponse
 
-trait ValidateSconController extends BaseController {
-
-  val desConnector: DesConnector
-
-  val repository : ValidateSconRepository
+@Singleton
+class ValidateSconController @Inject()(desConnector: DesConnector, repository: ValidateSconRepository) extends BaseController {
 
   def validateScon(userId: String) = Action.async(parse.json) {
 
@@ -69,10 +67,4 @@ trait ValidateSconController extends BaseController {
 
 }
 
-object ValidateSconController extends ValidateSconController {
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val desConnector = DesConnector
 
-  override val repository = ValidateSconRepository()
-  // $COVERAGE-ON$
-}
