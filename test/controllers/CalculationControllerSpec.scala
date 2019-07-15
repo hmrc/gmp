@@ -24,36 +24,40 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.CalculationRepository
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{ HeaderCarrier, Upstream5xxResponse }
 
-class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
+class CalculationControllerSpec extends PlaySpec
+  with OneServerPerSuite
+  with MockitoSugar
+  with BeforeAndAfter {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit lazy override val app = new GuiceApplicationBuilder().build()
+  implicit lazy override val app: Application = new GuiceApplicationBuilder().build()
 
   val calculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
-  val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None,dualCalc = true, 1)
+  val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = true, 1)
 
   val dualCalcCalculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(0))
-  val dualCalcCalculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None,dualCalc = false, 1)
+  val dualCalcCalculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = false, 1)
 
-  val mockDesConnector = mock[DesConnector]
-  val mockRepo = mock[CalculationRepository]
-  val mockAuditConnector = mock[AuditConnector]
+  val mockDesConnector: DesConnector = mock[DesConnector]
+  val mockRepo: CalculationRepository = mock[CalculationRepository]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  object testCalculationController extends CalculationController {
-    override val desConnector = mockDesConnector
-    override val repository = mockRepo
-    override val auditConnector = mockAuditConnector
+  object testCalculationController extends CalculationController(mockDesConnector, mockRepo) {
+    //      override val desConnector: DesConnector = mockDesConnector
+    //    override val repository: CalculationRepository = mockRepo
+    //    override val auditConnector: AuditConnector = mockAuditConnector
   }
 
   before {
@@ -364,7 +368,7 @@ class CalculationControllerSpec extends PlaySpec with OneServerPerSuite with Moc
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(npsResponse))
-        when(mockRepo.insertByRequest(Matchers.any(),Matchers.any())).thenReturn(Future.successful(true))
+        when(mockRepo.insertByRequest(Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
 
