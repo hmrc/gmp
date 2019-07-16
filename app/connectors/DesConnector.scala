@@ -20,7 +20,7 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.{Inject, Singleton}
-import config.{ApplicationConfig, GmpGlobal, WSHttp}
+import config.{ApplicationConfig, WSHttp}
 import metrics.Metrics
 import models._
 import play.api.Mode.Mode
@@ -50,7 +50,9 @@ case object DesGetUnexpectedResponse extends DesGetResponse
 
 @Singleton
 class DesConnector @Inject()(val runModeConfiguration: Configuration,
-                             metrics: Metrics)
+                             metrics: Metrics,
+                             http: WSHttp,
+                            auditConnector: AuditConnector)
   extends ApplicationConfig with RawResponseReads {
 
   override protected def mode: Mode = Play.current.mode
@@ -62,15 +64,14 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-  val serviceKey = getConfString("nps.key", "")
-  val serviceEnvironment = getConfString("nps.environment", "")
-  val http: HttpGet = WSHttp
-  val auditConnector: AuditConnector = GmpGlobal.auditConnector
+  val serviceKey: String = getConfString("nps.key", "")
+  val serviceEnvironment: String = getConfString("nps.environment", "")
+
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
-  lazy val serviceURL = baseUrl("nps")
+  lazy val serviceURL: String = baseUrl("nps")
 
   def citizenDetailsUrl: String = baseUrl("citizen-details")
 

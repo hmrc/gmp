@@ -17,18 +17,21 @@
 package module
 
 import com.google.inject.{Provides, Singleton}
+import config.MicroserviceAuditConnector
 import metrics.Metrics
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
 import repositories.{CalculationRepository, CalculationRepositoryProvider, ValidateSconRepository, ValidateSconRepositoryProvider}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 class GMPModule extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = Seq(
     bind[Metrics].to(Metrics),
     bind[ValidateSconRepository].toProvider(classOf[ValidateSconRepositoryProvider]),
-    bind[CalculationRepository].toProvider(classOf[CalculationRepositoryProvider])
+    bind[CalculationRepository].toProvider(classOf[CalculationRepositoryProvider]),
+    bind[AuditConnector].to(MicroserviceAuditConnector)
   )
 
 @Provides
