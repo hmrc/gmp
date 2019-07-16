@@ -17,13 +17,14 @@
 package module
 
 import com.google.inject.{Provides, Singleton}
-import config.MicroserviceAuditConnector
+import config.{MicroserviceAuditConnector, WSHttp}
 import metrics.Metrics
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
 import repositories.{CalculationRepository, CalculationRepositoryProvider, ValidateSconRepository, ValidateSconRepositoryProvider}
+import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 class GMPModule extends Module {
@@ -31,7 +32,12 @@ class GMPModule extends Module {
     bind[Metrics].to(Metrics),
     bind[ValidateSconRepository].toProvider(classOf[ValidateSconRepositoryProvider]),
     bind[CalculationRepository].toProvider(classOf[CalculationRepositoryProvider]),
-    bind[AuditConnector].to(MicroserviceAuditConnector)
+    bind[AuditConnector].to(MicroserviceAuditConnector),
+    bind[HttpGet].to(WSHttp),
+    bind[HttpPut].to(WSHttp),
+    bind[HttpPost].to(WSHttp),
+    bind[HttpDelete].to(WSHttp),
+    bind[WSHttp].to(WSHttp)
   )
 
 @Provides

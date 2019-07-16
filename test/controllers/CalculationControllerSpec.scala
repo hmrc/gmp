@@ -42,8 +42,6 @@ class CalculationControllerSpec extends PlaySpec
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit lazy override val app: Application = new GuiceApplicationBuilder().build()
-
   val calculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
   val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = true, 1)
 
@@ -54,11 +52,7 @@ class CalculationControllerSpec extends PlaySpec
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  object testCalculationController extends CalculationController(mockDesConnector, mockRepo) {
-    //      override val desConnector: DesConnector = mockDesConnector
-    //    override val repository: CalculationRepository = mockRepo
-    //    override val auditConnector: AuditConnector = mockAuditConnector
-  }
+  object testCalculationController extends CalculationController(mockDesConnector, mockRepo)
 
   before {
     reset(mockRepo)

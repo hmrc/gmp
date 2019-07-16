@@ -50,7 +50,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
   when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
-  object TestDesConnector extends DesConnector(Play.current.configuration,
+  object TestDesConnector extends DesConnector(app.configuration,
     mock[Metrics],
     mockHttp,
     mockAuditConnector)
@@ -161,7 +161,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }
 
       "use the DES url" in {
-        new DesConnector(Play.current.configuration,
+        new DesConnector(app.configuration,
           mock[Metrics],
           mockHttp,
           mock[AuditConnector]).baseURI must be("pensions/individuals/gmp")
@@ -275,7 +275,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "catch calculate audit failure and continue" in {
 
-        object TestDesConnector extends DesConnector(Play.current.configuration,
+        object TestDesConnector extends DesConnector(app.configuration,
           mock[Metrics],
           mockHttp,
           mockAuditConnector)
@@ -316,7 +316,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "catch validateScon audit failure and continue" in {
 
-        object TestNpsConnector extends DesConnector(Play.current.configuration,
+        object TestNpsConnector extends DesConnector(app.configuration,
           mock[Metrics],
           mockHttp,
           mockAuditConnector)
@@ -409,5 +409,5 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
   override protected def mode: Mode = Play.current.mode
 
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
+  override protected def runModeConfiguration: Configuration = app.configuration
 }
