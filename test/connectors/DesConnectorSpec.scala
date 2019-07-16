@@ -32,8 +32,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.{Configuration, Play}
-import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.Future

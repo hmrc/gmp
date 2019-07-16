@@ -35,18 +35,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 trait DesGetResponse
+
 sealed trait DesPostResponse
 
 case object DesGetSuccessResponse extends DesGetResponse
+
 case object DesGetHiddenRecordResponse extends DesGetResponse
+
 case object DesGetNotFoundResponse extends DesGetResponse
+
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
+
 case object DesGetUnexpectedResponse extends DesGetResponse
 
 @Singleton
-class DesConnector @Inject()(val runModeConfiguration : Configuration,
+class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: Metrics)
-                             extends ApplicationConfig with RawResponseReads {
+  extends ApplicationConfig with RawResponseReads {
 
   override protected def mode: Mode = Play.current.mode
 
@@ -66,6 +71,7 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
   lazy val serviceURL = baseUrl("nps")
+
   def citizenDetailsUrl: String = baseUrl("citizen-details")
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
@@ -111,10 +117,10 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val surname = URLEncoder.encode((if (request.surname.replace(" ","").length < 3) {
-      request.surname.replace(" ","")
+    val surname = URLEncoder.encode((if (request.surname.replace(" ", "").length < 3) {
+      request.surname.replace(" ", "")
     } else {
-      request.surname.replace(" ","").substring(0, 3)
+      request.surname.replace(" ", "").substring(0, 3)
     }).toUpperCase, "UTF-8")
 
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
@@ -151,12 +157,12 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
         case BAD_REQUEST => {
           Logger.info("[DesConnector][calculate] : NPS returned code 400")
           CalculationResponse(request.nino,
-                              400,
-                              None,
-                              None,
-                              None,
-                              Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
-                              Nil)
+            400,
+            None,
+            None,
+            None,
+            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+            Nil)
         }
         case errorStatus: Int => {
           Logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
@@ -171,7 +177,7 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
     HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
+      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -213,7 +219,7 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
     val newHc = HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -246,5 +252,3 @@ class DesConnector @Inject()(val runModeConfiguration : Configuration,
   }
 
 }
-
-

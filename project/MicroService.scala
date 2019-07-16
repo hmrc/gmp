@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import play.routes.compiler.StaticRoutesGenerator
+import play.sbt.routes.RoutesKeys.routesGenerator
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
@@ -22,16 +24,12 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-import uk.gov.hmrc.SbtArtifactory
-import play.sbt.routes.RoutesKeys.routesGenerator
-import play.routes.compiler.StaticRoutesGenerator
 
 trait MicroService {
 
   import uk.gov.hmrc._
   import DefaultBuildSettings._
   import TestPhases._
-  import uk.gov.hmrc.{SbtBuildInfo, ShellPrompt}
 
   val appName: String
   lazy val appDependencies: Seq[ModuleID] = ???

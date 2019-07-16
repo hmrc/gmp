@@ -25,14 +25,14 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
-import repositories.{ValidateSconMongoRepository, ValidateSconRepository}
-import play.api.inject.guice.GuiceApplicationBuilder
+import repositories.ValidateSconMongoRepository
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 
 class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
 

@@ -18,9 +18,9 @@
 
 package config
 
-import uk.gov.hmrc.play.config.ServicesConfig
 import play.api.Play
 import play.api.Play.current
+import uk.gov.hmrc.play.config.ServicesConfig
 
 trait ApplicationConfig extends ServicesConfig {
 

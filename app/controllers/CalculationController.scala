@@ -25,16 +25,16 @@ import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.Action
 import repositories.CalculationRepository
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
-                                     repository: CalculationRepository
+                                      repository: CalculationRepository
                                      ) extends BaseController {
 
   val auditConnector: AuditConnector = GmpGlobal.auditConnector
@@ -53,7 +53,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
           case None => {
             desConnector.getPersonDetails(calculationRequest.nino).flatMap {
               case DesGetHiddenRecordResponse => {
-                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino,calculationRequest.scon,None,None,List(),LOCKED,None,None,None,false,calculationRequest.calctype.getOrElse(-1))
+                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
                 Future.successful(Ok(Json.toJson(response)))
               }
               case _ => {
@@ -85,7 +85,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
     }
   }
 
-  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc:HeaderCarrier) {
+  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier) {
     val idType = userId.take(1) match {
       case x if x.matches("[A-Z]") => "psa"
       case x if x.matches("[0-9]") => "psp"

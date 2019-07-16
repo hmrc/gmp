@@ -18,8 +18,8 @@ package config
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
-import play.api.{Configuration, Play}
 import play.api.Mode.Mode
+import play.api.{Configuration, Play}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector
 import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}

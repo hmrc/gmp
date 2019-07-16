@@ -65,5 +65,4 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
     }
   }
 
-
 }
