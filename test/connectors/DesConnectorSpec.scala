@@ -45,8 +45,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
   val mockHttp = mock[HttpGet]
 
-  object TestDesConnector extends DesConnector(Play.current.mode,
-                                                Play.current.configuration,
+  object TestDesConnector extends DesConnector(Play.current.configuration,
                                                 mock[Metrics]) {
     override val http: HttpGet = mockHttp
   }
@@ -157,7 +156,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }
 
       "use the DES url" in {
-        new DesConnector(Play.current.mode, Play.current.configuration, mock[Metrics]).baseURI must be("pensions/individuals/gmp")
+        new DesConnector(Play.current.configuration, mock[Metrics]).baseURI must be("pensions/individuals/gmp")
       }
 
       "generate correct url when no revaluation" in {
@@ -269,8 +268,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "catch calculate audit failure and continue" in {
         val mockAuditConnector = mock[AuditConnector]
 
-        object TestDesConnector extends DesConnector(Play.current.mode,
-                                                      Play.current.configuration,
+        object TestDesConnector extends DesConnector(Play.current.configuration,
                                                       mock[Metrics]) {
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp
@@ -313,8 +311,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "catch validateScon audit failure and continue" in {
         val mockAuditConnector = mock[AuditConnector]
 
-        object TestNpsConnector extends DesConnector(Play.current.mode,
-                                                      Play.current.configuration,
+        object TestNpsConnector extends DesConnector(Play.current.configuration,
                                                       mock[Metrics]) {
           override val auditConnector = mockAuditConnector
           override val http: HttpGet = mockHttp

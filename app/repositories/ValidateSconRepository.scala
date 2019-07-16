@@ -16,11 +16,12 @@
 
 package repositories
 
+import com.google.inject.{Inject, Provider, Singleton}
 import models.GmpValidateSconResponse
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.libs.json.Json
-import play.modules.reactivemongo.MongoDbConnection
+import play.api.libs.json.{Format, Json, OFormat}
+import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DefaultDB, ReadPreference}
@@ -38,21 +39,22 @@ case class ValidateSconMongoModel(scon: String,
                                   createdAt: DateTime = DateTime.now(DateTimeZone.UTC))
 
 object ValidateSconMongoModel {
-  implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
-  implicit val idFormat = ReactiveMongoFormats.objectIdFormats
-  implicit val formats = Json.format[ValidateSconMongoModel]
+  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val idFormat: Format[BSONObjectID] = ReactiveMongoFormats.objectIdFormats
+  implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
+
 trait ValidateSconRepository extends Repository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
   def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean]
 }
 
-object ValidateSconRepository extends MongoDbConnection {
-
-  private lazy val repository = new ValidateSconMongoRepository
-
-  def apply(): ValidateSconMongoRepository = repository
+@Singleton
+class ValidateSconRepositoryProvider @Inject()(component: ReactiveMongoComponent) extends Provider[ValidateSconRepository] {
+  override def get(): ValidateSconRepository = {
+    new ValidateSconMongoRepository()(component.mongoConnector.db)
+  }
 }
 
 class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
@@ -88,8 +90,6 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
       lastError.ok
     }
   }
- "" +
-   ""
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
     val result = Try {
@@ -113,4 +113,11 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
     }
 
   }
+}
+
+object ValidateSconRepository extends MongoDbConnection {
+
+  private lazy val repository = new ValidateSconMongoRepository
+
+  def apply(): ValidateSconMongoRepository = repository
 }

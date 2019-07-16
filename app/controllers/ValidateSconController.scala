@@ -20,19 +20,20 @@ import com.google.inject.{Inject, Singleton}
 import connectors.DesConnector
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import repositories.ValidateSconRepository
+import uk.gov.hmrc.http.Upstream5xxResponse
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.Upstream5xxResponse
 
 @Singleton
-class ValidateSconController @Inject()(desConnector: DesConnector, repository: ValidateSconRepository) extends BaseController {
+class ValidateSconController @Inject()(desConnector: DesConnector,
+                                       val repository: ValidateSconRepository) extends BaseController {
 
-  def validateScon(userId: String) = Action.async(parse.json) {
+  def validateScon(userId: String): Action[JsValue] = Action.async(parse.json) {
 
     implicit request => {
 
@@ -66,5 +67,3 @@ class ValidateSconController @Inject()(desConnector: DesConnector, repository: V
 
 
 }
-
-

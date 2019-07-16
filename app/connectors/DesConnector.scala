@@ -25,7 +25,7 @@ import metrics.Metrics
 import models._
 import play.api.Mode.Mode
 import play.api.http.Status._
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logger, Play}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -44,10 +44,11 @@ case class DesGetErrorResponse(e: Exception) extends DesGetResponse
 case object DesGetUnexpectedResponse extends DesGetResponse
 
 @Singleton
-class DesConnector @Inject()(val mode: Mode,
-                             val runModeConfiguration : Configuration,
+class DesConnector @Inject()(val runModeConfiguration : Configuration,
                              metrics: Metrics)
                              extends ApplicationConfig with RawResponseReads {
+
+  override protected def mode: Mode = Play.current.mode
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
