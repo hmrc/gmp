@@ -17,10 +17,7 @@
 package models
 
 import org.joda.time.LocalDate
-import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.Json
-
-import scala.math.BigDecimal.RoundingMode
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 

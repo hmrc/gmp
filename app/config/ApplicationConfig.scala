@@ -18,12 +18,11 @@
 
 package config
 
+import play.api.Play
+import play.api.Play.current
 import uk.gov.hmrc.play.config.ServicesConfig
 
 trait ApplicationConfig extends ServicesConfig {
-
-  import play.api.Play
-  import play.api.Play.current
 
   override def getConfString(confKey: String, defString: => String): String = {
     Play.configuration.getString(s"$rootServices.$confKey").getOrElse(defString)

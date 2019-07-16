@@ -17,45 +17,43 @@
 package connectors
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
-import config.ApplicationConfig
+import config.{ApplicationConfig, WSHttp}
 import metrics.Metrics
 import models.CalculationRequest
 import org.mockito.Matchers._
-import org.mockito.{ArgumentCaptor, Matchers}
 import org.mockito.Mockito._
+import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, OneServerPerSuite, PlaySpec}
-import play.api.{Configuration, Play}
+import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.Mode.Mode
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http._
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpResponse, NotFoundException, Upstream5xxResponse}
+import play.api.{Configuration, Play}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+
+import scala.concurrent.Future
 
 class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig {
 
   implicit val hc = HeaderCarrier()
   implicit lazy override val app = new GuiceApplicationBuilder().build()
 
-  val mockHttp = mock[HttpGet]
+  val mockHttp: WSHttp = mock[WSHttp]
 
-  object TestDesConnector extends DesConnector {
-    override val http: HttpGet = mockHttp
-    override val metrics = mock[Metrics]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-    override protected def mode: Mode = Play.current.mode
+  when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any()))
+    .thenReturn(Future.successful(AuditResult.Success))
 
-    override protected def runModeConfiguration: Configuration = Play.current.configuration
-  }
+  object TestDesConnector extends DesConnector(app.configuration,
+    mock[Metrics],
+    mockHttp,
+    mockAuditConnector)
 
   val calcResponseJson = Json.parse(
     """{
@@ -86,7 +84,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
   )
 
   val citizenDetailsJson = Json.parse(
-            """{
+    """{
                   "etag" : "115"
                 }
             """.stripMargin)
@@ -163,7 +161,10 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }
 
       "use the DES url" in {
-        DesConnector.baseURI must be("pensions/individuals/gmp")
+        new DesConnector(app.configuration,
+          mock[Metrics],
+          mockHttp,
+          mock[AuditConnector]).baseURI must be("pensions/individuals/gmp")
       }
 
       "generate correct url when no revaluation" in {
@@ -273,23 +274,17 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }
 
       "catch calculate audit failure and continue" in {
-        val mockAuditConnector = mock[AuditConnector]
 
-        object TestDesConnector extends DesConnector {
-          override val auditConnector = mockAuditConnector
-          override val http: HttpGet = mockHttp
-          override val metrics = mock[Metrics]
-
-          override protected def mode: Mode = Play.current.mode
-
-          override protected def runModeConfiguration: Configuration = Play.current.configuration
-        }
+        object TestDesConnector extends DesConnector(app.configuration,
+          mock[Metrics],
+          mockHttp,
+          mockAuditConnector)
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
-        when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+        when(mockHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
-
+        //TODO: Assert something here?
       }
     }
 
@@ -320,24 +315,19 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       }
 
       "catch validateScon audit failure and continue" in {
-        val mockAuditConnector = mock[AuditConnector]
 
-        object TestNpsConnector extends DesConnector {
-          override val auditConnector = mockAuditConnector
-          override val http: HttpGet = mockHttp
-          override val metrics = mock[Metrics]
-
-          override protected def mode: Mode = Play.current.mode
-
-          override protected def runModeConfiguration: Configuration = Play.current.configuration
-        }
+        object TestNpsConnector extends DesConnector(app.configuration,
+          mock[Metrics],
+          mockHttp,
+          mockAuditConnector)
 
         when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](Matchers.any())
-          (Matchers.any(), Matchers.any(), Matchers.any())).thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
+          (Matchers.any(), Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
 
         TestNpsConnector.validateScon("PSAID", "S1401234Q")
-
+        //TODO: Assert something here?
       }
     }
 
@@ -380,7 +370,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
-        val r = HttpResponse(200,  Some(citizenDetailsJson))
+        val r = HttpResponse(200, Some(citizenDetailsJson))
         when(mockHttp.GET[HttpResponse](Matchers.any())(any(), any(), any())) thenReturn {
           Future.failed(ex)
         }
@@ -419,5 +409,5 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
   override protected def mode: Mode = Play.current.mode
 
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
+  override protected def runModeConfiguration: Configuration = app.configuration
 }

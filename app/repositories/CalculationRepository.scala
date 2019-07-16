@@ -16,40 +16,47 @@
 
 package repositories
 
+import com.google.inject.{Inject, Provider, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.libs.json.Json
-import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.indexes.{IndexType, Index}
-import reactivemongo.api.{ReadPreference, DefaultDB}
+import play.api.libs.json.{Format, Json}
+import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
+import reactivemongo.api.commands.WriteResult.Message
+import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import reactivemongo.api.commands.WriteResult.Message
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Success, Failure, Try}
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 case class CachedCalculation(request: Int,
                              response: GmpCalculationResponse,
                              createdAt: DateTime = DateTime.now(DateTimeZone.UTC))
 
 object CachedCalculation {
-
-  implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
-  implicit val idFormat = ReactiveMongoFormats.objectIdFormats
+  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val idFormat: Format[BSONObjectID] = ReactiveMongoFormats.objectIdFormats
   implicit val formats = Json.format[CachedCalculation]
-
 }
+
 trait CalculationRepository extends Repository[CachedCalculation, BSONObjectID] {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
 
   def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean]
 
+}
+
+@Singleton
+class CalculationRepositoryProvider @Inject()(component: ReactiveMongoComponent) extends Provider[CalculationRepository] {
+  override def get(): CalculationRepository = {
+    new CalculationMongoRepository()(component.mongoConnector.db)
+  }
 }
 
 class CalculationMongoRepository()(implicit mongo: () => DefaultDB)

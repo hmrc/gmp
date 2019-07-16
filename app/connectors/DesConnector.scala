@@ -19,12 +19,13 @@ package connectors
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-import config.{ApplicationConfig, GmpGlobal, WSHttp}
+import com.google.inject.{Inject, Singleton}
+import config.{ApplicationConfig, WSHttp}
 import metrics.Metrics
 import models._
 import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
+import play.api.{Configuration, Logger, Play}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -34,15 +35,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 trait DesGetResponse
+
 sealed trait DesPostResponse
 
 case object DesGetSuccessResponse extends DesGetResponse
+
 case object DesGetHiddenRecordResponse extends DesGetResponse
+
 case object DesGetNotFoundResponse extends DesGetResponse
+
 case class DesGetErrorResponse(e: Exception) extends DesGetResponse
+
 case object DesGetUnexpectedResponse extends DesGetResponse
 
-trait DesConnector extends ApplicationConfig with RawResponseReads {
+@Singleton
+class DesConnector @Inject()(val runModeConfiguration: Configuration,
+                             metrics: Metrics,
+                             http: WSHttp,
+                            auditConnector: AuditConnector)
+  extends ApplicationConfig with RawResponseReads {
+
+  override protected def mode: Mode = Play.current.mode
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -51,16 +64,15 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-  val metrics: Metrics
-  val serviceKey = getConfString("nps.key", "")
-  val serviceEnvironment = getConfString("nps.environment", "")
-  val http: HttpGet = WSHttp
-  val auditConnector: AuditConnector = GmpGlobal.auditConnector
+  val serviceKey: String = getConfString("nps.key", "")
+  val serviceEnvironment: String = getConfString("nps.environment", "")
+
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
-  lazy val serviceURL = baseUrl("nps")
+  lazy val serviceURL: String = baseUrl("nps")
+
   def citizenDetailsUrl: String = baseUrl("citizen-details")
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
@@ -106,10 +118,10 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val surname = URLEncoder.encode((if (request.surname.replace(" ","").length < 3) {
-      request.surname.replace(" ","")
+    val surname = URLEncoder.encode((if (request.surname.replace(" ", "").length < 3) {
+      request.surname.replace(" ", "")
     } else {
-      request.surname.replace(" ","").substring(0, 3)
+      request.surname.replace(" ", "").substring(0, 3)
     }).toUpperCase, "UTF-8")
 
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
@@ -146,12 +158,12 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
         case BAD_REQUEST => {
           Logger.info("[DesConnector][calculate] : NPS returned code 400")
           CalculationResponse(request.nino,
-                              400,
-                              None,
-                              None,
-                              None,
-                              Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
-                              Nil)
+            400,
+            None,
+            None,
+            None,
+            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+            Nil)
         }
         case errorStatus: Int => {
           Logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
@@ -166,7 +178,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
     HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id",""),
+      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -208,7 +220,7 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
     val newHc = HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id",""),
+      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -240,12 +252,4 @@ trait DesConnector extends ApplicationConfig with RawResponseReads {
     }
   }
 
-}
-
-object DesConnector extends DesConnector {
-  override protected def mode: Mode = Play.current.mode
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-  // $COVERAGE-OFF$Trivial and never going to be called by a test that uses it's own object implementation
-  override val metrics = Metrics
-  // $COVERAGE-ON$
 }
