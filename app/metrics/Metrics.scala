@@ -18,19 +18,11 @@ package metrics
 
 import java.util.concurrent.TimeUnit
 
-//import com.kenshoo.play.metrics.MetricsRegistry
+import com.google.inject.Inject
+import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
-import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
-trait Metrics {
-  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit
-  def desConnectorStatus(code: Int): Unit
-  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit
-  def mciLockCount(): Unit
-  def mciErrorCount(): Unit
-}
-
-object Metrics extends Metrics with MicroserviceMetrics {
+class ApplicationMetrics @Inject()(metrics: Metrics) {
   lazy val registry = metrics.defaultRegistry
 
   private val timer = (name: String) => registry.timer(name)
@@ -48,9 +40,9 @@ object Metrics extends Metrics with MicroserviceMetrics {
     ("mci-error-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  override def desConnectorTimer(diff: Long, unit: TimeUnit) = registry.timer("nps-connector-timer").update(diff, unit)
-  override def desConnectorStatus(code: Int) = registry.counter(s"nps-connector-status-$code").inc()
-  override def mciConnectionTimer(diff: Long, unit: TimeUnit) = registry.timer("mci-connection-timer").update(diff, unit)
-  override def mciLockCount() = registry.counter("mci-lock-result-count").inc()
-  override def mciErrorCount() = registry.counter("mci-error-count").inc()
+  def desConnectorTimer(diff: Long, unit: TimeUnit) = registry.timer("nps-connector-timer").update(diff, unit)
+  def desConnectorStatus(code: Int) = registry.counter(s"nps-connector-status-$code").inc()
+  def mciConnectionTimer(diff: Long, unit: TimeUnit) = registry.timer("mci-connection-timer").update(diff, unit)
+  def mciLockCount() = registry.counter("mci-lock-result-count").inc()
+  def mciErrorCount() = registry.counter("mci-error-count").inc()
 }

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 
 import com.google.inject.{Inject, Singleton}
 import config.{ApplicationConfig, WSHttp}
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models._
 import play.api.Mode.Mode
 import play.api.http.Status._
@@ -50,7 +50,7 @@ case object DesGetUnexpectedResponse extends DesGetResponse
 
 @Singleton
 class DesConnector @Inject()(val runModeConfiguration: Configuration,
-                             metrics: Metrics,
+                             metrics: ApplicationMetrics,
                              http: WSHttp,
                             auditConnector: AuditConnector)
   extends ApplicationConfig with RawResponseReads {
