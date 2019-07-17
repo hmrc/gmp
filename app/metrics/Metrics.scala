@@ -31,7 +31,7 @@ trait Metrics {
 }
 
 object Metrics extends Metrics with MicroserviceMetrics {
-  val registry = metrics.defaultRegistry
+  lazy val registry = metrics.defaultRegistry
 
   private val timer = (name: String) => registry.timer(name)
   private val counter = (name: String) => registry.counter(name)
