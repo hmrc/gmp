@@ -19,7 +19,7 @@ package connectors
 import java.util.UUID
 
 import config.{ApplicationConfig, WSHttp}
-import metrics.Metrics
+import metrics.ApplicationMetrics
 import models.CalculationRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -51,7 +51,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
     .thenReturn(Future.successful(AuditResult.Success))
 
   object TestDesConnector extends DesConnector(app.configuration,
-    mock[Metrics],
+    mock[ApplicationMetrics],
     mockHttp,
     mockAuditConnector)
 
@@ -162,7 +162,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
 
       "use the DES url" in {
         new DesConnector(app.configuration,
-          mock[Metrics],
+          mock[ApplicationMetrics],
           mockHttp,
           mock[AuditConnector]).baseURI must be("pensions/individuals/gmp")
       }
@@ -276,7 +276,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "catch calculate audit failure and continue" in {
 
         object TestDesConnector extends DesConnector(app.configuration,
-          mock[Metrics],
+          mock[ApplicationMetrics],
           mockHttp,
           mockAuditConnector)
 
@@ -317,7 +317,7 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
       "catch validateScon audit failure and continue" in {
 
         object TestNpsConnector extends DesConnector(app.configuration,
-          mock[Metrics],
+          mock[ApplicationMetrics],
           mockHttp,
           mockAuditConnector)
 
