@@ -18,15 +18,18 @@ package metrics
 
 import java.util.concurrent.TimeUnit
 
+import com.codahale.metrics.MetricRegistry
 import com.google.inject.Inject
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
 
-class ApplicationMetrics @Inject()(metrics: Metrics) {
-  lazy val registry = metrics.defaultRegistry
+import scala.util.Try
 
-  private val timer = (name: String) => registry.timer(name)
-  private val counter = (name: String) => registry.counter(name)
+class ApplicationMetrics @Inject()(metrics: Metrics) {
+  lazy val registry: MetricRegistry = metrics.defaultRegistry
+
+  private val timer = (name: String) => Try{registry.timer(name)}
+  private val counter = (name: String) => Try{registry.counter(name)}
 
   Logger.info("[Metrics][constructor] Preloading metrics keys")
 
@@ -40,9 +43,14 @@ class ApplicationMetrics @Inject()(metrics: Metrics) {
     ("mci-error-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  def desConnectorTimer(diff: Long, unit: TimeUnit) = registry.timer("nps-connector-timer").update(diff, unit)
-  def desConnectorStatus(code: Int) = registry.counter(s"nps-connector-status-$code").inc()
-  def mciConnectionTimer(diff: Long, unit: TimeUnit) = registry.timer("mci-connection-timer").update(diff, unit)
-  def mciLockCount() = registry.counter("mci-lock-result-count").inc()
-  def mciErrorCount() = registry.counter("mci-error-count").inc()
+  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("nps-connector-timer").update(diff, unit)}
+    .failed.foreach(ex => "nps-connector-timer failed: metrics might be disabled")
+  def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
+    .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
+  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("mci-connection-timer").update(diff, unit)}
+    .failed.foreach(ex => "mci-connection-timer failed: metrics might be disabled")
+  def mciLockCount(): Unit = Try{registry.counter("mci-lock-result-count").inc()}
+    .failed.foreach(ex => "mci-lock-result-count failed: metrics might be disabled")
+  def mciErrorCount(): Unit = Try{registry.counter("mci-error-count").inc()}
+    .failed.foreach(ex => "mci-error-count failed: metrics might be disabled")
 }

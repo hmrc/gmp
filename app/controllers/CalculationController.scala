@@ -19,6 +19,7 @@ package controllers
 import com.google.inject.{Inject, Singleton}
 import config.GmpGlobal
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
+import controllers.auth.AuthAction
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
@@ -34,12 +35,13 @@ import scala.concurrent.Future
 
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
-                                      repository: CalculationRepository
+                                      repository: CalculationRepository,
+                                      authAction: AuthAction
                                      ) extends BaseController {
 
   val auditConnector: AuditConnector = GmpGlobal.auditConnector
 
-  def requestCalculation(userId: String): Action[JsValue] = Action.async(parse.json) {
+  def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
     implicit request => {
 

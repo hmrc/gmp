@@ -16,13 +16,10 @@
 
 package config
 
-import akka.actor.ActorSystem
-import com.typesafe.config.Config
 import play.api.Mode.Mode
 import play.api.{Configuration, Play}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector
-import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.config.RunMode
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
 object MicroserviceAuditConnector extends AuditConnector with RunMode {
@@ -32,17 +29,17 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 
   override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
-
-object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttp {
-  override val authBaseUrl = baseUrl("auth")
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
-
-  override protected def actorSystem: ActorSystem = Play.current.actorSystem
-
-  override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
-
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-}
+//
+//object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttp {
+//  override val authBaseUrl = baseUrl("auth")
+//
+//  override protected def appNameConfiguration: Configuration = Play.current.configuration
+//
+//  override protected def actorSystem: ActorSystem = Play.current.actorSystem
+//
+//  override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
+//
+//  override protected def mode: Mode = Play.current.mode
+//
+//  override protected def runModeConfiguration: Configuration = Play.current.configuration
+//}
