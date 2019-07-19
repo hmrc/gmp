@@ -29,17 +29,3 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 
   override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
-//
-//object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttp {
-//  override val authBaseUrl = baseUrl("auth")
-//
-//  override protected def appNameConfiguration: Configuration = Play.current.configuration
-//
-//  override protected def actorSystem: ActorSystem = Play.current.actorSystem
-//
-//  override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
-//
-//  override protected def mode: Mode = Play.current.mode
-//
-//  override protected def runModeConfiguration: Configuration = Play.current.configuration
-//}
