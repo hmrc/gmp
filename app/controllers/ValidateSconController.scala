@@ -18,6 +18,7 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import connectors.DesConnector
+import controllers.auth.AuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
@@ -31,9 +32,10 @@ import scala.concurrent.Future
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
-                                       val repository: ValidateSconRepository) extends BaseController {
+                                       val repository: ValidateSconRepository,
+                                      authAction: AuthAction) extends BaseController {
 
-  def validateScon(userId: String): Action[JsValue] = Action.async(parse.json) {
+  def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
     implicit request => {
 

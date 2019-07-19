@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package module
+package config
 
 import com.google.inject.{Provides, Singleton}
-import config.{MicroserviceAuditConnector, WSHttp}
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent

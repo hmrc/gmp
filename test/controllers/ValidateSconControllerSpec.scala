@@ -19,6 +19,7 @@ package controllers
 import java.util.UUID
 
 import connectors.DesConnector
+import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.Matchers
 import org.mockito.Mockito._
@@ -45,7 +46,7 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[ValidateSconMongoRepository]
 
-  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo)
+  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo, FakeAuthAction)
 
   before {
     reset(mockRepo)

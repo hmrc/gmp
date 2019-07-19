@@ -39,6 +39,7 @@ private object AppDependencies {
   val compile = Seq(
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrap,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
+    "uk.gov.hmrc" %% "auth-client" % "2.22.0-play-25",
     ws
   )
 
@@ -57,7 +58,7 @@ private object AppDependencies {
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "hmrctest" % hmrctestVersion % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % reactiveMongoTest % scope,
-        "org.mockito" % "mockito-core" % mockitoCoreVersion %scope
+        "org.mockito" % "mockito-core" % mockitoCoreVersion % scope
       )
     }.test
   }

@@ -17,6 +17,7 @@
 package controllers
 
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
+import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.Matchers
@@ -52,7 +53,7 @@ class CalculationControllerSpec extends PlaySpec
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  object testCalculationController extends CalculationController(mockDesConnector, mockRepo)
+  object testCalculationController extends CalculationController(mockDesConnector, mockRepo, FakeAuthAction)
 
   before {
     reset(mockRepo)
