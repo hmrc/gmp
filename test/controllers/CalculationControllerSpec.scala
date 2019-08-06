@@ -20,13 +20,12 @@ import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessRespon
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -58,7 +57,7 @@ class CalculationControllerSpec extends PlaySpec
   before {
     reset(mockRepo)
     reset(mockDesConnector)
-    when(mockDesConnector.getPersonDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(DesGetSuccessResponse))
+    when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
 
   "CalculationController" must {
@@ -66,9 +65,9 @@ class CalculationControllerSpec extends PlaySpec
     "when calculation is not in the cache" must {
 
       "respond to a valid calculation request with OK" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any()))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any()))
           .thenReturn(Future
             .successful(Json.parse(
               """{
@@ -100,9 +99,9 @@ class CalculationControllerSpec extends PlaySpec
       }
 
       "return json" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
             """{
               "nino": "AB123456C",
@@ -131,9 +130,9 @@ class CalculationControllerSpec extends PlaySpec
       }
 
       "return a Calculation Response with the correct SCON" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -179,9 +178,9 @@ class CalculationControllerSpec extends PlaySpec
 
 
       "respond with server error if connector returns same" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -192,9 +191,9 @@ class CalculationControllerSpec extends PlaySpec
       }
 
       "contain revalued amounts when revaluation requested" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
             Json.parse(
               """{
@@ -231,9 +230,9 @@ class CalculationControllerSpec extends PlaySpec
       }
 
       "return a Calculation Response with no revalued amounts when not revalued" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -267,8 +266,8 @@ class CalculationControllerSpec extends PlaySpec
 
 
       "return an OK when http status code 422" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val npsResponse = Json.parse(
           """{
               "nino": "AB123456",
@@ -291,7 +290,7 @@ class CalculationControllerSpec extends PlaySpec
               }"""
         ).as[CalculationResponse]
 
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(npsResponse))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -302,8 +301,8 @@ class CalculationControllerSpec extends PlaySpec
     "when calculation in the cache" must {
 
       "return OK" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
@@ -313,20 +312,20 @@ class CalculationControllerSpec extends PlaySpec
 
 
       "not call NPS" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        verify(mockDesConnector, never()).calculate(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(mockDesConnector, never()).calculate(any(), any())(any())
       }
     }
 
     "when dual calculation" must {
       "return false" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest))
 
@@ -360,10 +359,10 @@ class CalculationControllerSpec extends PlaySpec
               }"""
         ).as[CalculationResponse]
 
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(npsResponse))
-        when(mockRepo.insertByRequest(Matchers.any(), Matchers.any())).thenReturn(Future.successful(true))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
 
@@ -375,8 +374,8 @@ class CalculationControllerSpec extends PlaySpec
 
     "when date of death returned" must {
       "do this" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(new LocalDate("2016-01-01"))))))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(new LocalDate("2016-01-01"))))))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
@@ -389,8 +388,8 @@ class CalculationControllerSpec extends PlaySpec
 
     "when date of death not returned" must {
       "do this" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
@@ -403,8 +402,8 @@ class CalculationControllerSpec extends PlaySpec
 
     "when response audit causes exception" must {
       "log exception and return normally" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.failed(new Exception()))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(Some(calculationResponse)))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
@@ -417,9 +416,9 @@ class CalculationControllerSpec extends PlaySpec
 
     "when citizens details return 423" must {
       "return a global error" in {
-        when(mockAuditConnector.sendEvent(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(Matchers.any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(Matchers.eq("AB123456C"))(Matchers.any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.getPersonDetails(ArgumentMatchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
