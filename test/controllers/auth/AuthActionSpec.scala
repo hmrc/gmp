@@ -17,8 +17,7 @@
 package controllers.auth
 
 import akka.util.Timeout
-import controllers.auth.{AuthAction, AuthActionImpl, MicroserviceAuthConnector}
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec

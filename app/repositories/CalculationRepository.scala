@@ -24,11 +24,11 @@ import play.api.libs.json.{Format, Json}
 import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{DefaultDB, ReadPreference}
+import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -44,7 +44,7 @@ object CachedCalculation {
   implicit val formats = Json.format[CachedCalculation]
 }
 
-trait CalculationRepository extends Repository[CachedCalculation, BSONObjectID] {
+trait CalculationRepository extends ReactiveRepository[CachedCalculation, BSONObjectID] {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
 
@@ -87,7 +87,8 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] = {
     val tryResult = Try {
-      collection.find(Json.obj("request" -> request.hashCode)).cursor[CachedCalculation](ReadPreference.primary).collect[List]()
+      collection.find(Json.obj("request" -> request.hashCode)).cursor[CachedCalculation](ReadPreference.primary)
+        .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[CachedCalculation]]())
     }
 
     tryResult match {
@@ -105,7 +106,7 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
   }
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
-    collection.insert(CachedCalculation(request.hashCode, response)).map { lastError =>
+    collection.insert(ordered = false).one(CachedCalculation(request.hashCode, response)).map { lastError =>
       Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }

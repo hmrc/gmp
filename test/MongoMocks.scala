@@ -17,7 +17,7 @@
 package helpers.mongo
 
 import org.mockito.ArgumentCaptor
-import org.mockito.Matchers.{eq => eqTo, _}
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
@@ -27,10 +27,11 @@ import reactivemongo.api.commands.{UpdateWriteResult, WriteConcern, WriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.api.{CollectionProducer, Cursor, DefaultDB, FailoverStrategy}
 import reactivemongo.play.json.collection.{JSONCollection, JSONQueryBuilder}
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect._
+import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
 
 trait MongoMocks extends MockitoSugar {
 
@@ -71,7 +72,7 @@ trait MongoMocks extends MockitoSugar {
   }
 
   def verifyAnyInsertOn(collection: JSONCollection) = {
-    verify(collection).insert(any, any())(any(), any())
+    verify(collection).insert(ordered = false).one(any())
   }
 
   def verifyInsertOn[T](collection: JSONCollection, obj: T) = {
@@ -111,13 +112,13 @@ trait MongoMocks extends MockitoSugar {
     ) thenReturn queryBuilder
 
     when(
-      queryBuilder.cursor[T](any(), any())(any(), any[ExecutionContext], any())
+      queryBuilder.cursor[T](any(), any())(any(), any())
     ) thenAnswer new Answer[Cursor[T]] {
       def answer(i: InvocationOnMock) = cursor
     }
 
     when(
-      cursor.collect[Traversable](anyInt, anyBoolean)(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
+      cursor.collect[Traversable](anyInt, any())(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
     ) thenReturn Future.successful(returns)
 
   }
@@ -160,13 +161,13 @@ trait MongoMocks extends MockitoSugar {
     ) thenReturn queryBuilder
 
     when(
-      queryBuilder.cursor[T](any(), any())(any(), any[ExecutionContext], any())
+      queryBuilder.cursor[T](any(), any())(any(), any())
     ) thenAnswer new Answer[Cursor[T]] {
       def answer(i: InvocationOnMock) = cursor
     }
 
     when(
-      cursor.collect[Traversable](anyInt, anyBoolean)(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
+      cursor.collect[Traversable](anyInt, any())(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
     ) thenReturn Future.successful(returns)
 
   }
@@ -179,7 +180,7 @@ trait MongoMocks extends MockitoSugar {
 
   def setupAnyInsertOn(collection: JSONCollection, fails: Boolean = false) = {
     val m = mockWriteResult(fails)
-    when(collection.insert(any(), any())(any(), any()))
+    when(collection.insert(ordered = false).one(any()))
       .thenReturn(Future.successful(m))
   }
 

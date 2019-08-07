@@ -21,7 +21,7 @@ import java.util.UUID
 import connectors.DesConnector
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
@@ -56,8 +56,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
   "ValidateSconController" should {
 
     "respond to a valid validateScon request with OK" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+      when(mockDesConnector.validateScon(any(), any())(any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
@@ -67,8 +67,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
     }
 
     "return json" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+      when(mockDesConnector.validateScon(any(), any())(any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
@@ -78,8 +78,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
     }
 
     "return the correct validation result - false" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+      when(mockDesConnector.validateScon(any(), any())(any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
@@ -89,8 +89,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
     }
 
     "return the correct validation result - true" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any()))
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+      when(mockDesConnector.validateScon(any(), any())(any()))
         .thenReturn(Future.successful(ValidateSconResponse(1)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
@@ -100,8 +100,8 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
     }
 
     "respond with server error if connector returns same" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+      when(mockDesConnector.validateScon(any(), any())(any())).thenReturn(Future
         .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
@@ -112,13 +112,13 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
     }
 
     "return cached response" in {
-      when(mockRepo.findByScon(Matchers.any())).thenReturn(Future.successful(Some(validateSconResponse)))
+      when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(validateSconResponse)))
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
       await(testValidateSconController.validateScon("PSAID").apply(fakeRequest))
 
       val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       (contentAsJson(cachedResult) \ "sconExists").as[JsBoolean].value must be(true)
-      verify(mockDesConnector, never()).validateScon(Matchers.any(), Matchers.any())(Matchers.any())
+      verify(mockDesConnector, never()).validateScon(any(), any())(any())
     }
   }
 }

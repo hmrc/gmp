@@ -24,11 +24,11 @@ import play.api.libs.json.{Format, Json, OFormat}
 import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{DefaultDB, ReadPreference}
+import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -44,7 +44,7 @@ object ValidateSconMongoModel {
   implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
 
-trait ValidateSconRepository extends Repository[ValidateSconMongoModel, BSONObjectID] {
+trait ValidateSconRepository extends ReactiveRepository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
   def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean]
@@ -85,7 +85,7 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
-    collection.insert(model).map { lastError =>
+    collection.insert(ordered = false).one(model).map { lastError =>
       Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
@@ -93,7 +93,8 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
     val result = Try {
-      collection.find(Json.obj("scon" -> scon)).cursor[ValidateSconMongoModel](ReadPreference.primary).collect[List]()
+      collection.find(Json.obj("scon" -> scon)).cursor[ValidateSconMongoModel](ReadPreference.primary)
+        .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[ValidateSconMongoModel]]())
     }
 
     result match {
