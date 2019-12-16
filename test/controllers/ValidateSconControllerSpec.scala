@@ -19,23 +19,25 @@ package controllers
 import java.util.UUID
 
 import connectors.DesConnector
-import controllers.auth.FakeAuthAction
+import controllers.auth.{AuthAction, FakeAuthAction}
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
-import repositories.ValidateSconMongoRepository
+import repositories.{ValidateSconMongoRepository, ValidateSconRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfter {
+class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
 
@@ -44,9 +46,10 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
   val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]
-  val mockRepo = mock[ValidateSconMongoRepository]
+  val mockRepo = mock[ValidateSconRepository]
+  val mockAuthAction : AuthAction = new FakeAuthAction
 
-  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo, FakeAuthAction)
+  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo, mockAuthAction)
 
   before {
     reset(mockRepo)
@@ -62,7 +65,7 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-      val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+      val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
       status(result) must be(OK)
     }
 
@@ -73,7 +76,7 @@ class ValidateSconControllerSpec extends PlaySpec with OneServerPerSuite with Mo
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-      val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+      val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
       contentType(result).get must be("application/json")
     }
 

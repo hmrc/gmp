@@ -17,7 +17,7 @@
 package controllers
 
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
-import controllers.auth.FakeAuthAction
+import controllers.auth.{AuthAction, AuthActionImpl, FakeAuthAction}
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.joda.time.LocalDate
 import org.mockito.ArgumentMatchers
@@ -25,6 +25,7 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json._
 import play.api.test.Helpers._
@@ -51,8 +52,9 @@ class CalculationControllerSpec extends PlaySpec
   val mockDesConnector: DesConnector = mock[DesConnector]
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockAuthAction : AuthAction = new FakeAuthAction
 
-  object testCalculationController extends CalculationController(mockDesConnector, mockRepo, FakeAuthAction)
+  val testCalculationController = new  CalculationController(mockDesConnector, mockRepo, mockAuthAction, mockAuditConnector)
 
   before {
     reset(mockRepo)

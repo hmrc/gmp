@@ -20,7 +20,6 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 import com.google.inject.{Inject, Singleton}
-import config.{ApplicationConfig, WSHttp}
 import metrics.ApplicationMetrics
 import models._
 import play.api.Mode.Mode
@@ -30,6 +29,8 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,11 +52,11 @@ case object DesGetUnexpectedResponse extends DesGetResponse
 @Singleton
 class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
-                             http: WSHttp,
-                            auditConnector: AuditConnector)
-  extends ApplicationConfig with RawResponseReads {
+                             http: HttpClient,
+                             auditConnector: AuditConnector)
+  extends RawResponseReads with ServicesConfig {
 
-  override protected def mode: Mode = Play.current.mode
+  protected def mode: Mode = Play.current.mode
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
