@@ -17,7 +17,6 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import config.GmpGlobal
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
 import controllers.auth.AuthAction
 import events.ResultsEvent
@@ -28,7 +27,7 @@ import play.api.mvc.Action
 import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -36,10 +35,9 @@ import scala.concurrent.Future
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
                                       repository: CalculationRepository,
-                                      authAction: AuthAction
+                                      authAction: AuthAction,
+                                      auditConnector : AuditConnector
                                      ) extends BaseController {
-
-  val auditConnector: AuditConnector = GmpGlobal.auditConnector
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 

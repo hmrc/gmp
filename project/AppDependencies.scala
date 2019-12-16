@@ -5,9 +5,13 @@ import sbt._
 
 object AppDependencies {
 
+  private val bootstrapPlayVersion = "5.1.0"
+
   val compile = Seq(
-    "uk.gov.hmrc" %% "microservice-bootstrap" % "10.6.0",
+    "uk.gov.hmrc" %% "bootstrap-play-25" % bootstrapPlayVersion,
+    // "uk.gov.hmrc" %% "bootstrap-play-26" % "1.1.0",
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.20.0-play-25",
+    "org.reactivemongo" %% "play2-reactivemongo" % "0.17.1-play25",
     "uk.gov.hmrc" %% "auth-client"            % "2.26.0-play-25",
     ws
   )

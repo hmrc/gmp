@@ -16,28 +16,29 @@
 
 package config
 
-import com.google.inject.{Provides, Singleton}
-import play.api.inject.{Binding, Module}
+import com.google.inject.{AbstractModule, Provides, Singleton}
 import play.api.{Configuration, Environment}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DefaultDB
 import repositories.{CalculationRepository, CalculationRepositoryProvider, ValidateSconRepository, ValidateSconRepositoryProvider}
-import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
+import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
+import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 
-class GMPModule extends Module {
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = Seq(
-    bind[ValidateSconRepository].toProvider(classOf[ValidateSconRepositoryProvider]),
-    bind[CalculationRepository].toProvider(classOf[CalculationRepositoryProvider]),
-    bind[AuditConnector].to(MicroserviceAuditConnector),
-    bind[HttpGet].to(WSHttp),
-    bind[HttpPut].to(WSHttp),
-    bind[HttpPost].to(WSHttp),
-    bind[HttpDelete].to(WSHttp),
-    bind[WSHttp].to(WSHttp)
-  )
+class GMPModule(environment: Environment, configuration: Configuration) extends AbstractModule {
 
-@Provides
-@Singleton
+  def configure(): Unit = {
+    bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
+    bind(classOf[AuthConnector]).to(classOf[DefaultAuthConnector])
+    bind(classOf[AuditConnector]).to(classOf[DefaultAuditConnector])
+    bind(classOf[CalculationRepository]).toProvider(classOf[CalculationRepositoryProvider])
+    bind(classOf[ValidateSconRepository]).toProvider(classOf[ValidateSconRepositoryProvider])
+
+  }
+
+  @Provides
+  @Singleton
   def mongoDB(reactiveMongoComponent: ReactiveMongoComponent): () => DefaultDB = reactiveMongoComponent.mongoConnector.db
 }

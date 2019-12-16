@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+/*
 package config
+
 
 import play.api.Mode.Mode
 import play.api.{Configuration, Play}
@@ -29,3 +31,5 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 
   override protected def runModeConfiguration: Configuration = Play.current.configuration
 }
+
+ */

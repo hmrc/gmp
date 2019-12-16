@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package config
+/*package config
 
 import akka.actor.ActorSystem
 import com.typesafe.config.Config
@@ -76,3 +76,5 @@ object WSHttp extends WSHttp {
 
   override protected def configuration: Option[Config] = Some(Play.current.configuration.underlying)
 }
+
+*/

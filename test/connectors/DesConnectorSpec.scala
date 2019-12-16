@@ -18,7 +18,6 @@ package connectors
 
 import java.util.UUID
 
-import config.{ApplicationConfig, WSHttp}
 import metrics.ApplicationMetrics
 import models.CalculationRequest
 import org.mockito.ArgumentMatchers._
@@ -26,6 +25,7 @@ import org.mockito.Mockito._
 import org.mockito.{ArgumentCaptor, Matchers}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.Mode.Mode
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -35,15 +35,20 @@ import play.api.{Configuration, Play}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.http.ws.WSHttp
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfter with ApplicationConfig {
+class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
   implicit lazy override val app = new GuiceApplicationBuilder().build()
 
-  val mockHttp: WSHttp = mock[WSHttp]
+  val mockHttp: HttpClient = mock[HttpClient]
+
+  val mockServicesConfig=mock[ServicesConfig]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
@@ -407,7 +412,24 @@ class DesConnectorSpec extends PlaySpec with OneAppPerSuite with MockitoSugar wi
     responseJson.get
   }
 
-  override protected def mode: Mode = Play.current.mode
+  //override protected def mode: Mode = Play.current.mode
 
-  override protected def runModeConfiguration: Configuration = app.configuration
+  //override protected def runModeConfiguration: Configuration = app.configuration
+
+  /*sealed trait Setup {
+
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
+
+    val mockAuditConnector = mock[AuditConnector]
+    val runMode = mock[RunMode]
+    val httpMock: HttpClient = mock[HttpClient]
+    val wsHttpMock : HttpClient = mock[HttpClient]
+    val mockServicesConfig=mock[ServicesConfig]
+    val mockMetrics : ApplicationMetrics = mock[ApplicationMetrics]
+    val config = app.injector.instanceOf[Configuration]
+
+    val connector = new DesConnector(config, mockMetrics, wsHttpMock, mockAuditConnector)
+
+  }*/
 }
