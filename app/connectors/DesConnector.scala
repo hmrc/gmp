@@ -57,8 +57,6 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              val servicesConfig: ServicesConfig)
   extends RawResponseReads {
 
-  protected def mode: Mode = Play.current.mode
-
   private val PrefixStart = 0
   private val PrefixEnd = 1
   private val NumberStart = 1

@@ -129,7 +129,7 @@ class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with 
 
       val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
       (contentAsJson(cachedResult) \ "sconExists").as[JsBoolean].value must be(true)
-      verify(mockDesConnector, times(5)).validateScon(any(), any())(any())
+      verify(mockDesConnector, never()).validateScon(any(), any())(any())
     }
   }
 }

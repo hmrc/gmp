@@ -73,12 +73,6 @@ class CalculationControllerSpec extends PlaySpec
 
   private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-  before {
-    reset(mockRepo)
-    reset(mockDesConnector)
-    when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
-  }
-
   "CalculationController" must {
 
     "when calculation is not in the cache" must {
