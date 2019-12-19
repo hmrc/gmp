@@ -20,26 +20,23 @@ import java.util.UUID
 
 import metrics.ApplicationMetrics
 import models.CalculationRequest
-import org.mockito.ArgumentMatchers._
+import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.mockito.{ArgumentCaptor, Matchers}
+import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import play.api.Mode.Mode
+import org.scalatestplus.play.PlaySpec
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.test.Helpers._
-import play.api.{Configuration, Play}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
-import uk.gov.hmrc.play.http.ws.WSHttp
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.Future
 
 class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
@@ -48,9 +45,9 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
   val mockHttp: HttpClient = mock[HttpClient]
 
-  val mockServicesConfig=mock[ServicesConfig]
-
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
+
+  val mockServicesConfig: ServicesConfig = mock[ServicesConfig]
 
   when(mockAuditConnector.sendEvent(any())(any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
@@ -58,7 +55,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
   object TestDesConnector extends DesConnector(app.configuration,
     mock[ApplicationMetrics],
     mockHttp,
-    mockAuditConnector)
+    mockAuditConnector,
+    mockServicesConfig)
 
   val calcResponseJson = Json.parse(
     """{
@@ -169,7 +167,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         new DesConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
-          mock[AuditConnector]).baseURI must be("pensions/individuals/gmp")
+          mock[AuditConnector],
+          mockServicesConfig).baseURI must be("pensions/individuals/gmp")
       }
 
       "generate correct url when no revaluation" in {
@@ -283,7 +282,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         object TestDesConnector extends DesConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
-          mockAuditConnector)
+          mockAuditConnector,
+          mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](any())(any(), any(), any()))
@@ -324,7 +324,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         object TestNpsConnector extends DesConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
-          mockAuditConnector)
+          mockAuditConnector,
+          mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](any())

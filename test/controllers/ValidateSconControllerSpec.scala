@@ -19,20 +19,23 @@ package controllers
 import java.util.UUID
 
 import connectors.DesConnector
-import controllers.auth.{AuthAction, FakeAuthAction}
+import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
-import org.mockito.ArgumentMatchers._
+import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
+import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
-import repositories.{ValidateSconMongoRepository, ValidateSconRepository}
+import repositories.ValidateSconRepository
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -47,14 +50,19 @@ class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with 
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[ValidateSconRepository]
-  val mockAuthAction : AuthAction = new FakeAuthAction
+  val mockMicroserviceAuthConnector = mock[AuthConnector]
+  val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
+  val mockAuthConnector = mock[AuthConnector]
 
-  object testValidateSconController extends ValidateSconController(mockDesConnector, mockRepo, mockAuthAction)
+  val gmpAuthAction = FakeAuthAction(mockAuthConnector)
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
   }
+
+
+  val testValidateSconController = new ValidateSconController(mockDesConnector, mockRepo, gmpAuthAction, mockControllerComponents)
 
   "ValidateSconController" should {
 
@@ -63,7 +71,7 @@ class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with 
       when(mockDesConnector.validateScon(any(), any())(any()))
         .thenReturn(Future.successful(ValidateSconResponse(0)))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+      val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
 
       val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
       status(result) must be(OK)
