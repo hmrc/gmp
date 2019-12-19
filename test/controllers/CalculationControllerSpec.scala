@@ -16,28 +16,33 @@
 
 package controllers
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
-import controllers.auth.{AuthAction, AuthActionImpl, FakeAuthAction}
+import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
-import org.joda.time.LocalDate
-import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers._
+import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
+import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.CalculationRepository
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CalculationControllerSpec extends PlaySpec
-  with OneServerPerSuite
+  with GuiceOneAppPerSuite
   with MockitoSugar
   with BeforeAndAfter {
 
@@ -52,9 +57,21 @@ class CalculationControllerSpec extends PlaySpec
   val mockDesConnector: DesConnector = mock[DesConnector]
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val mockAuthAction : AuthAction = new FakeAuthAction
+  val mockMicroserviceAuthConnector = mock[AuthConnector]
+  val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
+  val mockAuthConnector = mock[AuthConnector]
 
-  val testCalculationController = new  CalculationController(mockDesConnector, mockRepo, mockAuthAction, mockAuditConnector)
+  val gmpAuthAction = FakeAuthAction(mockAuthConnector)
+
+  val testCalculationController = new  CalculationController(mockDesConnector, mockRepo, gmpAuthAction, mockAuditConnector, mockControllerComponents)
+
+  before {
+    reset(mockRepo)
+    reset(mockDesConnector)
+    when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
+  }
+
+  private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   before {
     reset(mockRepo)
@@ -83,7 +100,7 @@ class CalculationControllerSpec extends PlaySpec
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2006-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.23,
               "gmp_cod_allrate_tot": 1.11,
@@ -116,7 +133,7 @@ class CalculationControllerSpec extends PlaySpec
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2006-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.23,
               "gmp_cod_allrate_tot": 2.22,
@@ -151,7 +168,7 @@ class CalculationControllerSpec extends PlaySpec
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2006-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.23,
               "gmp_cod_allrate_tot": 3.33,
@@ -209,7 +226,7 @@ class CalculationControllerSpec extends PlaySpec
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2006-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 2.23,
               "gmp_cod_allrate_tot": 8.88,
@@ -249,7 +266,7 @@ class CalculationControllerSpec extends PlaySpec
               "npsLgmpcalc": [
               {
               "scheme_mem_start_date": "1978-04-06",
-              "scheme_end_date": "200-04-05",
+              "scheme_end_date": "2006-04-05",
               "revaluation_rate": 1,
               "gmp_cod_post_eightyeight_tot": 1.23,
               "gmp_cod_allrate_tot": 7.88,
@@ -376,8 +393,9 @@ class CalculationControllerSpec extends PlaySpec
 
     "when date of death returned" must {
       "do this" in {
+        val inputDate = LocalDate.parse("2016-01-01", fullDateFormatter)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(new LocalDate("2016-01-01"))))))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(inputDate)))))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(calculationRequest))
@@ -420,7 +438,7 @@ class CalculationControllerSpec extends PlaySpec
       "return a global error" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(ArgumentMatchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockDesConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)

@@ -18,26 +18,27 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import connectors.{DesConnector, DesGetHiddenRecordResponse}
-import controllers.auth.AuthAction
+import controllers.auth.{GmpAuthAction}
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
 import play.api.Logger
 import play.api.libs.json._
-import play.api.mvc.Action
+import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
                                       repository: CalculationRepository,
-                                      authAction: AuthAction,
-                                      auditConnector : AuditConnector
-                                     ) extends BaseController {
+                                      authAction: GmpAuthAction,
+                                      auditConnector : AuditConnector,
+                                      cc: ControllerComponents
+                                     ) (implicit val ec: ExecutionContext) extends BaseController(cc) {
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 

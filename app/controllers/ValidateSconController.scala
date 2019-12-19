@@ -18,22 +18,23 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import connectors.DesConnector
-import controllers.auth.AuthAction
+import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Action
+import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.Upstream5xxResponse
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
                                        val repository: ValidateSconRepository,
-                                       authAction: AuthAction) extends BaseController {
+                                       authAction: GmpAuthAction,
+                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BaseController(cc) {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
 

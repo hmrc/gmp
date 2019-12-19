@@ -16,8 +16,9 @@
 
 package models
 
-import org.joda.time.LocalDate
-import play.api.libs.json.Json
+import java.time.LocalDate
+import play.api.libs.json._
+
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
@@ -52,7 +53,7 @@ object CalculationPeriod {
   implicit val formats = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
-    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(new LocalDate(_)), new LocalDate(npsLgmpcalc.scheme_end_date),
+    CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDate.parse(_)),  LocalDate.parse(npsLgmpcalc.scheme_end_date),
       f"${npsLgmpcalc.gmp_cod_allrate_tot}%1.2f", f"${npsLgmpcalc.gmp_cod_post_eightyeight_tot}%1.2f", npsLgmpcalc.revaluation_rate, npsLgmpcalc.gmp_error_code,
       Some(npsLgmpcalc.reval_calc_switch_ind),
       npsLgmpcalc.gmp_cod_p90_ts_tot.map(value => f"$value%1.2f"),
@@ -103,12 +104,12 @@ object GmpCalculationResponse {
                                                                               revaluationRate: Option[Int], revaluationDate: Option[String], dualCalc: Boolean, calcType: Int):
   GmpCalculationResponse = {
     GmpCalculationResponse(name, nino, scon, revaluationRate.map(_.toString),
-      revaluationDate.map(new LocalDate(_)),
+      revaluationDate.map(LocalDate.parse(_)),
       calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc),
       calculationResponse.rejection_reason,
-      calculationResponse.spa_date.map(new LocalDate(_)),
-      calculationResponse.payable_age_date.map(new LocalDate(_)),
-      calculationResponse.dod_date.map(new LocalDate(_)),
+      calculationResponse.spa_date.map(LocalDate.parse(_)),
+      calculationResponse.payable_age_date.map(LocalDate.parse(_)),
+      calculationResponse.dod_date.map(LocalDate.parse(_)),
       dualCalc,
       calcType
       )

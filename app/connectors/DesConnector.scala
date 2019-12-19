@@ -29,8 +29,8 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,8 +53,9 @@ case object DesGetUnexpectedResponse extends DesGetResponse
 class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
                              http: HttpClient,
-                             auditConnector: AuditConnector)
-  extends RawResponseReads with ServicesConfig {
+                             auditConnector: AuditConnector,
+                             val servicesConfig: ServicesConfig)
+  extends RawResponseReads {
 
   protected def mode: Mode = Play.current.mode
 
@@ -65,16 +66,16 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   private val SuffixStart = 8
   private val SuffixEnd = 9
 
-  val serviceKey: String = getConfString("nps.key", "")
-  val serviceEnvironment: String = getConfString("nps.environment", "")
+  val serviceKey: String = servicesConfig.getConfString("nps.key", "")
+  val serviceEnvironment: String = servicesConfig.getConfString("nps.environment", "")
 
   val baseURI = "pensions/individuals/gmp"
   val baseSconURI = "pensions/gmp/scon"
   val calcURI = s"$serviceURL/$baseURI"
   val validateSconURI = s"$serviceURL/$baseSconURI"
-  lazy val serviceURL: String = baseUrl("nps")
+  lazy val serviceURL: String = servicesConfig.baseUrl("nps")
 
-  def citizenDetailsUrl: String = baseUrl("citizen-details")
+  def citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
 
@@ -179,7 +180,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
     HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("nps.originator-id", ""),
+      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
@@ -221,7 +222,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
     val newHc = HeaderCarrier(extraHeaders = Seq(
-      "Gov-Uk-Originator-Id" -> getConfString("des.originator-id", ""),
+      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
