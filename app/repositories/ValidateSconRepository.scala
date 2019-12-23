@@ -20,6 +20,7 @@ import com.google.inject.{Inject, Provider, Singleton}
 import models.GmpValidateSconResponse
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Format, Json, OFormat}
 import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.commands.WriteResult.Message
@@ -116,7 +117,9 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
   }
 }
 
-object ValidateSconRepository extends MongoDbConnection {
+object ValidateSconRepository {
+
+  implicit val db : scala.Function0[reactivemongo.api.DefaultDB] = (GuiceApplicationBuilder().injector().instanceOf[ReactiveMongoComponent]).mongoConnector.db
 
   private lazy val repository = new ValidateSconMongoRepository
 
