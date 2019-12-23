@@ -20,6 +20,7 @@ import com.google.inject.{Inject, Provider, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Format, Json}
 import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.commands.WriteResult.Message
@@ -113,7 +114,9 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
   }
 }
 
-object CalculationRepository extends MongoDbConnection {
+object CalculationRepository {
+
+  implicit val db : scala.Function0[reactivemongo.api.DefaultDB] = (GuiceApplicationBuilder().injector().instanceOf[ReactiveMongoComponent]).mongoConnector.db
 
   private lazy val calculationRepository = new CalculationMongoRepository
 

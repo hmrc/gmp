@@ -25,7 +25,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.Upstream5xxResponse
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ValidateSconController @Inject()(desConnector: DesConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
-                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BaseController(cc) {
+                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BackendController(cc) {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
