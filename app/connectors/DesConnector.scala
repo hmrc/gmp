@@ -177,7 +177,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   }
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
-    HeaderCarrier(extraHeaders = Seq(
+    hc.copy(extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id", ""),
       "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
