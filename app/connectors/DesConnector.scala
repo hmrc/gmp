@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
+import uk.gov.hmrc.http.logging.Authorization
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -177,9 +177,8 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   }
 
   private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
-    hc.copy(extraHeaders = Seq(
+    hc.copy(authorization = Some(Authorization(s"Bearer $serviceKey")),extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id", ""),
-      "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
@@ -219,9 +218,8 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
-    val newHc = HeaderCarrier(extraHeaders = Seq(
+    val newHc = hc.copy(authorization = Some(Authorization(s"Bearer $serviceKey")), extraHeaders = Seq(
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id", ""),
-      "Authorization" -> s"Bearer $serviceKey",
       "Environment" -> serviceEnvironment))
 
     val startTime = System.currentTimeMillis()
