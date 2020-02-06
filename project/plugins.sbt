@@ -22,5 +22,3 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-artifactory" % "1.0.0")
-
-addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.5.0")
