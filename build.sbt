@@ -19,6 +19,21 @@ import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, scalaSettings}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
+val akkaVersion     = "2.5.23"
+
+val akkaHttpVersion = "10.0.15"
+
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-stream"    % akkaVersion
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-protobuf"  % akkaVersion
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-actor"     % akkaVersion
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion
+
 val appName: String = "gmp"
 
 lazy val plugins: Seq[Plugins] =
