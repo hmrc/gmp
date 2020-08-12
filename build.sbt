@@ -78,3 +78,4 @@ lazy val scoverageExcludePatterns = List(
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
       resolvers += Resolver.jcenterRepo
     )
+    .settings(scalaVersion := "2.12.11")

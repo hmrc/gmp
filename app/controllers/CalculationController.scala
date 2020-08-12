@@ -27,9 +27,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -47,17 +45,15 @@ class CalculationController @Inject()(desConnector: DesConnector,
       withJsonBody[CalculationRequest] { calculationRequest =>
 
         repository.findByRequest(calculationRequest).flatMap {
-          case Some(cr) => {
+          case Some(cr) =>
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
-          }
-          case None => {
+          case None =>
             desConnector.getPersonDetails(calculationRequest.nino).flatMap {
-              case DesGetHiddenRecordResponse => {
+              case DesGetHiddenRecordResponse =>
                 val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
                 Future.successful(Ok(Json.toJson(response)))
-              }
-              case _ => {
+              case _ =>
                 val result = desConnector.calculate(userId, calculationRequest)
                 result.map {
                   calculation => {
@@ -78,9 +74,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                     InternalServerError(e.getMessage)
                   }
                 }
-              }
             }
-          }
         }
       }
     }

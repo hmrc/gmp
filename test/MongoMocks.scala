@@ -21,17 +21,19 @@ import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsObject
 import reactivemongo.api.commands.{UpdateWriteResult, WriteConcern, WriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.api.{CollectionProducer, Cursor, DefaultDB, FailoverStrategy}
 import reactivemongo.play.json.collection.{JSONCollection, JSONQueryBuilder}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect._
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
+
 
 trait MongoMocks extends MockitoSugar {
 
@@ -51,7 +53,7 @@ trait MongoMocks extends MockitoSugar {
 
     val mockIndexManager = mock[CollectionIndexesManager]
     when(mockIndexManager.ensure(any())).thenReturn(Future.successful(true))
-    when(collection.indexesManager).thenReturn(mockIndexManager)
+    when(collection.indexesManager(ec)).thenReturn(mockIndexManager)
 
     setupAnyUpdateOn(collection)
     setupAnyInsertOn(collection)

@@ -22,15 +22,14 @@ import java.util.concurrent.TimeUnit
 import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
-import play.api.Mode.Mode
 import play.api.http.Status._
-import play.api.{Configuration, Logger, Play}
+import play.api.{Configuration, Logger}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 import uk.gov.hmrc.http.logging.Authorization
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
