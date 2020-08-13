@@ -25,7 +25,7 @@ import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
@@ -69,7 +69,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                     Ok(Json.toJson(transformedResult))
                   }
                 }.recover {
-                  case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
+                  case e: UpstreamErrorResponse if e.statusCode == 500 => {
                     Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
                     InternalServerError(e.getMessage)
                   }

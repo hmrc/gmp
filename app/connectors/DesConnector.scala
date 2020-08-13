@@ -102,7 +102,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
         case errorStatus: Int => {
           Logger.error(s"[DesConnector][validateScon] : NPS returned code $errorStatus and response body: ${response.body}")
-          throw new Upstream5xxResponse("DES connector validateScon failed", errorStatus, INTERNAL_SERVER_ERROR)
+          throw UpstreamErrorResponse("DES connector validateScon failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
 
@@ -166,7 +166,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         }
         case errorStatus: Int => {
           Logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
-          throw new Upstream5xxResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+          throw UpstreamErrorResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
     }
