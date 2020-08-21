@@ -24,10 +24,8 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
-import uk.gov.hmrc.http.Upstream5xxResponse
-import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -57,10 +55,9 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
                 Ok(Json.toJson(transformedResult))
               }
             }.recover {
-              case e: Upstream5xxResponse if e.upstreamResponseCode == 500 => {
+              case e: UpstreamErrorResponse if e.statusCode == 500 =>
                 Logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
                 InternalServerError(e.getMessage)
-              }
             }
           }
         }

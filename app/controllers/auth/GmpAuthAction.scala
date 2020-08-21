@@ -23,8 +23,7 @@ import play.api.mvc.{ActionBuilder, AnyContent, BodyParser, ControllerComponents
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, ConfidenceLevel, NoActiveSession}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
-
-import scala.concurrent.{Future}
+import scala.concurrent.Future
 
 @Singleton
 class GmpAuthAction @Inject()(override val authConnector: AuthConnector, controllerComponents: ControllerComponents)
