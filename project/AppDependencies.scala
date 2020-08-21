@@ -23,7 +23,7 @@ object AppDependencies {
         "uk.gov.hmrc" %% "hmrctest" % "3.9.0-play-26",
         "org.scalatest" %% "scalatest" % "3.0.8",
         "org.scalamock" %% "scalamock" % "3.6.0",
-        "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2",
+        "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3",
         "org.pegdown" % "pegdown" % "1.6.0",
         "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-26",
         "org.reactivemongo" %% "reactivemongo-iteratees" % "0.18.8",
