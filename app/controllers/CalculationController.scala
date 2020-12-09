@@ -86,8 +86,8 @@ class CalculationController @Inject()(desConnector: DesConnector,
       case x if x.matches("[0-9]") => "psp"
     }
     val resultsEventResult = auditConnector.sendEvent(new ResultsEvent(!response.hasErrors, response.errorCodes, response.calcType, response.dualCalc, response.scon, cached, idType))
-    resultsEventResult.onFailure {
+    resultsEventResult.failed.foreach({
       case e: Throwable => Logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
-    }
+    })
   }
 }

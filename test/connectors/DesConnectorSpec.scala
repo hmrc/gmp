@@ -34,7 +34,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.Future
 
@@ -299,7 +299,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
+          .thenReturn(Future.successful(HttpResponse.apply(200, "Some(validateSconResponseJson)", Map())))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
         val validateSconResponse = await(result)
@@ -376,7 +376,6 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
-        val r = HttpResponse(200, Some(citizenDetailsJson))
         when(mockHttp.GET[HttpResponse](any())(any(), any(), any())) thenReturn {
           Future.failed(ex)
         }
@@ -407,10 +406,6 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
     }
 
-  }
-
-  private def successfulCalcHttpResponse(responseJson: Option[JsValue]): JsValue = {
-    responseJson.get
   }
 
   //override protected def mode: Mode = Play.current.mode

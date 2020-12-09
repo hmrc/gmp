@@ -21,8 +21,8 @@ import models.{CalculationRequest, GmpCalculationResponse}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Format, Json}
-import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
+import play.api.libs.json.{Format, JsObject, Json}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
@@ -88,7 +88,7 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] = {
     val tryResult = Try {
-      collection.find(Json.obj("request" -> request.hashCode)).cursor[CachedCalculation](ReadPreference.primary)
+      collection.find(Json.obj("request" -> request.hashCode), Option.empty[JsObject]).cursor[CachedCalculation](ReadPreference.primary)
         .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[CachedCalculation]]())
     }
 

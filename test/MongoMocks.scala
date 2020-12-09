@@ -78,7 +78,7 @@ trait MongoMocks extends MockitoSugar {
   }
 
   def verifyInsertOn[T](collection: JSONCollection, obj: T) = {
-    verify(collection).insert(eqTo(obj), any())(any(), any())
+    verify(collection).insert(ordered = false).one(eqTo(obj), any())(any(), any())
   }
 
   def verifyInsertOn[T](collection: JSONCollection, captor: ArgumentCaptor[T]) = {
@@ -104,79 +104,9 @@ trait MongoMocks extends MockitoSugar {
     verify(collection).update(any(), any(), any[WriteConcern], anyBoolean(), anyBoolean())(any(), any(), any[ExecutionContext])
   }
 
-  def setupFindFor[T](collection: JSONCollection, returns: Traversable[T])(implicit manifest: Manifest[T]) = {
-
-    val queryBuilder = mock[JSONQueryBuilder]
-    val cursor = mock[Cursor[T]]
-
-    when(
-      collection.find(any[JsObject])(any())
-    ) thenReturn queryBuilder
-
-    when(
-      queryBuilder.cursor[T](any(), any())(any(), any())
-    ) thenAnswer new Answer[Cursor[T]] {
-      def answer(i: InvocationOnMock) = cursor
-    }
-
-    when(
-      cursor.collect[Traversable](anyInt, any())(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
-    ) thenReturn Future.successful(returns)
-
-  }
-
-  def setupFindFor[T](collection: JSONCollection, returns: Option[T])(implicit manifest: Manifest[T]) = {
-
-    val queryBuilder = mock[JSONQueryBuilder]
-
-    when(
-      collection.find(any[JsObject])(any())
-    ) thenReturn queryBuilder
-
-    when(
-      queryBuilder.one[T](any(), any)
-    ) thenReturn Future.successful(returns)
-
-  }
-
-  def setupFindFor[T](collection: JSONCollection, filter: Any, returns: Option[T])(implicit manifest: Manifest[T]) = {
-
-    val queryBuilder = mock[JSONQueryBuilder]
-
-    when(
-      collection.find(eqTo(filter))(any())
-    ) thenReturn queryBuilder
-
-    when(
-      queryBuilder.one[T](any(), any)
-    ) thenReturn Future.successful(returns)
-
-  }
-
-  def setupFindFor[T](collection: JSONCollection, filter: Any, returns: Traversable[T])(implicit manifest: Manifest[T]) = {
-
-    val queryBuilder = mock[JSONQueryBuilder]
-    val cursor = mock[Cursor[T]]
-
-    when(
-      collection.find(eqTo(filter))(any())
-    ) thenReturn queryBuilder
-
-    when(
-      queryBuilder.cursor[T](any(), any())(any(), any())
-    ) thenAnswer new Answer[Cursor[T]] {
-      def answer(i: InvocationOnMock) = cursor
-    }
-
-    when(
-      cursor.collect[Traversable](anyInt, any())(any[CanBuildFrom[Traversable[_], T, Traversable[T]]], any[ExecutionContext])
-    ) thenReturn Future.successful(returns)
-
-  }
-
   def setupInsertOn[T](collection: JSONCollection, obj: T, fails: Boolean = false) = {
     val m = mockWriteResult(fails)
-    when(collection.insert(eqTo(obj), any())(any(), any()))
+    when(collection.insert(ordered = false).one((eqTo(obj), any()))(any(), any()))
       .thenReturn(Future.successful(m))
   }
 

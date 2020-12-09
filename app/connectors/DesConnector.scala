@@ -210,9 +210,9 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         tags = hc.toAuditTags(auditTag, "N/A"),
         detail = hc.toAuditDetails() ++ auditDetails))
 
-    auditResult.onFailure {
+    auditResult.failed.foreach({
       case e: Throwable => Logger.warn("[DesConnector][doAudit] : auditResult: " + e.getMessage, e)
-    }
+    })
   }
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
