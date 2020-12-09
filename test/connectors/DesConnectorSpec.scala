@@ -299,7 +299,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse.apply(200, "Some(validateSconResponseJson)", Map())))
+          .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
         val validateSconResponse = await(result)
