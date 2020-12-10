@@ -86,6 +86,6 @@ lazy val scoverageExcludePatterns = List(
         "-feature",
         "-unchecked",
         "-language:implicitConversions",
-        "-P:silencer:pathFilters=views;routes;TestStorage"
+        "-P:silencer:pathFilters=routes;TestStorage"
     ))
     .settings(scalaVersion := "2.12.11")

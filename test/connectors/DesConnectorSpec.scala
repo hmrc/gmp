@@ -407,25 +407,4 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     }
 
   }
-
-  //override protected def mode: Mode = Play.current.mode
-
-  //override protected def runModeConfiguration: Configuration = app.configuration
-
-  /*sealed trait Setup {
-
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
-
-    val mockAuditConnector = mock[AuditConnector]
-    val runMode = mock[RunMode]
-    val httpMock: HttpClient = mock[HttpClient]
-    val wsHttpMock : HttpClient = mock[HttpClient]
-    val mockServicesConfig=mock[ServicesConfig]
-    val mockMetrics : ApplicationMetrics = mock[ApplicationMetrics]
-    val config = app.injector.instanceOf[Configuration]
-
-    val connector = new DesConnector(config, mockMetrics, wsHttpMock, mockAuditConnector)
-
-  }*/
 }
