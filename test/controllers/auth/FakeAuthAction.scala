@@ -36,7 +36,6 @@ import play.api.mvc.{Request, Result}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class FakeAuthAction(override val authConnector: AuthConnector) extends GmpAuthAction(authConnector, stubMessagesControllerComponents()) {

@@ -21,8 +21,8 @@ import models.GmpValidateSconResponse
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Format, Json, OFormat}
-import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
+import play.api.libs.json.{Format, JsObject, Json, OFormat}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
@@ -94,7 +94,7 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
     val result = Try {
-      collection.find(Json.obj("scon" -> scon)).cursor[ValidateSconMongoModel](ReadPreference.primary)
+      collection.find(Json.obj("scon" -> scon), Option.empty[JsObject]).cursor[ValidateSconMongoModel](ReadPreference.primary)
         .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[ValidateSconMongoModel]]())
     }
 

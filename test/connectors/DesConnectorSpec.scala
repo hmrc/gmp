@@ -34,7 +34,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.Future
 
@@ -376,7 +376,6 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
-        val r = HttpResponse(200, Some(citizenDetailsJson))
         when(mockHttp.GET[HttpResponse](any())(any(), any(), any())) thenReturn {
           Future.failed(ex)
         }
@@ -408,29 +407,4 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
     }
 
   }
-
-  private def successfulCalcHttpResponse(responseJson: Option[JsValue]): JsValue = {
-    responseJson.get
-  }
-
-  //override protected def mode: Mode = Play.current.mode
-
-  //override protected def runModeConfiguration: Configuration = app.configuration
-
-  /*sealed trait Setup {
-
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
-
-    val mockAuditConnector = mock[AuditConnector]
-    val runMode = mock[RunMode]
-    val httpMock: HttpClient = mock[HttpClient]
-    val wsHttpMock : HttpClient = mock[HttpClient]
-    val mockServicesConfig=mock[ServicesConfig]
-    val mockMetrics : ApplicationMetrics = mock[ApplicationMetrics]
-    val config = app.injector.instanceOf[Configuration]
-
-    val connector = new DesConnector(config, mockMetrics, wsHttpMock, mockAuditConnector)
-
-  }*/
 }

@@ -30,6 +30,7 @@ import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
 import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.Future
+import scala.language.postfixOps
 import scala.concurrent.duration._
 
 

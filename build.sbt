@@ -78,4 +78,14 @@ lazy val scoverageExcludePatterns = List(
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
       resolvers += Resolver.jcenterRepo
     )
+    .settings(
+      scalacOptions ++= List(
+        "-Yrangepos",
+        "-Xlint:-missing-interpolator,_",
+        "-Yno-adapted-args",
+        "-feature",
+        "-unchecked",
+        "-language:implicitConversions",
+        "-P:silencer:pathFilters=routes;TestStorage"
+    ))
     .settings(scalaVersion := "2.12.11")
