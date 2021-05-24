@@ -36,8 +36,7 @@ dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion
 
 val appName: String = "gmp"
 
-lazy val plugins: Seq[Plugins] =
-    Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
+lazy val plugins: Seq[Plugins] = Seq(play.sbt.PlayScala, SbtDistributablesPlugin)
 
 lazy val scoverageExcludePatterns = List(
   "<empty>",
@@ -70,13 +69,11 @@ lazy val scoverageExcludePatterns = List(
       scoverageSettings,
       majorVersion := 3,
       libraryDependencies ++= AppDependencies.all,
-      parallelExecution in Test := false,
-      fork in Test := false,
+      Test / parallelExecution := false,
+      Test / fork := false,
       retrieveManaged := true,
       PlayKeys.playDefaultPort := 9942,
-      routesGenerator := InjectedRoutesGenerator,
-      resolvers += Resolver.bintrayRepo("hmrc", "releases"),
-      resolvers += Resolver.jcenterRepo
+      routesGenerator := InjectedRoutesGenerator
     )
     .settings(
       scalacOptions ++= List(

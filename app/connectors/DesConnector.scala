@@ -30,9 +30,8 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
-import uk.gov.hmrc.http.logging.Authorization
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
 trait DesGetResponse
 
@@ -53,8 +52,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
                              http: HttpClient,
                              auditConnector: AuditConnector,
-                             val servicesConfig: ServicesConfig)
-  extends RawResponseReads {
+                             val servicesConfig: ServicesConfig)(implicit ec: ExecutionContext) {
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -93,7 +91,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = npsHeaders).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -147,7 +145,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri)(hc = npsRequestHeaderCarrier, rds = httpReads, ec = ExecutionContext.global).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = npsHeaders).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -175,10 +173,10 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
   }
 
-  private def npsRequestHeaderCarrier(implicit hc: HeaderCarrier): HeaderCarrier =
-    hc.copy(authorization = Some(Authorization(s"Bearer $serviceKey")),extraHeaders = Seq(
+  private def npsHeaders =
+    Seq("Authorization" -> s"Bearer $serviceKey",
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id", ""),
-      "Environment" -> serviceEnvironment))
+      "Environment" -> serviceEnvironment)
 
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
     val encoded = for {
@@ -217,16 +215,16 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[DesGetResponse] = {
 
-    val newHc = hc.copy(authorization = Some(Authorization(s"Bearer $serviceKey")), extraHeaders = Seq(
+    val npsHeaders = Seq("Authorization" -> s"Bearer $serviceKey",
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("des.originator-id", ""),
-      "Environment" -> serviceEnvironment))
+      "Environment" -> serviceEnvironment)
 
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
     Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](url)(implicitly[HttpReads[HttpResponse]], newHc, ec = ExecutionContext.global) map { response =>
+    http.GET[HttpResponse](url, headers = npsHeaders) map { response =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
@@ -241,7 +239,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       }
 
     } recover {
-      case e: NotFoundException => DesGetNotFoundResponse
+      case e: UpstreamErrorResponse if e.statusCode == NOT_FOUND => DesGetNotFoundResponse
       case e: Exception =>
         Logger.error("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
         metrics.mciErrorCount()
