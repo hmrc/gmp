@@ -40,6 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
 
   implicit val hc = HeaderCarrier()
+  val returnHeaders = Map("Session" -> Seq("session1"))
 
   implicit lazy val ec = app.injector.instanceOf[ExecutionContext]
 
@@ -106,7 +107,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
         val calcResponse = await(result)
@@ -120,10 +121,10 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(500, Some(calcResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(500, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
-        intercept[Upstream5xxResponse] {
+        intercept[UpstreamErrorResponse] {
           await(result)
         }
       }
@@ -133,7 +134,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(422, Some(calcResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
@@ -145,7 +146,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(400, None)))
+          .thenReturn(Future.successful(HttpResponse(400, "400")))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
@@ -156,8 +157,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       "generate a DES url" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -176,8 +177,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -187,8 +188,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       "truncate surname to 3 chars if length greater than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -198,8 +199,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       "not truncate surname if length less than 3 chars" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -209,8 +210,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       "remove any whitespace from names" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -222,8 +223,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -234,8 +235,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -246,8 +247,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -258,8 +259,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -270,8 +271,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
+          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
@@ -288,8 +289,8 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, Some(calcResponseJson))))
-        val result = TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+          .thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
         //TODO: Assert something here?
       }
     }
@@ -300,7 +301,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
         val validateSconResponse = await(result)
@@ -312,10 +313,10 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(500, Some(validateSconResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(500, validateSconResponseJson, returnHeaders)))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
-        intercept[Upstream5xxResponse] {
+        intercept[UpstreamErrorResponse] {
           await(result)
         }
       }
@@ -331,7 +332,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
         when(mockHttp.GET[HttpResponse](any(), any(), any())
           (any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, Some(validateSconResponseJson))))
+          .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         TestNpsConnector.validateScon("PSAID", "S1401234Q")
         //TODO: Assert something here?
@@ -344,7 +345,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       "return a DesHiddenRecordResponse when manualCorrespondenceInd=true" in {
 
-        val response = HttpResponse(423, Some(citizenDetailsJson))
+        val response = HttpResponse(423, citizenDetailsJson, returnHeaders)
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
           Future.successful(response)
@@ -356,7 +357,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
 
-        val response = HttpResponse(200, Some(citizenDetailsJson))
+        val response = HttpResponse(200, citizenDetailsJson, returnHeaders)
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
           Future.successful(response)
         }
@@ -388,7 +389,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
 
       "return a success response if the MCI flag does not appear in the response" in {
         val json = Json.parse("{}")
-        val response = HttpResponse(200, Some(json))
+        val response = HttpResponse(200, json, returnHeaders)
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
 
@@ -397,7 +398,7 @@ class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSug
       }
 
       "return an Unexpected Response with Internal Server response or DES is down" in {
-        val response = HttpResponse(500, Some(citizenDetailsJson))
+        val response = HttpResponse.apply(500, citizenDetailsJson, returnHeaders)
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
 
