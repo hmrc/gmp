@@ -71,14 +71,6 @@ trait MongoMocks extends MockitoSugar {
     verify(collection).insert(ordered = false).one(any())
   }
 
-  def verifyInsertOn[T](collection: JSONCollection, obj: T) = {
-    verify(collection).insert(ordered = false).one(eqTo(obj), any())(any(), any())
-  }
-
-  def verifyInsertOn[T](collection: JSONCollection, captor: ArgumentCaptor[T]) = {
-    verify(collection).insert(ordered = false).one(captor.capture(), any())(any(), any())
-  }
-
   def verifyUpdateOn[T](collection: JSONCollection, filter: Option[(JsObject) => Unit] = None, update: Option[(JsObject) => Unit] = None) = {
     val filterCaptor = ArgumentCaptor.forClass(classOf[JsObject])
     val updaterCaptor = ArgumentCaptor.forClass(classOf[JsObject])

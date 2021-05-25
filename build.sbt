@@ -54,7 +54,7 @@ lazy val scoverageExcludePatterns = List(
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimum := 80,
+      ScoverageKeys.coverageMinimumStmtTotal := 80,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
@@ -85,4 +85,4 @@ lazy val scoverageExcludePatterns = List(
         "-language:implicitConversions",
         "-P:silencer:pathFilters=routes;TestStorage"
     ))
-    .settings(scalaVersion := "2.12.11")
+    .settings(scalaVersion := "2.12.13")

@@ -9,8 +9,8 @@ object AppDependencies {
     "uk.gov.hmrc" %% "bootstrap-backend-play-26" % bootstrapPlayVersion,
     "uk.gov.hmrc" %% "simple-reactivemongo" % "8.0.0-play-26",
     "org.reactivemongo" %% "play2-reactivemongo" % "0.18.8-play26",
-    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full),
-    "com.github.ghik" % "silencer-lib" % "1.7.1" % Provided cross CrossVersion.full,
+    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.4" cross CrossVersion.full),
+    "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full,
     ws
   )
 
@@ -32,7 +32,7 @@ object AppDependencies {
         "org.mockito" % "mockito-all" % "1.10.19",
         "uk.gov.hmrc" %% "tax-year" % "1.3.0",
         "com.github.tomakehurst" % "wiremock-jre8" % "2.28.0",
-        "uk.gov.hmrc" %% "bootstrap-play-26" % "1.14.0" % Test classifier "tests")
+        "uk.gov.hmrc" %% "bootstrap-play-26" % "4.0.0" % Test classifier "tests")
     }.test
   }
 
