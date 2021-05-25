@@ -19,21 +19,15 @@ package helpers.mongo
 import org.mockito.ArgumentCaptor
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsObject
-import reactivemongo.api.commands.{UpdateWriteResult, WriteConcern, WriteResult}
+import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
-import reactivemongo.api.{CollectionProducer, Cursor, DefaultDB, FailoverStrategy}
-import reactivemongo.play.json.collection.{JSONCollection, JSONQueryBuilder}
-
+import reactivemongo.api.{CollectionProducer, DefaultDB, FailoverStrategy}
+import reactivemongo.play.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect._
 import reactivemongo.play.json.ImplicitBSONHandlers.BSONDocumentWrites
-
 
 trait MongoMocks extends MockitoSugar {
 
@@ -77,19 +71,17 @@ trait MongoMocks extends MockitoSugar {
     verify(collection).insert(ordered = false).one(any())
   }
 
-  def verifyInsertOn[T](collection: JSONCollection, obj: T) = {
-    verify(collection).insert(ordered = false).one(eqTo(obj), any())(any(), any())
-  }
-
-  def verifyInsertOn[T](collection: JSONCollection, captor: ArgumentCaptor[T]) = {
-    verify(collection).insert(captor.capture(), any[WriteConcern])(any(), any[ExecutionContext])
-  }
-
   def verifyUpdateOn[T](collection: JSONCollection, filter: Option[(JsObject) => Unit] = None, update: Option[(JsObject) => Unit] = None) = {
     val filterCaptor = ArgumentCaptor.forClass(classOf[JsObject])
     val updaterCaptor = ArgumentCaptor.forClass(classOf[JsObject])
 
-    verify(collection).update(filterCaptor.capture(), updaterCaptor.capture(), any[WriteConcern], anyBoolean(), anyBoolean())(any(), any(), any[ExecutionContext])
+    verify(collection).update(ordered = false).one(
+      filterCaptor.capture(),
+      updaterCaptor.capture(),
+      any(),
+      any(),
+      any()
+    )(any(), any(), any())
 
     if (filter.isDefined) {
       filter.get(filterCaptor.getValue)
@@ -101,7 +93,7 @@ trait MongoMocks extends MockitoSugar {
   }
 
   def verifyAnyUpdateOn[T](collection: JSONCollection) = {
-    verify(collection).update(any(), any(), any[WriteConcern], anyBoolean(), anyBoolean())(any(), any(), any[ExecutionContext])
+    verify(collection).update(ordered = false).one(any(), any(), any(), any(), any())(any(), any(), any())
   }
 
   def setupInsertOn[T](collection: JSONCollection, obj: T, fails: Boolean = false) = {
@@ -119,7 +111,7 @@ trait MongoMocks extends MockitoSugar {
   def setupAnyUpdateOn(collection: JSONCollection, fails: Boolean = false) = {
     val m = mockUpdateWriteResult(fails)
     when(
-      collection.update(any(), any(), any(), anyBoolean, anyBoolean)(any(), any(), any[ExecutionContext])
+      collection.update(ordered = false).one(any(), any(), any(), any(), any())(any(), any(), any())
     ) thenReturn Future.successful(m)
   }
 }

@@ -18,14 +18,13 @@ package controllers
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
@@ -34,7 +33,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.CalculationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
@@ -194,7 +193,7 @@ class CalculationControllerSpec extends PlaySpec
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
-          .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
+          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
@@ -330,7 +329,7 @@ class CalculationControllerSpec extends PlaySpec
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
-        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         verify(mockDesConnector, never()).calculate(any(), any())(any())
       }
     }

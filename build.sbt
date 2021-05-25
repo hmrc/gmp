@@ -36,8 +36,7 @@ dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion
 
 val appName: String = "gmp"
 
-lazy val plugins: Seq[Plugins] =
-    Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
+lazy val plugins: Seq[Plugins] = Seq(play.sbt.PlayScala, SbtDistributablesPlugin)
 
 lazy val scoverageExcludePatterns = List(
   "<empty>",
@@ -55,7 +54,7 @@ lazy val scoverageExcludePatterns = List(
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimum := 80,
+      ScoverageKeys.coverageMinimumStmtTotal := 80,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
@@ -70,13 +69,11 @@ lazy val scoverageExcludePatterns = List(
       scoverageSettings,
       majorVersion := 3,
       libraryDependencies ++= AppDependencies.all,
-      parallelExecution in Test := false,
-      fork in Test := false,
+      Test / parallelExecution := false,
+      Test / fork := false,
       retrieveManaged := true,
       PlayKeys.playDefaultPort := 9942,
-      routesGenerator := InjectedRoutesGenerator,
-      resolvers += Resolver.bintrayRepo("hmrc", "releases"),
-      resolvers += Resolver.jcenterRepo
+      routesGenerator := InjectedRoutesGenerator
     )
     .settings(
       scalacOptions ++= List(
@@ -88,4 +85,4 @@ lazy val scoverageExcludePatterns = List(
         "-language:implicitConversions",
         "-P:silencer:pathFilters=routes;TestStorage"
     ))
-    .settings(scalaVersion := "2.12.11")
+    .settings(scalaVersion := "2.12.13")

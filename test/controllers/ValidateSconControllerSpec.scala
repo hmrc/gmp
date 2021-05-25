@@ -17,14 +17,13 @@
 package controllers
 
 import java.util.UUID
-
 import connectors.DesConnector
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -34,7 +33,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -113,7 +112,7 @@ class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with 
     "respond with server error if connector returns same" in {
       when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
       when(mockDesConnector.validateScon(any(), any())(any())).thenReturn(Future
-        .failed(new Upstream5xxResponse("Only DOL Requests are supported", 500, 500)))
+        .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
       val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 

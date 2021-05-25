@@ -19,11 +19,11 @@ package controllers.auth
 import akka.util.Timeout
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.{OK, UNAUTHORIZED}
-import play.api.mvc.{Action, AnyContent, Controller, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.status
 import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
@@ -36,8 +36,10 @@ import scala.concurrent.duration._
 
 class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar{
 
-  class Harness(authAction: GmpAuthAction) extends Controller {
+  class Harness(authAction: GmpAuthAction) extends BaseController {
     def onPageLoad(): Action[AnyContent] = authAction { request => Ok }
+
+    override def controllerComponents: ControllerComponents = stubMessagesControllerComponents()
   }
 
   val mockMicroserviceAuthConnector = mock[AuthConnector]
