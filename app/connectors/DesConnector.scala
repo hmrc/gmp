@@ -91,7 +91,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = npsHeaders).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -145,7 +145,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = npsHeaders).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
 
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
@@ -224,7 +224,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](url, headers = npsHeaders) map { response =>
+    http.GET[HttpResponse](url, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
