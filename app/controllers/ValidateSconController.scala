@@ -20,19 +20,20 @@ import com.google.inject.{Inject, Singleton}
 import connectors.DesConnector
 import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
-                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BackendController(cc) {
+                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
@@ -47,16 +48,16 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
 
             result.map {
               validateResult => {
-                Logger.debug(s"[ValidateSconController][validateScon] : $validateResult")
+                logger.debug(s"[ValidateSconController][validateScon] : $validateResult")
                 val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(validateResult)
 
-                Logger.debug(s"[ValidateSconController][transformedResult] : $transformedResult")
+                logger.debug(s"[ValidateSconController][transformedResult] : $transformedResult")
                 repository.insertByScon(validateSconRequest.scon, transformedResult)
                 Ok(Json.toJson(transformedResult))
               }
             }.recover {
               case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                Logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
+                logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
                 InternalServerError(e.getMessage)
             }
           }

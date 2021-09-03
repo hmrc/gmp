@@ -21,13 +21,14 @@ import connectors.{DesConnector, DesGetHiddenRecordResponse}
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -36,7 +37,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                                       authAction: GmpAuthAction,
                                       auditConnector : AuditConnector,
                                       cc: ControllerComponents
-                                     ) (implicit val ec: ExecutionContext) extends BackendController(cc) {
+                                     ) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
@@ -57,12 +58,12 @@ class CalculationController @Inject()(desConnector: DesConnector,
                 val result = desConnector.calculate(userId, calculationRequest)
                 result.map {
                   calculation => {
-                    Logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+                    logger.debug(s"[CalculationController][requestCalculation] : $calculation")
 
                     val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
                       calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
 
-                    Logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                    logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
                     repository.insertByRequest(calculationRequest, transformedResult)
                     sendResultsEvent(transformedResult, cached = false, userId)
 
@@ -70,7 +71,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                   }
                 }.recover {
                   case e: UpstreamErrorResponse if e.statusCode == 500 => {
-                    Logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                    logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
                     InternalServerError(e.getMessage)
                   }
                 }
@@ -87,7 +88,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
     }
     val resultsEventResult = auditConnector.sendEvent(new ResultsEvent(!response.hasErrors, response.errorCodes, response.calcType, response.dualCalc, response.scon, cached, idType))
     resultsEventResult.failed.foreach({
-      case e: Throwable => Logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
+      e: Throwable => logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
     })
   }
 }

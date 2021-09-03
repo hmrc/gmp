@@ -16,16 +16,13 @@
 
 package connectors
 
+import base.BaseSpec
 import java.util.UUID
 import metrics.ApplicationMetrics
 import models.CalculationRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.mockito.ArgumentCaptor
-import org.scalatest.BeforeAndAfter
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
 import play.api.libs.json._
 import play.api.test.Helpers._
@@ -37,9 +34,8 @@ import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DesConnectorSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
+class DesConnectorSpec extends BaseSpec {
 
-  implicit val hc = HeaderCarrier()
   val returnHeaders = Map("Session" -> Seq("session1"))
 
   implicit lazy val ec = app.injector.instanceOf[ExecutionContext]

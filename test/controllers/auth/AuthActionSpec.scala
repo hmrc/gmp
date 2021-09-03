@@ -17,34 +17,30 @@
 package controllers.auth
 
 import akka.util.Timeout
+import base.BaseSpec
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.status
 import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
-import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.concurrent.duration._
 
+class AuthActionSpec extends BaseSpec {
 
-class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar{
+  private val cComponents = controllerComponents
 
   class Harness(authAction: GmpAuthAction) extends BaseController {
     def onPageLoad(): Action[AnyContent] = authAction { request => Ok }
 
-    override def controllerComponents: ControllerComponents = stubMessagesControllerComponents()
+    override def controllerComponents: ControllerComponents = cComponents
   }
 
-  val mockMicroserviceAuthConnector = mock[AuthConnector]
-  val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
-
+  private val mockMicroserviceAuthConnector = mock[AuthConnector]
 
   implicit val timeout: Timeout = 5 seconds
 
@@ -55,7 +51,7 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
         when(mockMicroserviceAuthConnector.authorise(any(),any())(any(), any()))
           .thenReturn(Future.failed(new MissingBearerToken))
 
-        val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, mockControllerComponents)
+        val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)
         val controller = new Harness(authAction)
         val result = controller.onPageLoad()(FakeRequest("", ""))
         status(result) mustBe UNAUTHORIZED
@@ -69,7 +65,7 @@ class AuthActionSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar
         when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(any(), any()))
           .thenReturn(Future.successful(()))
 
-        val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, mockControllerComponents)
+        val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)
         val controller = new Harness(authAction)
 
         val result = controller.onPageLoad()(FakeRequest("", ""))

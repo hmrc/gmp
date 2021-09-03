@@ -18,18 +18,18 @@ package connectors
 
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
-
 import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpClient
+
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
@@ -52,7 +52,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
                              http: HttpClient,
                              auditConnector: AuditConnector,
-                             val servicesConfig: ServicesConfig)(implicit ec: ExecutionContext) {
+                             val servicesConfig: ServicesConfig)(implicit ec: ExecutionContext) extends Logging {
 
   private val PrefixStart = 0
   private val PrefixEnd = 1
@@ -70,7 +70,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   val validateSconURI = s"$serviceURL/$baseSconURI"
   lazy val serviceURL: String = servicesConfig.baseUrl("nps")
 
-  def citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
+  val citizenDetailsUrl: String = servicesConfig.baseUrl("citizen-details")
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
 
@@ -87,7 +87,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       }/validate"""
 
     doAudit("gmpSconValidation", userId, scon, None, None, None)
-    Logger.debug(s"[DesConnector][validateScon] Contacting DES at $uri")
+    logger.debug(s"[DesConnector][validateScon] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
@@ -99,7 +99,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][validateScon] : NPS returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[DesConnector][validateScon] : NPS returned code $errorStatus and response body: ${response.body}")
           throw UpstreamErrorResponse("DES connector validateScon failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
@@ -141,7 +141,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       }"""
 
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
-    Logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
+    logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 
@@ -153,7 +153,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
         case BAD_REQUEST => {
-          Logger.info("[DesConnector][calculate] : NPS returned code 400")
+          logger.info("[DesConnector][calculate] : NPS returned code 400")
           CalculationResponse(request.nino,
             400,
             None,
@@ -163,7 +163,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
             Nil)
         }
         case errorStatus: Int => {
-          Logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
           throw UpstreamErrorResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
@@ -209,7 +209,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         detail = hc.toAuditDetails() ++ auditDetails))
 
     auditResult.failed.foreach({
-      case e: Throwable => Logger.warn("[DesConnector][doAudit] : auditResult: " + e.getMessage, e)
+      case e: Throwable => logger.warn("[DesConnector][doAudit] : auditResult: " + e.getMessage, e)
     })
   }
 
@@ -222,7 +222,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
-    Logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
+    logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
 
     http.GET[HttpResponse](url, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
 
@@ -241,7 +241,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     } recover {
       case e: UpstreamErrorResponse if e.statusCode == NOT_FOUND => DesGetNotFoundResponse
       case e: Exception =>
-        Logger.error("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
+        logger.error("[DesConnector][getPersonDetails] Exception thrown getting individual record from DES", e)
         metrics.mciErrorCount()
         DesGetErrorResponse(e)
     }

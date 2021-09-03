@@ -16,14 +16,14 @@
 
 package models
 
+import base.BaseSpec
 import helpers.RandomNino
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 
-class GmpCalculationResponseSpec extends PlaySpec {
+class GmpCalculationResponseSpec extends BaseSpec {
 
   private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 

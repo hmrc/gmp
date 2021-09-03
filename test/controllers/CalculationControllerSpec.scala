@@ -16,6 +16,8 @@
 
 package controllers
 
+import base.BaseSpec
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
@@ -23,10 +25,6 @@ import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json._
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
@@ -35,17 +33,11 @@ import repositories.CalculationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class CalculationControllerSpec extends PlaySpec
-  with GuiceOneAppPerSuite
-  with MockitoSugar
-  with BeforeAndAfter {
-
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+class CalculationControllerSpec extends BaseSpec {
 
   val calculationRequest = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
   val calculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = true, 1)
@@ -60,7 +52,7 @@ class CalculationControllerSpec extends PlaySpec
   val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
   val mockAuthConnector = mock[AuthConnector]
 
-  val gmpAuthAction = FakeAuthAction(mockAuthConnector)
+  val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
   val testCalculationController = new  CalculationController(mockDesConnector, mockRepo, gmpAuthAction, mockAuditConnector, mockControllerComponents)
 

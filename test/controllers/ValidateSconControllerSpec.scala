@@ -16,52 +16,40 @@
 
 package controllers
 
+import base.BaseSpec
 import java.util.UUID
 import connectors.DesConnector
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.scalatestplus.play.PlaySpec
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
-import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
-import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
+import uk.gov.hmrc.http.UpstreamErrorResponse
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ValidateSconControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfter {
-
-  implicit val hc = HeaderCarrier()
-
-  implicit lazy override val app = new GuiceApplicationBuilder().build()
+class ValidateSconControllerSpec extends BaseSpec {
 
   val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]
   val mockRepo = mock[ValidateSconRepository]
   val mockMicroserviceAuthConnector = mock[AuthConnector]
-  val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
   val mockAuthConnector = mock[AuthConnector]
 
-  val gmpAuthAction = FakeAuthAction(mockAuthConnector)
+  val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
   }
 
-
-  val testValidateSconController = new ValidateSconController(mockDesConnector, mockRepo, gmpAuthAction, mockControllerComponents)
+  val testValidateSconController = new ValidateSconController(mockDesConnector, mockRepo, gmpAuthAction, controllerComponents)
 
   "ValidateSconController" should {
 
