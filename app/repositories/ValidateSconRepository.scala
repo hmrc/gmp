@@ -16,16 +16,14 @@
 
 package repositories
 
-import com.google.inject.{Inject, Provider, Singleton}
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.GmpValidateSconResponse
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Format, JsObject, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
+import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -45,6 +43,7 @@ object ValidateSconMongoModel {
   implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
 
+@ImplementedBy(classOf[ValidateSconMongoRepository])
 trait ValidateSconRepository extends ReactiveRepository[ValidateSconMongoModel, BSONObjectID] {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
@@ -52,16 +51,10 @@ trait ValidateSconRepository extends ReactiveRepository[ValidateSconMongoModel, 
 }
 
 @Singleton
-class ValidateSconRepositoryProvider @Inject()(component: ReactiveMongoComponent) extends Provider[ValidateSconRepository] {
-  override def get(): ValidateSconRepository = {
-    new ValidateSconMongoRepository()(component.mongoConnector.db)
-  }
-}
-
-class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
+class ValidateSconMongoRepository @Inject()(component: ReactiveMongoComponent)
   extends ReactiveRepository[ValidateSconMongoModel, BSONObjectID](
     "validate_scon",
-    mongo,
+    component.mongoConnector.db,
     ValidateSconMongoModel.formats) with ValidateSconRepository {
 
   val fieldName = "createdAt"
@@ -75,11 +68,11 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
     collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
       options = BSONDocument(expireAfterSeconds -> ttl))) map {
       result => {
-        Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
+        logger.debug(s"set [$indexName] with value $ttl -> result : $result")
         result
       }
     } recover {
-      case e => Logger.error("Failed to set TTL index", e)
+      case e => logger.error("Failed to set TTL index", e)
         false
     }
   }
@@ -87,7 +80,7 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
     collection.insert(ordered = false).one(model).map { lastError =>
-      Logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
+      logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
   }
@@ -102,26 +95,17 @@ class ValidateSconMongoRepository()(implicit mongo: () => DefaultDB)
       case Success(s) => {
         s.map {
           x =>
-            Logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, result: $x }")
+            logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, result: $x }")
             x.headOption.map(_.response)
         }
       }
       case Failure(f) => {
 
-        Logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, exception: ${f.getMessage} }")
+        logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, exception: ${f.getMessage} }")
         Future.successful(None)
 
       }
     }
 
   }
-}
-
-object ValidateSconRepository {
-
-  implicit val db : scala.Function0[reactivemongo.api.DefaultDB] = (GuiceApplicationBuilder().injector().instanceOf[ReactiveMongoComponent]).mongoConnector.db
-
-  private lazy val repository = new ValidateSconMongoRepository
-
-  def apply(): ValidateSconMongoRepository = repository
 }

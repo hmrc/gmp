@@ -16,16 +16,14 @@
 
 package repositories
 
-import com.google.inject.{Inject, Provider, Singleton}
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult.Message
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, DefaultDB, ReadPreference}
+import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -45,6 +43,7 @@ object CachedCalculation {
   implicit val formats = Json.format[CachedCalculation]
 }
 
+@ImplementedBy(classOf[CalculationMongoRepository])
 trait CalculationRepository extends ReactiveRepository[CachedCalculation, BSONObjectID] {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
@@ -54,16 +53,10 @@ trait CalculationRepository extends ReactiveRepository[CachedCalculation, BSONOb
 }
 
 @Singleton
-class CalculationRepositoryProvider @Inject()(component: ReactiveMongoComponent) extends Provider[CalculationRepository] {
-  override def get(): CalculationRepository = {
-    new CalculationMongoRepository()(component.mongoConnector.db)
-  }
-}
-
-class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
+class CalculationMongoRepository @Inject()(component: ReactiveMongoComponent)
   extends ReactiveRepository[CachedCalculation, BSONObjectID](
     "calculation",
-    mongo,
+    component.mongoConnector.db,
     CachedCalculation.formats) with CalculationRepository {
 
   val fieldName = "createdAt"
@@ -77,11 +70,11 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
     collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
       options = BSONDocument(expireAfterSeconds -> ttl))) map {
       result => {
-        Logger.debug(s"set [$indexName] with value $ttl -> result : $result")
+        logger.debug(s"set [$indexName] with value $ttl -> result : $result")
         result
       }
     } recover {
-      case e => Logger.error("Failed to set TTL index", e)
+      case e => logger.error("Failed to set TTL index", e)
         false
     }
   }
@@ -95,12 +88,12 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
     tryResult match {
       case Success(s) => {
         s.map { x =>
-          Logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $x }")
+          logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $x }")
           x.headOption.map(_.response)
         }
       }
       case Failure(f) => {
-        Logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${f.getMessage} }")
+        logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${f.getMessage} }")
         Future.successful(None)
       }
     }
@@ -108,17 +101,8 @@ class CalculationMongoRepository()(implicit mongo: () => DefaultDB)
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
     collection.insert(ordered = false).one(CachedCalculation(request.hashCode, response)).map { lastError =>
-      Logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
+      logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
       lastError.ok
     }
   }
-}
-
-object CalculationRepository {
-
-  implicit val db : scala.Function0[reactivemongo.api.DefaultDB] = (GuiceApplicationBuilder().injector().instanceOf[ReactiveMongoComponent]).mongoConnector.db
-
-  private lazy val calculationRepository = new CalculationMongoRepository
-
-  def apply(): CalculationMongoRepository = calculationRepository
 }

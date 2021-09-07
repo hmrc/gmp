@@ -32,13 +32,12 @@
 
 package controllers.auth
 
-import play.api.mvc.{Request, Result}
+import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.Future
 
-case class FakeAuthAction(override val authConnector: AuthConnector) extends GmpAuthAction(authConnector, stubMessagesControllerComponents()) {
+case class FakeAuthAction(override val authConnector: AuthConnector, controllerComponents: ControllerComponents) extends GmpAuthAction(authConnector, controllerComponents) {
 
   override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
 
