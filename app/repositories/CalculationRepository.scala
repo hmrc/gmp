@@ -19,7 +19,7 @@ package repositories
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.MongoComponent
@@ -55,14 +55,12 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent)
     mongoComponent = mongo,
     domainFormat = CachedCalculation.formats,
     indexes = Seq.empty
-  ) with CalculationRepository {
+  ) with CalculationRepository with Logging {
 
   val fieldName = "createdAt"
   val createdIndexName = "calculationResponseExpiry"
   val expireAfterSeconds = "expireAfterSeconds"
   val timeToLive = 600
-
-  val logger: Logger = Logger(this.getClass)
 
   createIndex(fieldName, createdIndexName, timeToLive)
 

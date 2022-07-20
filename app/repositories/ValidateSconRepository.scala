@@ -19,10 +19,11 @@ package repositories
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.GmpValidateSconResponse
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,14 +52,12 @@ collectionName = "validate_scon",
 mongoComponent = mongo,
 domainFormat = ValidateSconMongoModel.formats,
 indexes = Seq.empty
-) with ValidateSconRepository {
+) with ValidateSconRepository with Logging {
 
   val fieldName = "createdAt"
   val createdIndexName = "sconValidationResponseExpiry"
   val expireAfterSeconds = "expireAfterSeconds"
   val timeToLive = 600
-
-  val logger: Logger = Logger(this.getClass)
 
   createIndex(fieldName, createdIndexName, timeToLive)
 
