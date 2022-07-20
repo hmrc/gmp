@@ -66,6 +66,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent)
 
   createIndex(fieldName, createdIndexName, timeToLive)
 
+
   private def createIndex(field: String, indexName: String, ttl: Int): Future[Boolean] = {
 
     val mongoIndexes: Seq[IndexModel] = Seq(
@@ -87,7 +88,6 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent)
   }
 
   override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] = {
-
     collection
       .find(Filters.equal("request", request.hashCode))
       .collect()
@@ -97,7 +97,8 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent)
         calculations.headOption.map(_.response)
       }
       .recover {
-        case e => logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${e.getMessage} }")
+        case e =>
+          logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${e.getMessage} }")
           None
       }
   }
