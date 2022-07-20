@@ -18,60 +18,64 @@ package repositories
 
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.GmpValidateSconResponse
-import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{Format, JsObject, Json, OFormat}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult.Message
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.ReactiveRepository
-
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import play.api.Logger
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+
 
 case class ValidateSconMongoModel(scon: String,
                                   response: GmpValidateSconResponse,
-                                  createdAt: DateTime = DateTime.now(DateTimeZone.UTC))
+                                  createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
 
 object ValidateSconMongoModel {
-  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val idFormat: Format[BSONObjectID] = ReactiveMongoFormats.objectIdFormats
   implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
 
 @ImplementedBy(classOf[ValidateSconMongoRepository])
-trait ValidateSconRepository extends ReactiveRepository[ValidateSconMongoModel, BSONObjectID] {
+trait ValidateSconRepository {
   def findByScon(scon: String): Future[Option[GmpValidateSconResponse]]
 
   def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean]
 }
 
 @Singleton
-class ValidateSconMongoRepository @Inject()(component: ReactiveMongoComponent)
-  extends ReactiveRepository[ValidateSconMongoModel, BSONObjectID](
-    "validate_scon",
-    component.mongoConnector.db,
-    ValidateSconMongoModel.formats) with ValidateSconRepository {
+class ValidateSconMongoRepository @Inject()(mongo: MongoComponent)
+  extends PlayMongoRepository[ValidateSconMongoModel](
+collectionName = "validate_scon",
+mongoComponent = mongo,
+domainFormat = ValidateSconMongoModel.formats,
+indexes = Seq.empty
+) with ValidateSconRepository {
 
   val fieldName = "createdAt"
   val createdIndexName = "sconValidationResponseExpiry"
   val expireAfterSeconds = "expireAfterSeconds"
   val timeToLive = 600
 
+  val logger: Logger = Logger(this.getClass)
+
   createIndex(fieldName, createdIndexName, timeToLive)
 
   private def createIndex(field: String, indexName: String, ttl: Int): Future[Boolean] = {
-    collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
-      options = BSONDocument(expireAfterSeconds -> ttl))) map {
-      result => {
-        logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        result
-      }
-    } recover {
+    val mongoIndexes: Seq[IndexModel] = Seq(
+      IndexModel(
+        Indexes.ascending(field),
+        IndexOptions()
+          .name(indexName)
+          .expireAfter(ttl, TimeUnit.SECONDS)
+      )
+    )
+    collection.createIndexes(mongoIndexes).toFuture().map{
+      _ =>
+        logger.debug(s"set [$indexName] with value $ttl")
+        true
+    }.recover {
       case e => logger.error("Failed to set TTL index", e)
         false
     }
@@ -79,32 +83,27 @@ class ValidateSconMongoRepository @Inject()(component: ReactiveMongoComponent)
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
-    collection.insert(ordered = false).one(model).map { lastError =>
-      logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
-      lastError.ok
+    collection
+      .insertOne(model)
+      .toFuture()
+      .map { insertResult =>
+      logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${insertResult.getInsertedId} }")
+      insertResult.wasAcknowledged()
     }
   }
 
   override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
-    val result = Try {
-      collection.find(Json.obj("scon" -> scon), Option.empty[JsObject]).cursor[ValidateSconMongoModel](ReadPreference.primary)
-        .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[ValidateSconMongoModel]]())
-    }
-
-    result match {
-      case Success(s) => {
-        s.map {
-          x =>
-            logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, result: $x }")
-            x.headOption.map(_.response)
-        }
-      }
-      case Failure(f) => {
-
-        logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, exception: ${f.getMessage} }")
-        Future.successful(None)
-
-      }
+    collection
+      .find(Filters.equal("scon", scon))
+      .collect()
+      .toFuture()
+      .map { response =>
+        logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, result: $response }")
+        response.headOption.map(_.response)
+      }.recover {
+      case e =>
+        logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, exception: ${e.getMessage} }")
+        None
     }
 
   }

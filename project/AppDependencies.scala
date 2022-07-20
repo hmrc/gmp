@@ -5,9 +5,11 @@ object AppDependencies {
 
   private val playVersion = "play-28"
 
+  private val hmrcVersion = "0.65.0"
+
   val compile = Seq(
     "uk.gov.hmrc"         %% s"bootstrap-backend-$playVersion"    % "5.12.0",
-    "uk.gov.hmrc"         %% "simple-reactivemongo"               % s"8.0.0-$playVersion",
+    "uk.gov.hmrc.mongo"   %% s"hmrc-mongo-$playVersion"                 % hmrcVersion ,
     compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.5" cross CrossVersion.full),
     "com.github.ghik"      % "silencer-lib" % "1.7.5"             % Provided cross CrossVersion.full,
     ws
@@ -18,7 +20,7 @@ object AppDependencies {
     "org.scalamock"          %% "scalamock"               % "5.1.0",
     "org.scalatestplus.play" %% "scalatestplus-play"      % "5.1.0",
     "org.scalatestplus"      %% "scalatestplus-mockito"   % "1.0.0-M2",
-    "uk.gov.hmrc"            %% "reactivemongo-test"      % s"5.0.0-$playVersion",
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28" % hmrcVersion,
     "org.reactivemongo"      %% "reactivemongo-iteratees" % "1.0.6",
     "com.typesafe.akka"      %% "akka-testkit"            % "2.6.14",
     "org.mockito"             % "mockito-all"             % "1.10.19",

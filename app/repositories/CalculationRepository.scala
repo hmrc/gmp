@@ -18,33 +18,29 @@ package repositories
 
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{Format, JsObject, Json}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult.Message
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, ReadPreference}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.ReactiveRepository
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import play.api.Logger
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.MongoComponent
 
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+
 
 case class CachedCalculation(request: Int,
                              response: GmpCalculationResponse,
-                             createdAt: DateTime = DateTime.now(DateTimeZone.UTC))
+                             createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
 
 object CachedCalculation {
-  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val idFormat: Format[BSONObjectID] = ReactiveMongoFormats.objectIdFormats
-  implicit val formats = Json.format[CachedCalculation]
+
+  implicit val formats: OFormat[CachedCalculation] = Json.format[CachedCalculation]
 }
 
 @ImplementedBy(classOf[CalculationMongoRepository])
-trait CalculationRepository extends ReactiveRepository[CachedCalculation, BSONObjectID] {
+trait CalculationRepository {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
 
@@ -53,56 +49,70 @@ trait CalculationRepository extends ReactiveRepository[CachedCalculation, BSONOb
 }
 
 @Singleton
-class CalculationMongoRepository @Inject()(component: ReactiveMongoComponent)
-  extends ReactiveRepository[CachedCalculation, BSONObjectID](
-    "calculation",
-    component.mongoConnector.db,
-    CachedCalculation.formats) with CalculationRepository {
+class CalculationMongoRepository @Inject()(mongo: MongoComponent)
+  extends PlayMongoRepository[CachedCalculation](
+    collectionName = "calculation",
+    mongoComponent = mongo,
+    domainFormat = CachedCalculation.formats,
+    indexes = Seq.empty
+  ) with CalculationRepository {
 
   val fieldName = "createdAt"
   val createdIndexName = "calculationResponseExpiry"
   val expireAfterSeconds = "expireAfterSeconds"
   val timeToLive = 600
 
+  val logger: Logger = Logger(this.getClass)
+
   createIndex(fieldName, createdIndexName, timeToLive)
 
   private def createIndex(field: String, indexName: String, ttl: Int): Future[Boolean] = {
-    collection.indexesManager.ensure(Index(Seq((field, IndexType.Ascending)), Some(indexName),
-      options = BSONDocument(expireAfterSeconds -> ttl))) map {
-      result => {
-        logger.debug(s"set [$indexName] with value $ttl -> result : $result")
-        result
-      }
-    } recover {
+
+    val mongoIndexes: Seq[IndexModel] = Seq(
+      IndexModel(
+        Indexes.ascending(field),
+        IndexOptions()
+          .name(indexName)
+          .expireAfter(ttl, TimeUnit.SECONDS)
+      )
+    )
+    collection.createIndexes(mongoIndexes).toFuture().map{
+      _ =>
+      logger.debug(s"set [$indexName] with value $ttl")
+      true
+    }.recover {
       case e => logger.error("Failed to set TTL index", e)
         false
     }
   }
 
   override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] = {
-    val tryResult = Try {
-      collection.find(Json.obj("request" -> request.hashCode), Option.empty[JsObject]).cursor[CachedCalculation](ReadPreference.primary)
-        .collect[List](maxDocs = -1, err = Cursor.FailOnError[List[CachedCalculation]]())
-    }
 
-    tryResult match {
-      case Success(s) => {
-        s.map { x =>
-          logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $x }")
-          x.headOption.map(_.response)
-        }
+    collection
+      .find(Filters.equal("request", request.hashCode))
+      .collect()
+      .toFuture()
+      .map { calculations =>
+        logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $calculations }")
+        calculations.headOption.map(_.response)
       }
-      case Failure(f) => {
-        logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${f.getMessage} }")
-        Future.successful(None)
+      .recover {
+        case e => logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${e.getMessage} }")
+          None
       }
-    }
   }
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
-    collection.insert(ordered = false).one(CachedCalculation(request.hashCode, response)).map { lastError =>
-      logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${lastError.ok}, errors: ${Message.unapply(lastError)} }")
-      lastError.ok
+    val dataToInsert = CachedCalculation(request.hashCode, response)
+    collection
+      .insertOne(dataToInsert)
+      .toFuture()
+      .map { insertedData =>
+        logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${insertedData.getInsertedId} }")
+        true
+      }.recover {
+      case e => logger.error("Failed to insert  By request", e)
+        false
     }
   }
 }
