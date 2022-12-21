@@ -4,10 +4,8 @@ import sbt._
 object AppDependencies {
 
   val compile = Seq(
-    "uk.gov.hmrc"                                %% "bootstrap-backend-play-28" % "7.8.0",
-    "uk.gov.hmrc.mongo"                          %% "hmrc-mongo-play-28"        % "0.73.0",
-    compilerPlugin("com.github.ghik" % "silencer-plugin"            % "1.7.11"  cross CrossVersion.full),
-    "com.github.ghik"                            % "silencer-lib"               % "1.7.11"  % Provided cross CrossVersion.full,
+    "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % "7.12.0",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % "0.74.0",
     ws
   )
 
@@ -17,8 +15,7 @@ object AppDependencies {
     "org.scalatestplus.play" %% "scalatestplus-play"      % "5.1.0",
     "org.scalatestplus"      %% "scalatestplus-mockito"   % "1.0.0-M2",
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28" % "0.73.0",
-    "org.reactivemongo"      %% "reactivemongo-iteratees" % "1.0.10",
-    "com.typesafe.akka"      %% "akka-testkit"            % "2.6.19",
+    "com.typesafe.akka"      %% "akka-testkit"            % "2.6.20",
     "org.mockito"             % "mockito-all"             % "1.10.19",
     "uk.gov.hmrc"            %% "tax-year"                % "3.0.0",
     "com.github.tomakehurst"  % "wiremock-standalone"     % "2.27.2",
