@@ -5,10 +5,9 @@ object AppDependencies {
 
   val compile = Seq(
     "uk.gov.hmrc"            %% "bootstrap-backend-play-28" % "7.12.0",
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-28"        % "0.74.0",
-    "org.scalatestplus.play" %% "scalatestplus-play"        % "5.1.0",
-    "org.scalatest"          %% "scalatest"                 % "3.2.9",
-    "com.vladsch.flexmark"    % "flexmark-all"              % "0.35.10",
+    "org.scalatestplus.play" %% "scalatestplus-play"        % "5.1.0"    % "test",
+    "org.scalatest"          %% "scalatest"                 % "3.2.9"    % "test",
+    "com.vladsch.flexmark"    % "flexmark-all"              % "0.35.10"  % "test",
     ws
   )
 
