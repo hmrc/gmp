@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
 class ValidateSconRepositorySpec extends AnyWordSpec
@@ -31,7 +31,7 @@ class ValidateSconRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterAll
   with ScalaFutures {
-  override lazy val repository = new ValidateSconMongoRepository(mongoComponent)
+  override lazy val repository = new ValidateSconMongoRepository(mongoComponent, ExecutionContext.global)
 
   override protected def beforeAll(): Unit =  {
     dropDatabase()

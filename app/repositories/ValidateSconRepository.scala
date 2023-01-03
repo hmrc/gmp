@@ -26,8 +26,7 @@ import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 case class ValidateSconMongoModel(scon: String,
@@ -46,13 +45,13 @@ trait ValidateSconRepository {
 }
 
 @Singleton
-class ValidateSconMongoRepository @Inject()(mongo: MongoComponent)
+class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val executionContext: ExecutionContext)
   extends PlayMongoRepository[ValidateSconMongoModel](
-collectionName = "validate_scon",
-mongoComponent = mongo,
-domainFormat = ValidateSconMongoModel.formats,
-indexes = Seq.empty
-) with ValidateSconRepository with Logging {
+    collectionName = "validate_scon",
+    mongoComponent = mongo,
+    domainFormat = ValidateSconMongoModel.formats,
+    indexes = Seq.empty
+  ) with ValidateSconRepository with Logging {
 
   val fieldName = "createdAt"
   val createdIndexName = "sconValidationResponseExpiry"

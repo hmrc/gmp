@@ -21,13 +21,12 @@ import models.{CalculationRequest, GmpCalculationResponse}
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.Logging
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 case class CachedCalculation(request: Int,
@@ -49,7 +48,7 @@ trait CalculationRepository {
 }
 
 @Singleton
-class CalculationMongoRepository @Inject()(mongo: MongoComponent)
+class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val executionContext: ExecutionContext)
   extends PlayMongoRepository[CachedCalculation](
     collectionName = "calculation",
     mongoComponent = mongo,

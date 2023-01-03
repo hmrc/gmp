@@ -48,10 +48,8 @@ lazy val scoverageExcludePatterns = List(
       scalacOptions ++= List(
         "-Yrangepos",
         "-Xlint:-missing-interpolator,_",
-        "-Yno-adapted-args",
         "-feature",
         "-unchecked",
         "-language:implicitConversions",
-        "-P:silencer:pathFilters=routes;TestStorage"
     ))
-    .settings(scalaVersion := "2.12.13")
+    .settings(scalaVersion := "2.13.7")
