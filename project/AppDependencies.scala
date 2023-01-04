@@ -8,6 +8,7 @@ object AppDependencies {
     "org.scalatestplus.play" %% "scalatestplus-play"        % "5.1.0"    % "test",
     "org.scalatest"          %% "scalatest"                 % "3.2.9"    % "test",
     "com.vladsch.flexmark"    % "flexmark-all"              % "0.35.10"  % "test",
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-28"        % "0.73.0"   % "test",
     ws
   )
 
