@@ -50,34 +50,13 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val 
     collectionName = "validate_scon",
     mongoComponent = mongo,
     domainFormat = ValidateSconMongoModel.formats,
-    indexes = Seq.empty
+    indexes = Seq(IndexModel(
+      Indexes.ascending("createdAt"),
+      IndexOptions()
+        .name("sconValidationResponseExpiry")
+        .expireAfter(600, TimeUnit.SECONDS)
+    ))
   ) with ValidateSconRepository with Logging {
-
-  val fieldName = "createdAt"
-  val createdIndexName = "sconValidationResponseExpiry"
-  val expireAfterSeconds = "expireAfterSeconds"
-  val timeToLive = 600
-
-  createIndex(fieldName, createdIndexName, timeToLive)
-
-  private def createIndex(field: String, indexName: String, ttl: Int): Future[Boolean] = {
-    val mongoIndexes: Seq[IndexModel] = Seq(
-      IndexModel(
-        Indexes.ascending(field),
-        IndexOptions()
-          .name(indexName)
-          .expireAfter(ttl, TimeUnit.SECONDS)
-      )
-    )
-    collection.createIndexes(mongoIndexes).toFuture().map{
-      _ =>
-        logger.debug(s"set [$indexName] with value $ttl")
-        true
-    }.recover {
-      case e => logger.error("Failed to set TTL index", e)
-        false
-    }
-  }
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
