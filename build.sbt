@@ -52,4 +52,4 @@ lazy val scoverageExcludePatterns = List(
         "-unchecked",
         "-language:implicitConversions",
     ))
-    .settings(scalaVersion := "2.13.7")
+    .settings(scalaVersion := "2.13.12")
