@@ -32,7 +32,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class IfConnectorSpec extends BaseSpec {
+class IFConnectorSpec extends BaseSpec {
 
   val returnHeaders: Map[String, Seq[String]] = Map("Session" -> Seq("session1"))
 
@@ -48,7 +48,7 @@ class IfConnectorSpec extends BaseSpec {
   when(mockAuditConnector.sendEvent(any())(any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
-  object TestIfConnector extends IfConnector(config,
+  object TestIfConnector extends IFConnector(config,
     mock[ApplicationMetrics],
     mockHttp,
     mockAuditConnector,
@@ -160,7 +160,7 @@ class IfConnectorSpec extends BaseSpec {
       }
 
       "use the IF url" in {
-        new IfConnector(app.configuration,
+        new IFConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
           mock[AuditConnector],
@@ -275,7 +275,7 @@ class IfConnectorSpec extends BaseSpec {
 
       "catch calculate audit failure and continue" in {
 
-        object TestIfConnector extends IfConnector(app.configuration,
+        object TestIfConnector extends IFConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
           mockAuditConnector,
@@ -317,7 +317,7 @@ class IfConnectorSpec extends BaseSpec {
 
       "catch validateScon audit failure and continue" in {
 
-        object TestIfConnector extends IfConnector(app.configuration,
+        object TestIfConnector extends IFConnector(app.configuration,
           mock[ApplicationMetrics],
           mockHttp,
           mockAuditConnector,
@@ -346,7 +346,7 @@ class IfConnectorSpec extends BaseSpec {
         }
 
         val pd = TestIfConnector.getPersonDetails(nino)
-        await(pd) must be(IfGetHiddenRecordResponse)
+        await(pd) must be(IFGetHiddenRecordResponse)
       }
 
       "return IfGetSuccessResponse when manualCorrespondenceInd=false" in {
@@ -357,7 +357,7 @@ class IfConnectorSpec extends BaseSpec {
         }
 
         val pd = TestIfConnector.getPersonDetails(nino)
-        await(pd) must be(IfGetSuccessResponse)
+        await(pd) must be(IFGetSuccessResponse)
       }
 
       "return a IfNotFoundResponse when HOD returns 404" in {
@@ -367,7 +367,7 @@ class IfConnectorSpec extends BaseSpec {
         }
 
         val pd = TestIfConnector.getPersonDetails(nino)
-        await(pd) must be(IfGetNotFoundResponse)
+        await(pd) must be(IFGetNotFoundResponse)
       }
 
       "return a IfErrorResponse if any other issues" in {
@@ -377,7 +377,7 @@ class IfConnectorSpec extends BaseSpec {
         }
 
         val pd = TestIfConnector.getPersonDetails(nino)
-        await(pd) must be(IfGetErrorResponse(ex))
+        await(pd) must be(IFGetErrorResponse(ex))
 
       }
 
@@ -388,7 +388,7 @@ class IfConnectorSpec extends BaseSpec {
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
 
         val result = TestIfConnector.getPersonDetails(nino)
-        await(result) must be(IfGetSuccessResponse)
+        await(result) must be(IFGetSuccessResponse)
       }
 
       "return an Unexpected Response with Internal Server response or IF is down" in {
@@ -397,7 +397,7 @@ class IfConnectorSpec extends BaseSpec {
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
 
         val result = TestIfConnector.getPersonDetails(nino)
-        await(result) must be(IfGetUnexpectedResponse)
+        await(result) must be(IFGetUnexpectedResponse)
       }
 
     }

@@ -33,24 +33,21 @@ import uk.gov.hmrc.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
-trait IfGetResponse
+trait IFGetResponse
 
-sealed trait IfPostResponse
 
-case object IfGetSuccessResponse extends IfGetResponse
+case object IFGetSuccessResponse extends IFGetResponse
 
-case object IfGetHiddenRecordResponse extends IfGetResponse
+case object IFGetHiddenRecordResponse extends IFGetResponse
 
-case object IfGetNotFoundResponse extends IfGetResponse
+case object IFGetNotFoundResponse extends IFGetResponse
 
-case class IfGetErrorResponse(e: Exception) extends IfGetResponse
+case class IFGetErrorResponse(e: Exception) extends IFGetResponse
 
-case object IfGetUnexpectedResponse extends IfGetResponse
-
-case object IfGetUnprocessableEntityResponse extends IfGetResponse
+case object IFGetUnexpectedResponse extends IFGetResponse
 
 @Singleton
-class IfConnector @Inject()(val runModeConfiguration: Configuration,
+class IFConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
                              http: HttpClient,
                              auditConnector: AuditConnector,
@@ -89,19 +86,19 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
       }/validate"""
 
     doAudit("gmpSconValidation", userId, scon, None, None, None)
-    logger.debug(s"[IfConnector][validateScon] Contacting IF at $uri")
+    logger.debug(s"[IFConnector][validateScon] Contacting IF at $uri")
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = ifHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
 
-      metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      metrics.ifConnectorStatus(response.status)
+      metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.IFConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
         case errorStatus: Int => {
-          logger.error(s"[IfConnector][validateScon] : IF returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[IFConnector][validateScon] : IF returned code $errorStatus and response body: ${response.body}")
           throw UpstreamErrorResponse("IF connector validateScon failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
@@ -143,19 +140,19 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
       }"""
 
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
-    logger.debug(s"[IfConnector][calculate] Contacting IF at $uri")
+    logger.debug(s"[IFConnector][calculate] Contacting IF at $uri")
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = ifHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
+    val result = http.GET[HttpResponse](uri, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
 
-      metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      metrics.ifConnectorStatus(response.status)
+      metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.IFConnectorStatus(response.status)
 
       response.status match {
         case OK => response.json.as[CalculationResponse]
         case UNPROCESSABLE_ENTITY => {
-          logger.info("[IfConnector][calculate] : IF returned code 422")
+          logger.info("[IFConnector][calculate] : IF returned code 422")
           CalculationResponse(request.nino,
             422,
             None,
@@ -165,7 +162,7 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
             Nil)
         }
         case BAD_REQUEST => {
-          logger.info("[IfConnector][calculate] : IF returned code 400")
+          logger.info("[IFConnector][calculate] : IF returned code 400")
           CalculationResponse(request.nino,
             400,
             None,
@@ -175,7 +172,7 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
             Nil)
         }
         case errorStatus: Int => {
-          logger.error(s"[IfConnector][calculate] : IF returned code $errorStatus and response body: ${response.body}")
+          logger.error(s"[IFConnector][calculate] : IF returned code $errorStatus and response body: ${response.body}")
           throw UpstreamErrorResponse("IF connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
@@ -185,7 +182,7 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
 
   }
 
-  private def ifHeaders =
+  private def IFHeaders =
     Seq("Authorization" -> s"Bearer $serviceKey",
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
       "Environment" -> serviceEnvironment)
@@ -221,11 +218,11 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
         detail = hc.toAuditDetails() ++ auditDetails))
 
     auditResult.failed.foreach({
-      case e: Throwable => logger.warn("[IfConnector][doAudit] : auditResult: " + e.getMessage, e)
+      e: Throwable => logger.warn("[IFConnector][doAudit] : auditResult: " + e.getMessage, e)
     })
   }
 
-  def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[IfGetResponse] = {
+  def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[IFGetResponse] = {
 
     val npsHeaders = Seq("Authorization" -> s"Bearer $serviceKey",
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
@@ -234,28 +231,28 @@ class IfConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
-    logger.debug(s"[IfConnector][getPersonDetails] Retrieving person details from $url")
+    logger.debug(s"[IFConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](url, headers = ifHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
+    http.GET[HttpResponse](url, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
 
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
         case LOCKED =>
           metrics.mciLockCount()
-          IfGetHiddenRecordResponse
-        case NOT_FOUND => IfGetNotFoundResponse
-        case OK => IfGetSuccessResponse
-        case INTERNAL_SERVER_ERROR => IfGetUnexpectedResponse
-        case _ => IfGetUnexpectedResponse
+          IFGetHiddenRecordResponse
+        case NOT_FOUND => IFGetNotFoundResponse
+        case OK => IFGetSuccessResponse
+        case INTERNAL_SERVER_ERROR => IFGetUnexpectedResponse
+        case _ => IFGetUnexpectedResponse
       }
 
     } recover {
-      case e: UpstreamErrorResponse if e.statusCode == NOT_FOUND => IfGetNotFoundResponse
+      case e: UpstreamErrorResponse if e.statusCode == NOT_FOUND => IFGetNotFoundResponse
       case e: Exception =>
-        logger.error("[IfConnector][getPersonDetails] Exception thrown getting individual record from IF", e)
+        logger.error("[IFConnector][getPersonDetails] Exception thrown getting individual record from IF", e)
         metrics.mciErrorCount()
-        IfGetErrorResponse(e)
+        IFGetErrorResponse(e)
     }
   }
 

@@ -51,12 +51,12 @@ class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
   def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
     .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
 
-  def ifConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
+  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
     registry.timer("if-connector-timer").update(diff, unit)
   }
     .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
 
-  def ifConnectorStatus(code: Int): Unit = Try {
+  def IFConnectorStatus(code: Int): Unit = Try {
     registry.counter(s"if-connector-status-$code").inc()
   }
     .failed.foreach(ex => "if-connector-status failed: metrics might be disabled")
