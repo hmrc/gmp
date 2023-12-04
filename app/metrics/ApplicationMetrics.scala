@@ -37,6 +37,10 @@ class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
     ("nps-connector-status-200", counter),
     ("nps-connector-status-400", counter),
     ("nps-connector-status-500", counter),
+    ("if-connector-timer", timer),
+    ("if-connector-status-200", counter),
+    ("if-connector-status-400", counter),
+    ("if-connector-status-500", counter),
     ("mci-connection-timer", timer),
     ("mci-lock-result-count", counter),
     ("mci-error-count", counter)
@@ -46,6 +50,16 @@ class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
     .failed.foreach(ex => "nps-connector-timer failed: metrics might be disabled")
   def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
     .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
+
+  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
+    registry.timer("if-connector-timer").update(diff, unit)
+  }
+    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
+
+  def IFConnectorStatus(code: Int): Unit = Try {
+    registry.counter(s"if-connector-status-$code").inc()
+  }
+    .failed.foreach(ex => "if-connector-status failed: metrics might be disabled")
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("mci-connection-timer").update(diff, unit)}
     .failed.foreach(ex => "mci-connection-timer failed: metrics might be disabled")
   def mciLockCount(): Unit = Try{registry.counter("mci-lock-result-count").inc()}
