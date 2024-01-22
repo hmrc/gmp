@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import base.BaseSpec
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.mockito.Matchers.any
@@ -33,6 +33,7 @@ import repositories.CalculationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -51,10 +52,12 @@ class CalculationControllerSpec extends BaseSpec {
   val mockMicroserviceAuthConnector = mock[AuthConnector]
   val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
   val mockAuthConnector = mock[AuthConnector]
+  val mockIfConnector = mock[IFConnector]
+  val mockServicesConfig = mock[ServicesConfig]
 
   val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
-  val testCalculationController = new  CalculationController(mockDesConnector, mockRepo, gmpAuthAction, mockAuditConnector, mockControllerComponents)
+  val testCalculationController = new  CalculationController(desConnector =  mockDesConnector, ifConnector = mockIfConnector,mockRepo, gmpAuthAction, mockAuditConnector, servicesConfig = mockServicesConfig, mockControllerComponents)
 
   before {
     reset(mockRepo)
