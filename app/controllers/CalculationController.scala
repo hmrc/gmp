@@ -42,11 +42,11 @@ class CalculationController @Inject()(desConnector: DesConnector,
                                       val servicesConfig: ServicesConfig)
                                      (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
-  val ifSwitch: Boolean = servicesConfig.getConfBool(confKey = "ifs.enabled", defBool = true)
-
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
     implicit request => {
+
+      val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
 
       withJsonBody[CalculationRequest] { calculationRequest =>
 

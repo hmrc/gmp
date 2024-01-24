@@ -69,6 +69,7 @@ class CalculationControllerSpec extends BaseSpec {
     reset(mockRepo)
     reset(mockDesConnector)
     reset(mockIfConnector)
+    when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(true)
     when(mockIfConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(IFGetSuccessResponse))
     when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
