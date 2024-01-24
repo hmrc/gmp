@@ -38,9 +38,11 @@ class CalculationController @Inject()(desConnector: DesConnector,
                                       repository: CalculationRepository,
                                       authAction: GmpAuthAction,
                                       auditConnector : AuditConnector,
-                                      val servicesConfig: ServicesConfig,
-                                      cc: ControllerComponents
-                                     ) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+                                      cc: ControllerComponents,
+                                      val servicesConfig: ServicesConfig)
+                                     (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+
+  val ifSwitch: Boolean = servicesConfig.getConfBool(confKey = "ifs.enabled", defBool = true)
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
@@ -53,7 +55,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
           case None =>
-            if(servicesConfig.getBoolean("ifs.enabled")){
+            if(ifSwitch){
               ifConnector.getPersonDetails(calculationRequest.nino).flatMap {
                 case IFGetHiddenRecordResponse =>
                   val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
@@ -105,7 +107,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                       InternalServerError(e.getMessage)
                   }
               }
-            }
+           }
         }
       }
     }

@@ -20,7 +20,7 @@ import base.BaseSpec
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector, IFGetHiddenRecordResponse, IFGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.mockito.Matchers.any
@@ -47,21 +47,29 @@ class CalculationControllerSpec extends BaseSpec {
   val dualCalcCalculationResponse = GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = false, 1)
 
   val mockDesConnector: DesConnector = mock[DesConnector]
+  val mockIfConnector: IFConnector = mock[IFConnector]
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val mockMicroserviceAuthConnector = mock[AuthConnector]
   val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
-  val mockAuthConnector = mock[AuthConnector]
-  val mockIfConnector = mock[IFConnector]
-  val mockServicesConfig = mock[ServicesConfig]
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  val mockServicesConfig: ServicesConfig = mock[ServicesConfig]
 
   val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
-  val testCalculationController = new  CalculationController(desConnector =  mockDesConnector, ifConnector = mockIfConnector,mockRepo, gmpAuthAction, mockAuditConnector, servicesConfig = mockServicesConfig, mockControllerComponents)
+  val testCalculationController = new  CalculationController(
+    desConnector =  mockDesConnector,
+    ifConnector = mockIfConnector,
+    repository = mockRepo,
+    authAction = gmpAuthAction,
+    auditConnector = mockAuditConnector,
+    servicesConfig = mockServicesConfig,
+    cc = mockControllerComponents)
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
+    reset(mockIfConnector)
+    when(mockIfConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(IFGetSuccessResponse))
     when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
 
@@ -74,7 +82,7 @@ class CalculationControllerSpec extends BaseSpec {
       "respond to a valid calculation request with OK" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any()))
+        when(mockIfConnector.calculate(any(), any())(any()))
           .thenReturn(Future
             .successful(Json.parse(
               """{
@@ -108,7 +116,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return json" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
             """{
               "nino": "AB123456C",
@@ -139,7 +147,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with the correct SCON" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -187,7 +195,7 @@ class CalculationControllerSpec extends BaseSpec {
       "respond with server error if connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -200,7 +208,7 @@ class CalculationControllerSpec extends BaseSpec {
       "contain revalued amounts when revaluation requested" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
             Json.parse(
               """{
@@ -239,7 +247,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with no revalued amounts when not revalued" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -297,7 +305,7 @@ class CalculationControllerSpec extends BaseSpec {
               }"""
         ).as[CalculationResponse]
 
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -325,7 +333,7 @@ class CalculationControllerSpec extends BaseSpec {
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        verify(mockDesConnector, never()).calculate(any(), any())(any())
+        verify(mockIfConnector, never()).calculate(any(), any())(any())
       }
     }
 
@@ -368,7 +376,7 @@ class CalculationControllerSpec extends BaseSpec {
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
@@ -426,7 +434,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a global error" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockIfConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(IFGetHiddenRecordResponse))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
