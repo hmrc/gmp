@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.{DesConnector, DesGetHiddenRecordResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector, IFGetHiddenRecordResponse}
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
@@ -28,20 +28,25 @@ import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
+                                      ifConnector: IFConnector,
                                       repository: CalculationRepository,
                                       authAction: GmpAuthAction,
                                       auditConnector : AuditConnector,
-                                      cc: ControllerComponents
-                                     ) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+                                      cc: ControllerComponents,
+                                      val servicesConfig: ServicesConfig)
+                                     (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
     implicit request => {
+
+      val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
 
       withJsonBody[CalculationRequest] { calculationRequest =>
 
@@ -50,32 +55,59 @@ class CalculationController @Inject()(desConnector: DesConnector,
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
           case None =>
-            desConnector.getPersonDetails(calculationRequest.nino).flatMap {
-              case DesGetHiddenRecordResponse =>
-                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
-                Future.successful(Ok(Json.toJson(response)))
-              case _ =>
-                val result = desConnector.calculate(userId, calculationRequest)
-                result.map {
-                  calculation => {
-                    logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+            if(ifSwitch){
+              ifConnector.getPersonDetails(calculationRequest.nino).flatMap {
+                case IFGetHiddenRecordResponse =>
+                  val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
+                  Future.successful(Ok(Json.toJson(response)))
+                case _ =>
+                  val result = ifConnector.calculate(userId, calculationRequest)
+                  result.map {
+                    calculation => {
+                      logger.debug(s"[CalculationController][requestCalculation] : $calculation")
 
-                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                      calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+                      val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
+                        calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
 
-                    logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                    repository.insertByRequest(calculationRequest, transformedResult)
-                    sendResultsEvent(transformedResult, cached = false, userId)
+                      logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                      repository.insertByRequest(calculationRequest, transformedResult)
+                      sendResultsEvent(transformedResult, cached = false, userId)
 
-                    Ok(Json.toJson(transformedResult))
+                      Ok(Json.toJson(transformedResult))
+                    }
+                  }.recover {
+                    case e: UpstreamErrorResponse if e.statusCode == 500 =>
+                      logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                      InternalServerError(e.getMessage)
                   }
-                }.recover {
-                  case e: UpstreamErrorResponse if e.statusCode == 500 => {
-                    logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
-                    InternalServerError(e.getMessage)
+              }
+            }else {
+              desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+                case DesGetHiddenRecordResponse =>
+                  val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
+                  Future.successful(Ok(Json.toJson(response)))
+                case _ =>
+                  val result = desConnector.calculate(userId, calculationRequest)
+                  result.map {
+                    calculation => {
+                      logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+
+                      val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
+                        calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+
+                      logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                      repository.insertByRequest(calculationRequest, transformedResult)
+                      sendResultsEvent(transformedResult, cached = false, userId)
+
+                      Ok(Json.toJson(transformedResult))
+                    }
+                  }.recover {
+                    case e: UpstreamErrorResponse if e.statusCode == 500 =>
+                      logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                      InternalServerError(e.getMessage)
                   }
-                }
-            }
+              }
+           }
         }
       }
     }
