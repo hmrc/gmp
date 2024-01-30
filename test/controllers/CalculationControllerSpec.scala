@@ -115,7 +115,7 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(OK)
       }
 
-      "respond to a valid calculation request with OK" in {
+      "respond to a valid calculation request with OK using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any()))
@@ -149,7 +149,39 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(OK)
       }
 
-      "return json" in {
+      "return json using Des connector" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(Json.parse(
+            """{
+              "nino": "AB123456C",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+              },
+              "npsLgmpcalc": [
+              {
+              "scheme_mem_start_date": "1978-04-06",
+              "scheme_end_date": "2006-04-05",
+              "revaluation_rate": 1,
+              "gmp_cod_post_eightyeight_tot": 1.23,
+              "gmp_cod_allrate_tot": 2.22,
+              "gmp_error_code": 0,
+              "reval_calc_switch_ind": 0
+              }
+              ]
+              }""").as[CalculationResponse]))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        contentType(result).get must be("application/json")
+      }
+
+      "return json using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -228,7 +260,7 @@ class CalculationControllerSpec extends BaseSpec {
         (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(true)
       }
 
-      "return a Calculation Response with the correct SCON" in {
+      "return a Calculation Response with the correct SCON using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -289,7 +321,7 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
 
-      "respond with server error if connector returns same" in {
+      "respond with server error if IF connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -302,7 +334,47 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
 
-      "contain revalued amounts when revaluation requested" in {
+      "contain revalued amounts when revaluation requested using Des connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(
+            Json.parse(
+              """{
+              "nino": "AB123456C",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+              },
+              "npsLgmpcalc": [
+              {
+              "scheme_mem_start_date": "1978-04-06",
+              "scheme_end_date": "2006-04-05",
+              "revaluation_rate": 1,
+              "gmp_cod_post_eightyeight_tot": 2.23,
+              "gmp_cod_allrate_tot": 8.88,
+              "gmp_error_code": 0,
+              "reval_calc_switch_ind": 1
+              }
+              ]
+              }"""
+            ).as[CalculationResponse]
+          ))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        (contentAsJson(result) \ "scon").as[JsString].value must be("S1301234T")
+        (contentAsJson(result) \ "calculationPeriods").as[Array[JsValue]].length must be(1)
+        (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("gmpTotal").as[JsString].value must be("8.88")
+
+      }
+
+      "contain revalued amounts when revaluation requested using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -341,7 +413,79 @@ class CalculationControllerSpec extends BaseSpec {
 
       }
 
-      "return a Calculation Response with no revalued amounts when not revalued" in {
+      "return a Calculation Response with no revalued amounts when not revalued using Des connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(
+
+            Json.parse(
+              """{
+              "nino": "AB123456C",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+              },
+              "npsLgmpcalc": [
+              {
+              "scheme_mem_start_date": "1978-04-06",
+              "scheme_end_date": "2006-04-05",
+              "revaluation_rate": 1,
+              "gmp_cod_post_eightyeight_tot": 1.23,
+              "gmp_cod_allrate_tot": 7.88,
+              "gmp_error_code": 0,
+              "reval_calc_switch_ind": 0
+              }
+              ]
+              }"""
+            ).as[CalculationResponse]
+          ))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
+      }
+
+      "return a Calculation Response with no revalued amounts when not revalued using DES connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(
+
+            Json.parse(
+              """{
+              "nino": "AB123456C",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+              },
+              "npsLgmpcalc": [
+              {
+              "scheme_mem_start_date": "1978-04-06",
+              "scheme_end_date": "2006-04-05",
+              "revaluation_rate": 1,
+              "gmp_cod_post_eightyeight_tot": 1.23,
+              "gmp_cod_allrate_tot": 7.88,
+              "gmp_error_code": 0,
+              "reval_calc_switch_ind": 0
+              }
+              ]
+              }"""
+            ).as[CalculationResponse]
+          ))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
+      }
+
+      "return a Calculation Response with no revalued amounts when not revalued using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -376,8 +520,40 @@ class CalculationControllerSpec extends BaseSpec {
         (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
       }
 
+      "return an OK when http status code 422 with DES connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        val npsResponse = Json.parse(
+          """{
+              "nino": "AB123456",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+             },
+             "npsLgmpcalc":[{
+                        "scheme_mem_start_date": "1978-04-06",
+                       "scheme_end_date": "2010-05-10",
+                        "revaluation_rate": 1,
+                        "gmp_cod_allrate_tot": 7.88,
+                        "gmp_cod_post_eightyeight_tot": 1.23,
+                        "gmp_error_code": 0,
+                        "reval_calc_switch_ind": 0
 
-      "return an OK when http status code 422" in {
+                }]
+              }"""
+        ).as[CalculationResponse]
+
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        status(result) must be(OK)
+      }
+
+      "return an OK when http status code 422 with IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val npsResponse = Json.parse(
@@ -423,7 +599,18 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
 
-      "not call NPS" in {
+      "not call NPS using DES connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        verify(mockDesConnector, never()).calculate(any(), any())(any())
+      }
+
+      "not call NPS using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
@@ -440,6 +627,43 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(false)
+      }
+    }
+
+    "when dual calculation with no cache with DES connector" must {
+      "return false" in {
+        val npsResponse = Json.parse(
+          """{
+              "nino": "AB123456",
+              "rejection_reason": 0,
+              "npsScon": {
+              "contracted_out_prefix": "S",
+              "ascn_scon": 1301234,
+              "modulus_19_suffix": "T"
+             },
+             "npsLgmpcalc":[{
+                        "scheme_mem_start_date": "1978-04-06",
+                       "scheme_end_date": "2010-05-10",
+                        "revaluation_rate": 1,
+                        "gmp_cod_allrate_tot": 7.88,
+                        "gmp_cod_post_eightyeight_tot": 1.23,
+                        "gmp_error_code": 0,
+                        "reval_calc_switch_ind": 0
+
+                }]
+              }"""
+        ).as[CalculationResponse]
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
@@ -528,7 +752,20 @@ class CalculationControllerSpec extends BaseSpec {
     }
 
     "when citizens details return 423" must {
-      "return a global error" in {
+      "return a global error using DES connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
+
+        calcResponse.globalErrorCode must be(LOCKED)
+      }
+
+      "return a global error using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(IFGetHiddenRecordResponse))
