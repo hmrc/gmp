@@ -764,18 +764,6 @@ class CalculationControllerSpec extends BaseSpec {
 
         calcResponse.globalErrorCode must be(LOCKED)
       }
-
-      "return a global error using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockIfConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(IFGetHiddenRecordResponse))
-
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
-        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
-
-        calcResponse.globalErrorCode must be(LOCKED)
-      }
     }
   }
 

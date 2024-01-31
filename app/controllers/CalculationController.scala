@@ -45,7 +45,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
     implicit request => {
-      val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
+
       withJsonBody[CalculationRequest] { calculationRequest =>
 
         repository.findByRequest(calculationRequest).flatMap {
@@ -58,6 +58,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                 val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
                 Future.successful(Ok(Json.toJson(response)))
               case _ =>
+                val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
                 val result = if(ifSwitch) {
                   ifConnector.calculate(userId, calculationRequest)
                 } else {
