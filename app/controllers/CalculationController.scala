@@ -46,8 +46,6 @@ class CalculationController @Inject()(desConnector: DesConnector,
 
     implicit request => {
 
-      val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
-
       withJsonBody[CalculationRequest] { calculationRequest =>
 
         repository.findByRequest(calculationRequest).flatMap {
@@ -55,59 +53,37 @@ class CalculationController @Inject()(desConnector: DesConnector,
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
           case None =>
-            if(ifSwitch){
-              ifConnector.getPersonDetails(calculationRequest.nino).flatMap {
-                case IFGetHiddenRecordResponse =>
-                  val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
-                  Future.successful(Ok(Json.toJson(response)))
-                case _ =>
-                  val result = ifConnector.calculate(userId, calculationRequest)
-                  result.map {
-                    calculation => {
-                      logger.debug(s"[CalculationController][requestCalculation] : $calculation")
+            desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+              case DesGetHiddenRecordResponse =>
+                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
+                Future.successful(Ok(Json.toJson(response)))
+              case _ =>
+                val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
+                val result = if(ifSwitch) {
+                  ifConnector.calculate(userId, calculationRequest)
+                } else {
+                  desConnector.calculate(userId, calculationRequest)
+                }
+                result.map {
+                  calculation => {
+                    logger.debug(s"[CalculationController][requestCalculation] : $calculation")
 
-                      val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                        calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
+                      calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
 
-                      logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                      repository.insertByRequest(calculationRequest, transformedResult)
-                      sendResultsEvent(transformedResult, cached = false, userId)
+                    logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
+                    repository.insertByRequest(calculationRequest, transformedResult)
+                    sendResultsEvent(transformedResult, cached = false, userId)
 
-                      Ok(Json.toJson(transformedResult))
-                    }
-                  }.recover {
-                    case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                      logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
-                      InternalServerError(e.getMessage)
+                    Ok(Json.toJson(transformedResult))
                   }
-              }
-            }else {
-              desConnector.getPersonDetails(calculationRequest.nino).flatMap {
-                case DesGetHiddenRecordResponse =>
-                  val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
-                  Future.successful(Ok(Json.toJson(response)))
-                case _ =>
-                  val result = desConnector.calculate(userId, calculationRequest)
-                  result.map {
-                    calculation => {
-                      logger.debug(s"[CalculationController][requestCalculation] : $calculation")
-
-                      val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                        calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
-
-                      logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                      repository.insertByRequest(calculationRequest, transformedResult)
-                      sendResultsEvent(transformedResult, cached = false, userId)
-
-                      Ok(Json.toJson(transformedResult))
-                    }
-                  }.recover {
-                    case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                      logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
-                      InternalServerError(e.getMessage)
+                }.recover {
+                  case e: UpstreamErrorResponse if e.statusCode == 500 => {
+                    logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                    InternalServerError(e.getMessage)
                   }
-              }
-           }
+                }
+            }
         }
       }
     }
