@@ -138,7 +138,6 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
           case params => params
         }
       }"""
-
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
     logger.debug(s"[IFConnector][calculate] Contacting IF at $uri")
 
@@ -150,17 +149,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       metrics.IFConnectorStatus(response.status)
 
       response.status match {
-        case OK => response.json.as[CalculationResponse]
-        case UNPROCESSABLE_ENTITY => {
-          logger.info("[IFConnector][calculate] : IF returned code 422")
-          CalculationResponse(request.nino,
-            422,
-            None,
-            None,
-            None,
-            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
-            Nil)
-        }
+        case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
         case BAD_REQUEST => {
           logger.info("[IFConnector][calculate] : IF returned code 400")
           CalculationResponse(request.nino,

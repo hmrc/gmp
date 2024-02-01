@@ -48,7 +48,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
 
       withJsonBody[CalculationRequest] { calculationRequest =>
 
-        repository.findByRequest(calculationRequest).flatMap {
+        val result = repository.findByRequest(calculationRequest).flatMap {
           case Some(cr) =>
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
@@ -79,11 +79,15 @@ class CalculationController @Inject()(desConnector: DesConnector,
                   }
                 }.recover {
                   case e: UpstreamErrorResponse if e.statusCode == 500 => {
-                    logger.debug(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                    logger.error(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
                     InternalServerError(e.getMessage)
                   }
                 }
             }
+        }
+
+        result.map{res =>
+          res
         }
       }
     }

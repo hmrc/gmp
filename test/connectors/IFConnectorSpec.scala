@@ -123,17 +123,17 @@ class IFConnectorSpec extends BaseSpec {
         }
       }
 
-      "return an error response when 422 returned" in {
+      "return a success when 422 returned" in {
 
-        implicit val hc: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
         when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(422, "422")))
+          .thenReturn(Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
         val result = TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
-        calcResponse.rejection_reason must be(422)
+        calcResponse.rejection_reason must be(0)
       }
 
       "return a response when 400 returned" in {
