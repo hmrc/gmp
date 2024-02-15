@@ -3,6 +3,10 @@ import sbt._
 
 object AppDependencies {
 
+  private val playSuffix = "-play-30"
+
+//  TODO: Sort out AppDependencies
+
   val compile = Seq(
     "uk.gov.hmrc"            %% "bootstrap-backend-play-28" % "7.12.0",
     "org.scalatestplus.play" %% "scalatestplus-play"        % "5.1.0"    % "test",
