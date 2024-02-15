@@ -38,6 +38,7 @@ lazy val scoverageExcludePatterns = List(
       scoverageSettings,
       majorVersion := 3,
       libraryDependencies ++= AppDependencies.all,
+      libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
       Test / parallelExecution := false,
       Test / fork := false,
       retrieveManaged := true,
