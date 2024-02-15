@@ -18,7 +18,6 @@ package controllers.auth
 
 import org.apache.pekko.util.Timeout
 import base.BaseSpec
-//TODO: READD CORRECT DEPENDENCY FOR THIS
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import play.api.http.Status.{OK, UNAUTHORIZED}

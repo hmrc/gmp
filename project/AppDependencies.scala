@@ -28,7 +28,7 @@ object AppDependencies {
 //    "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test$playSuffix" % mongoVersion,
 //    "org.scalamock"          %% "scalamock"               % "5.2.0",
 //    "org.scalatestplus"      %% "scalatestplus-mockito"   % "1.0.0-M2",
-//    "org.mockito"             % "mockito-all"             % "1.10.19",
+    "org.mockito"             % "mockito-all"             % "1.10.19",
 //    "com.vladsch.flexmark"    % "flexmark-all"              % "0.35.10",
 //    "com.github.tomakehurst"  % "wiremock-standalone"     % "2.27.2"
   ).map(_ % "test")
