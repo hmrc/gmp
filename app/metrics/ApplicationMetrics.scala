@@ -19,14 +19,11 @@ package metrics
 import java.util.concurrent.TimeUnit
 import com.codahale.metrics.MetricRegistry
 import com.google.inject.Inject
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 
 import scala.util.Try
 
-//TODO: UPDATE IMPORT HERE
-class ApplicationMetrics @Inject()(metrics: Metrics) extends Logging {
-  lazy val registry: MetricRegistry = metrics.defaultRegistry
+class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
 
   private val timer = (name: String) => Try{registry.timer(name)}
   private val counter = (name: String) => Try{registry.counter(name)}
