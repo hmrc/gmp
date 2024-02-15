@@ -16,7 +16,7 @@
 
 package controllers.auth
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import base.BaseSpec
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
