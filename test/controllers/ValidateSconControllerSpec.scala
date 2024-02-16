@@ -21,7 +21,7 @@ import java.util.UUID
 import connectors.DesConnector
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.Helpers._

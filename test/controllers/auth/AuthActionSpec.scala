@@ -18,7 +18,7 @@ package controllers.auth
 
 import org.apache.pekko.util.Timeout
 import base.BaseSpec
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
