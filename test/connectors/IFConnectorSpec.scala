@@ -20,7 +20,7 @@ import base.BaseSpec
 import metrics.ApplicationMetrics
 import models.CalculationRequest
 import org.mockito.ArgumentCaptor
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.Configuration
 import play.api.libs.json._

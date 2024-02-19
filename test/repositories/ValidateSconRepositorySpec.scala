@@ -20,14 +20,14 @@ import models.GmpValidateSconResponse
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
 class ValidateSconRepositorySpec extends AnyWordSpec
-  with DefaultPlayMongoRepositorySupport[ValidateSconMongoModel]
+  with PlayMongoRepositorySupport[ValidateSconMongoModel]
   with Matchers
   with BeforeAndAfterAll
   with ScalaFutures {

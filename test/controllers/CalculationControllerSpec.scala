@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter
 import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector, IFGetHiddenRecordResponse, IFGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json._
 import play.api.mvc.ControllerComponents
@@ -756,7 +756,7 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(org.mockito.Matchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockDesConnector.getPersonDetails(org.mockito.ArgumentMatchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
