@@ -23,7 +23,7 @@ import play.api.libs.json._
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
 object ContributionsAndEarnings {
-  implicit val formats = Json.format[ContributionsAndEarnings]
+  implicit val formats: OFormat[ContributionsAndEarnings] = Json.format[ContributionsAndEarnings]
 
   def createFromNpsLcntearn(earnings: NpsLcntearn): ContributionsAndEarnings = {
     ContributionsAndEarnings(earnings.rattd_tax_year, earnings.rattd_tax_year match {
@@ -50,7 +50,7 @@ case class CalculationPeriod(startDate: Option[LocalDate],
                             )
 
 object CalculationPeriod {
-  implicit val formats = Json.format[CalculationPeriod]
+  implicit val formats: OFormat[CalculationPeriod] = Json.format[CalculationPeriod]
 
   def createFromNpsLgmpcalc(npsLgmpcalc: NpsLgmpcalc): CalculationPeriod = {
     CalculationPeriod(npsLgmpcalc.scheme_mem_start_date.map(LocalDate.parse(_)),  LocalDate.parse(npsLgmpcalc.scheme_end_date),
@@ -98,7 +98,7 @@ case class GmpCalculationResponse(
 }
 
 object GmpCalculationResponse {
-  implicit val formats = Json.format[GmpCalculationResponse]
+  implicit val formats: OFormat[GmpCalculationResponse] = Json.format[GmpCalculationResponse]
 
   def createFromCalculationResponse(calculationResponse: CalculationResponse)(nino: String, scon: String, name: String,
                                                                               revaluationRate: Option[Int], revaluationDate: Option[String], dualCalc: Boolean, calcType: Int):

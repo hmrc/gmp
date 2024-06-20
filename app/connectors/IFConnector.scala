@@ -179,6 +179,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
     val encoded = for {
       (name, value) <- params if value != None
+      //      TODO: FIX COMPILE WARNING BELOW
       encodedValue = value match {
         case Some(x) => URLEncoder.encode(x.toString, "UTF8")
       }
@@ -212,10 +213,6 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
   }
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[IFGetResponse] = {
-
-    val npsHeaders = Seq("Authorization" -> s"Bearer $serviceKey",
-      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
-      "Environment" -> serviceEnvironment)
 
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"

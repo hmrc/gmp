@@ -181,6 +181,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
   private def buildEncodedQueryString(params: Map[String, Any]): String = {
     val encoded = for {
       (name, value) <- params if value != None
+//      TODO: FIX COMPILE WARNING BELOW
       encodedValue = value match {
         case Some(x) => URLEncoder.encode(x.toString, "UTF8")
       }

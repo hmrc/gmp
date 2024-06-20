@@ -16,10 +16,10 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class ValidateSconResponse(scon_exists: Short)
 
 object ValidateSconResponse {
-  implicit val formats = Json.format[ValidateSconResponse]
+  implicit val formats: OFormat[ValidateSconResponse] = Json.format[ValidateSconResponse]
 }

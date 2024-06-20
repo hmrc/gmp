@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class CalculationRequest(scon: String, nino: String, surname: String, firstForename: String,
                               calctype: Option[Int],
@@ -28,5 +28,5 @@ case class CalculationRequest(scon: String, nino: String, surname: String, first
 }
 
 object CalculationRequest {
-  implicit val formats = Json.format[CalculationRequest]
+  implicit val formats: OFormat[CalculationRequest] = Json.format[CalculationRequest]
 }

@@ -17,7 +17,7 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector, IFGetHiddenRecordResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
@@ -93,7 +93,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
     }
   }
 
-  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier) {
+  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
     val idType = userId.take(1) match {
       case x if x.matches("[A-Z]") => "psa"
       case x if x.matches("[0-9]") => "psp"
