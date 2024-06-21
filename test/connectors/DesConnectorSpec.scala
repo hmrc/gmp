@@ -38,7 +38,7 @@ class DesConnectorSpec extends BaseSpec {
 
   val returnHeaders = Map("Session" -> Seq("session1"))
 
-  implicit lazy val ec = app.injector.instanceOf[ExecutionContext]
+  implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   val mockHttp: HttpClient = mock[HttpClient]
 
