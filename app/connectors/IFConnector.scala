@@ -176,15 +176,11 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
       "Environment" -> serviceEnvironment)
 
-  private def buildEncodedQueryString(params: Map[String, Any]): String = {
+  private def buildEncodedQueryString(params: Map[String, Option[Any]]): String = {
     val encoded = for {
-      (name, value) <- params if value != None
-      //      TODO: FIX COMPILE WARNING BELOW
-      encodedValue = value match {
-        case Some(x) => URLEncoder.encode(x.toString, "UTF8")
-      }
+      (name, value) <- params if value.isDefined
+      encodedValue = URLEncoder.encode(value.get.toString, "UTF8")
     } yield name + "=" + encodedValue
-
     encoded.mkString("?", "&", "")
   }
 
