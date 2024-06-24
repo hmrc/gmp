@@ -155,11 +155,15 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         case BAD_REQUEST => {
           logger.info("[DesConnector][calculate] : NPS returned code 400")
           CalculationResponse(request.nino,
-            400,
+            BAD_REQUEST,
             None,
             None,
             None,
-            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+            Scon(
+              request.scon.substring(PrefixStart, PrefixEnd).toUpperCase,
+              request.scon.substring(NumberStart, NumberEnd).toInt,
+              request.scon.substring(SuffixStart, SuffixEnd).toUpperCase
+            ),
             Nil)
         }
         case errorStatus: Int => {

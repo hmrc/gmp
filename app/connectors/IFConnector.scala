@@ -153,7 +153,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
         case BAD_REQUEST => {
           logger.info("[IFConnector][calculate] : IF returned code 400")
           CalculationResponse(request.nino,
-            400,
+            BAD_REQUEST,
             None,
             None,
             None,

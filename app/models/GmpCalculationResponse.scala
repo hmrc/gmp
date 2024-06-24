@@ -88,8 +88,9 @@ case class GmpCalculationResponse(
         var errors = calculationPeriods
           .filter(_.errorCode > 0)
           .map(_.errorCode)
-        if (globalErrorCode > 0)
+        if (globalErrorCode > 0) {
           errors = errors :+ globalErrorCode
+        }
 
         errors
     }
@@ -100,9 +101,15 @@ case class GmpCalculationResponse(
 object GmpCalculationResponse {
   implicit val formats: OFormat[GmpCalculationResponse] = Json.format[GmpCalculationResponse]
 
-  def createFromCalculationResponse(calculationResponse: CalculationResponse)(nino: String, scon: String, name: String,
-                                                                              revaluationRate: Option[Int], revaluationDate: Option[String], dualCalc: Boolean, calcType: Int):
-  GmpCalculationResponse = {
+  def createFromCalculationResponse(calculationResponse: CalculationResponse)(
+    nino: String,
+    scon: String,
+    name: String,
+    revaluationRate: Option[Int],
+    revaluationDate: Option[String],
+    dualCalc: Boolean,
+    calcType: Int
+  ): GmpCalculationResponse = {
     GmpCalculationResponse(name, nino, scon, revaluationRate.map(_.toString),
       revaluationDate.map(LocalDate.parse(_)),
       calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc),
@@ -112,6 +119,6 @@ object GmpCalculationResponse {
       calculationResponse.dod_date.map(LocalDate.parse(_)),
       dualCalc,
       calcType
-      )
+    )
   }
 }
