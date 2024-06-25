@@ -23,13 +23,14 @@ import play.api.mvc.{ActionBuilder, AnyContent, BodyParser, ControllerComponents
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, ConfidenceLevel, NoActiveSession}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import scala.concurrent.Future
+
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class GmpAuthAction @Inject()(override val authConnector: AuthConnector, controllerComponents: ControllerComponents)
   extends ActionBuilder[Request, AnyContent] with AuthorisedFunctions {
 
-  implicit val executionContext = controllerComponents.executionContext
+  implicit val executionContext: ExecutionContext = controllerComponents.executionContext
   val parser: BodyParser[AnyContent] = controllerComponents.parsers.defaultBodyParser
 
 

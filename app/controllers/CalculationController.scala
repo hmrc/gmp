@@ -17,7 +17,7 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector, IFGetHiddenRecordResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
 import models.{CalculationRequest, GmpCalculationResponse}
@@ -55,7 +55,20 @@ class CalculationController @Inject()(desConnector: DesConnector,
           case None =>
             desConnector.getPersonDetails(calculationRequest.nino).flatMap {
               case DesGetHiddenRecordResponse =>
-                val response = GmpCalculationResponse(calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.nino, calculationRequest.scon, None, None, List(), LOCKED, None, None, None, false, calculationRequest.calctype.getOrElse(-1))
+                val response = GmpCalculationResponse(
+                  calculationRequest.firstForename + " " + calculationRequest.surname,
+                  calculationRequest.nino,
+                  calculationRequest.scon,
+                  None,
+                  None,
+                  List(),
+                  LOCKED,
+                  None,
+                  None,
+                  None,
+                  dualCalc = false,
+                  calculationRequest.calctype.getOrElse(-1)
+                )
                 Future.successful(Ok(Json.toJson(response)))
               case _ =>
                 val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
@@ -68,8 +81,13 @@ class CalculationController @Inject()(desConnector: DesConnector,
                   calculation => {
                     logger.debug(s"[CalculationController][requestCalculation] : $calculation")
 
-                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname, calculationRequest.revaluationRate, calculationRequest.revaluationDate,
-                      calculationRequest.dualCalc.fold(false)(_ == 1), calculationRequest.calctype.get)
+                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(
+                      calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname,
+                      calculationRequest.revaluationRate,
+                      calculationRequest.revaluationDate,
+                      calculationRequest.dualCalc.fold(false)(_ == 1),
+                      calculationRequest.calctype.get
+                    )
 
                     logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
                     repository.insertByRequest(calculationRequest, transformedResult)
@@ -93,12 +111,14 @@ class CalculationController @Inject()(desConnector: DesConnector,
     }
   }
 
-  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier) {
+  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
     val idType = userId.take(1) match {
       case x if x.matches("[A-Z]") => "psa"
       case x if x.matches("[0-9]") => "psp"
     }
-    val resultsEventResult = auditConnector.sendEvent(new ResultsEvent(!response.hasErrors, response.errorCodes, response.calcType, response.dualCalc, response.scon, cached, idType))
+    val resultsEventResult = auditConnector.sendEvent(new ResultsEvent(
+      !response.hasErrors, response.errorCodes, response.calcType, response.dualCalc, response.scon, cached, idType)
+    )
     resultsEventResult.failed.foreach({
       e: Throwable => logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
     })

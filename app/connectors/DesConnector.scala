@@ -155,11 +155,15 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         case BAD_REQUEST => {
           logger.info("[DesConnector][calculate] : NPS returned code 400")
           CalculationResponse(request.nino,
-            400,
+            BAD_REQUEST,
             None,
             None,
             None,
-            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+            Scon(
+              request.scon.substring(PrefixStart, PrefixEnd).toUpperCase,
+              request.scon.substring(NumberStart, NumberEnd).toInt,
+              request.scon.substring(SuffixStart, SuffixEnd).toUpperCase
+            ),
             Nil)
         }
         case errorStatus: Int => {
@@ -178,14 +182,11 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("nps.originator-id", ""),
       "Environment" -> serviceEnvironment)
 
-  private def buildEncodedQueryString(params: Map[String, Any]): String = {
+  private def buildEncodedQueryString(params: Map[String, Option[Any]]): String = {
     val encoded = for {
-      (name, value) <- params if value != None
-      encodedValue = value match {
-        case Some(x) => URLEncoder.encode(x.toString, "UTF8")
-      }
+      (name, value) <- params if value.isDefined
+      encodedValue = URLEncoder.encode(value.get.toString, "UTF8")
     } yield name + "=" + encodedValue
-
     encoded.mkString("?", "&", "")
   }
 

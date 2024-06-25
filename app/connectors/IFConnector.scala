@@ -153,7 +153,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
         case BAD_REQUEST => {
           logger.info("[IFConnector][calculate] : IF returned code 400")
           CalculationResponse(request.nino,
-            400,
+            BAD_REQUEST,
             None,
             None,
             None,
@@ -176,14 +176,11 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
       "Environment" -> serviceEnvironment)
 
-  private def buildEncodedQueryString(params: Map[String, Any]): String = {
+  private def buildEncodedQueryString(params: Map[String, Option[Any]]): String = {
     val encoded = for {
-      (name, value) <- params if value != None
-      encodedValue = value match {
-        case Some(x) => URLEncoder.encode(x.toString, "UTF8")
-      }
+      (name, value) <- params if value.isDefined
+      encodedValue = URLEncoder.encode(value.get.toString, "UTF8")
     } yield name + "=" + encodedValue
-
     encoded.mkString("?", "&", "")
   }
 
@@ -212,10 +209,6 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
   }
 
   def getPersonDetails(nino: String)(implicit hc: HeaderCarrier): Future[IFGetResponse] = {
-
-    val npsHeaders = Seq("Authorization" -> s"Bearer $serviceKey",
-      "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
-      "Environment" -> serviceEnvironment)
 
     val startTime = System.currentTimeMillis()
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"

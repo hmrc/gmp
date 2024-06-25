@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class Scon(
                  contracted_out_prefix: String,
@@ -24,7 +24,7 @@ case class Scon(
                  modulus_19_suffix: String)
 
 object Scon {
-  implicit val formats = Json.format[Scon]
+  implicit val formats: OFormat[Scon] = Json.format[Scon]
 }
 
 case class NpsLcntearn(
@@ -33,7 +33,7 @@ case class NpsLcntearn(
                         )
 
 object NpsLcntearn{
-  implicit val formats = Json.format[NpsLcntearn]
+  implicit val formats: OFormat[NpsLcntearn] = Json.format[NpsLcntearn]
 }
 
 
@@ -52,7 +52,7 @@ case class NpsLgmpcalc(
                         )
 
 object NpsLgmpcalc {
-  implicit val formats = Json.format[NpsLgmpcalc]
+  implicit val formats: OFormat[NpsLgmpcalc] = Json.format[NpsLgmpcalc]
 }
 
 case class CalculationResponse(
@@ -66,5 +66,5 @@ case class CalculationResponse(
                                 )
 
 object CalculationResponse {
-  implicit val formats = Json.format[CalculationResponse]
+  implicit val formats: OFormat[CalculationResponse] = Json.format[CalculationResponse]
 }

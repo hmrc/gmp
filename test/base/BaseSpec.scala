@@ -27,5 +27,5 @@ trait BaseSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with 
 
   implicit val controllerComponents: ControllerComponents = app.injector.instanceOf[ControllerComponents]
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 }

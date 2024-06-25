@@ -16,12 +16,12 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class GmpValidateSconResponse(sconExists: Boolean)
 
 object GmpValidateSconResponse {
-  implicit val formats = Json.format[GmpValidateSconResponse]
+  implicit val formats: OFormat[GmpValidateSconResponse] = Json.format[GmpValidateSconResponse]
 
   def createFromValidateSconResponse(validateSconResponse: ValidateSconResponse): GmpValidateSconResponse = {
     validateSconResponse.scon_exists match {
