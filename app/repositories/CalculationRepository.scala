@@ -69,7 +69,9 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       .toFuture()
       .map { calculations =>
         logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $calculations }")
-        calculations.headOption.map(_.response)
+        calculations
+          .map(_.response)
+          .collectFirst{case response if responseMatchesRequest(request, response) => response}
       }
       .recover {
         case e =>
@@ -90,5 +92,9 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       case e => logger.error("Failed to insert  By request", e)
         false
     }
+  }
+
+  private def responseMatchesRequest(request: CalculationRequest, response: GmpCalculationResponse): Boolean = {
+    request.scon.equalsIgnoreCase(response.scon) && request.nino.equalsIgnoreCase(response.nino)
   }
 }
