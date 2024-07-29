@@ -69,6 +69,20 @@ Example JSON response:
 }
 ```
 
+Run the application locally
+---------------------------
+
+Use service manager to run all the required services:
+
+```
+sm2 --start GMP_ALL
+```
+
+To run the application execute
+```
+sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
+```
+
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
