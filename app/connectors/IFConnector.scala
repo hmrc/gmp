@@ -118,7 +118,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       request.surname
     } else {
       request.surname.substring(0, 3)
-    }).toUpperCase, "UTF-8")
+    }).toUpperCase.trim, "UTF-8")
 
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
 
