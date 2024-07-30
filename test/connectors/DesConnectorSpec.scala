@@ -203,7 +203,7 @@ class DesConnectorSpec extends BaseSpec {
         urlCaptor.getValue must include("surname/FR/")
       }
 
-      "don't remove whitespace from names" in {
+      "trims whitespace from names" in {
         val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
         when(mockHttp.GET[HttpResponse](any(), any(), any())
           (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
@@ -211,7 +211,7 @@ class DesConnectorSpec extends BaseSpec {
 
         verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
 
-        urlCaptor.getValue must include("surname/LE+/")
+        urlCaptor.getValue must include("surname/LE/")
 
       }
 
