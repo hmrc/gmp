@@ -4,7 +4,7 @@ import sbt._
 object AppDependencies {
 
   private val playVersion = "play-30"
-  private val bootstrapVersion = "8.6.0"
+  private val bootstrapVersion = "9.3.0"
   private val hmrcMongoVersion = "2.1.0"
 
   val compile = Seq(
@@ -22,7 +22,7 @@ object AppDependencies {
     "org.scalatestplus.play" %% "scalatestplus-play"            % "7.0.0",
     "org.scalatestplus"      %% "scalacheck-1-17"               % "3.2.17.0",
     "org.mockito"            %% "mockito-scala-scalatest"       % "1.17.30",
-    "org.apache.pekko"       %% "pekko-testkit"                 % "1.0.2",
+    "org.apache.pekko"       %% "pekko-testkit"                 % "1.0.3",
   ).map(_ % "test")
 
   val all: Seq[ModuleID] = compile ++ test
