@@ -16,7 +16,6 @@
 
 package connectors
 
-import base.BaseSpec
 import java.util.UUID
 import metrics.ApplicationMetrics
 import models.CalculationRequest
@@ -30,17 +29,15 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.SessionId
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
 
+import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
 
-class DesConnectorSpec extends BaseSpec {
+class DesConnectorSpec extends HttpClientV2Helper {
 
   val returnHeaders = Map("Session" -> Seq("session1"))
 
   implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-
-  val mockHttp: HttpClient = mock[HttpClient]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
@@ -92,6 +89,7 @@ class DesConnectorSpec extends BaseSpec {
 
   before {
     reset(mockHttp)
+    when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   }
 
   "The Nps Connector" must {
@@ -102,8 +100,7 @@ class DesConnectorSpec extends BaseSpec {
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
         val calcResponse = await(result)
@@ -116,8 +113,7 @@ class DesConnectorSpec extends BaseSpec {
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(500, calcResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(500, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
         intercept[UpstreamErrorResponse] {
@@ -129,8 +125,7 @@ class DesConnectorSpec extends BaseSpec {
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
@@ -141,9 +136,7 @@ class DesConnectorSpec extends BaseSpec {
       "return a response when 400 returned" in {
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(400, "400")))
-
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(400, "400")))
         val result = TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
@@ -151,14 +144,13 @@ class DesConnectorSpec extends BaseSpec {
       }
 
       "generate a DES url" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must endWith("/scon/S/1401234/Q/nino/CB433298A/surname/SMI/firstname/B/calculation/?calctype=0")
+        urlCaptor.getValue.toString must endWith("/scon/S/1401234/Q/nino/CB433298A/surname/SMI/firstname/B/calculation/?calctype=0")
       }
 
       "use the DES url" in {
@@ -171,108 +163,99 @@ class DesConnectorSpec extends BaseSpec {
 
       "generate correct url when no revaluation" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must endWith("/?calctype=0")
+        urlCaptor.getValue.toString must endWith("/?calctype=0")
       }
 
       "truncate surname to 3 chars if length greater than 3 chars" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("/surname/SMI/")
+        urlCaptor.getValue.toString must include("/surname/SMI/")
       }
 
       "not truncate surname if length less than 3 chars" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("surname/FR/")
+        urlCaptor.getValue.toString must include("surname/FR/")
       }
 
       "trims whitespace from names" in {
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("surname/LE/")
+        urlCaptor.getValue.toString must include("surname/LE/")
 
       }
 
       "generate correct url when names contains special char" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("/surname/O%27S/")
+        urlCaptor.getValue.toString must include("/surname/O'S/")
       }
 
       "generate correct url when nino is not all uppercase" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("CB433298A")
+        urlCaptor.getValue.toString must include("CB433298A")
       }
 
       "generate correct url when scon is not all uppercase" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("S/1401234/Q")
+        urlCaptor.getValue.toString must include("S/1401234/Q")
       }
 
       "generate correct url with revalrate" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("revalrate")
+        urlCaptor.getValue.toString must include("revalrate")
       }
 
       "generate correct url with contribution and earnings" in {
 
-        val urlCaptor: ArgumentCaptor[String] = ArgumentCaptor.forClass(classOf[String])
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any())).thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
 
-        verify(mockHttp).GET[HttpResponse](urlCaptor.capture(), any(), any())(any(), any(), any())
+        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue must include("request_earnings")
+        urlCaptor.getValue.toString must include("request_earnings")
       }
 
       "catch calculate audit failure and continue" in {
@@ -284,8 +267,7 @@ class DesConnectorSpec extends BaseSpec {
           mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
         TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
         //TODO: Assert something here?
       }
@@ -296,8 +278,7 @@ class DesConnectorSpec extends BaseSpec {
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
         val validateSconResponse = await(result)
@@ -308,8 +289,7 @@ class DesConnectorSpec extends BaseSpec {
 
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(500, validateSconResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(500, validateSconResponseJson, returnHeaders)))
 
         val result = TestDesConnector.validateScon("PSAID", "S1401234Q")
         intercept[UpstreamErrorResponse] {
@@ -326,9 +306,7 @@ class DesConnectorSpec extends BaseSpec {
           mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
-        when(mockHttp.GET[HttpResponse](any(), any(), any())
-          (any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
+        requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         TestNpsConnector.validateScon("PSAID", "S1401234Q")
         //TODO: Assert something here?
@@ -343,7 +321,7 @@ class DesConnectorSpec extends BaseSpec {
 
         val response = HttpResponse(423, citizenDetailsJson, returnHeaders)
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
+        requestBuilderExecute[HttpResponse] {
           Future.successful(response)
         }
 
@@ -354,7 +332,7 @@ class DesConnectorSpec extends BaseSpec {
       "return DesGetSuccessResponse when manualCorrespondenceInd=false" in {
 
         val response = HttpResponse(200, citizenDetailsJson, returnHeaders)
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
+        requestBuilderExecute[HttpResponse] {
           Future.successful(response)
         }
 
@@ -364,7 +342,7 @@ class DesConnectorSpec extends BaseSpec {
 
       "return a DesNotFoundResponse when HOD returns 404" in {
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
+        requestBuilderExecute[HttpResponse] {
           Future.failed(UpstreamErrorResponse("Not found", 404))
         }
 
@@ -374,7 +352,7 @@ class DesConnectorSpec extends BaseSpec {
 
       "return a DesErrorResponse if any other issues" in {
         val ex = new Exception("Exception")
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn {
+        requestBuilderExecute[HttpResponse] {
           Future.failed(ex)
         }
 
@@ -387,7 +365,9 @@ class DesConnectorSpec extends BaseSpec {
         val json = Json.parse("{}")
         val response = HttpResponse(200, json, returnHeaders)
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
+        requestBuilderExecute[HttpResponse]{
+          Future.successful(response)
+        }
 
         val result = TestDesConnector.getPersonDetails(nino)
         await(result) must be(DesGetSuccessResponse)
@@ -396,7 +376,9 @@ class DesConnectorSpec extends BaseSpec {
       "return an Unexpected Response with Internal Server response or DES is down" in {
         val response = HttpResponse.apply(500, citizenDetailsJson, returnHeaders)
 
-        when(mockHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(response)
+        requestBuilderExecute[HttpResponse]{
+          Future.successful(response)
+        }
 
         val result = TestDesConnector.getPersonDetails(nino)
         await(result) must be(DesGetUnexpectedResponse)
