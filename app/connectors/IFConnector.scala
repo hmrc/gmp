@@ -92,7 +92,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     val result = http.get(url"$uri")
-      .withBody(Json.toJson(IFHeaders))
+      .setHeader(IFHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
       metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -147,7 +147,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     val result = http.get(url"$uri")
-      .withBody(Json.toJson(IFHeaders))
+      .setHeader(IFHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
       metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -221,7 +221,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     logger.debug(s"[IFConnector][getPersonDetails] Retrieving person details from $url")
 
     http.get(url"$url")
-      .withBody(Json.toJson(IFHeaders))
+      .setHeader(IFHeaders:_*)
         .execute[HttpResponse]
         .map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)

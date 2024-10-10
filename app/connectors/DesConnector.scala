@@ -95,7 +95,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     val result = http.get(url"$uri")
-      .withBody(Json.toJson(npsHeaders))
+      .setHeader(npsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -151,7 +151,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
    val result = http.get(url"$uri")
-     .withBody(Json.toJson(npsHeaders))
+     .setHeader(npsHeaders:_*)
      .execute[HttpResponse]
      .map { response =>
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -232,7 +232,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
     http.get(url"$url")
-      .withBody(Json.toJson(npsHeaders))
+      .setHeader(npsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)

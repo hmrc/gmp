@@ -38,6 +38,7 @@ trait HttpClientV2Helper extends BaseSpec with ScalaFutures{
   when(mockHttp.delete(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttp.put(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(requestBuilder.transform(any())).thenReturn(requestBuilder)
+  when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
   when(requestBuilder.withBody(any[JsValue])(any(), any(), any())).thenReturn(requestBuilder)
 
 
