@@ -22,16 +22,19 @@ import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
+import play.api.libs.json.Format.GenericFormat
+import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.HttpReadsInstances.readFromJson
+import uk.gov.hmrc.http.client.HttpClientV2
 
 trait DesGetResponse
 
@@ -50,7 +53,7 @@ case object DesGetUnexpectedResponse extends DesGetResponse
 @Singleton
 class DesConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
-                             http: HttpClient,
+                             http: HttpClientV2,
                              auditConnector: AuditConnector,
                              val servicesConfig: ServicesConfig)(implicit ec: ExecutionContext) extends Logging {
 
@@ -91,8 +94,10 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
-
+    val result = http.get(url"$uri")
+      .setHeader(npsHeaders:_*)
+      .execute[HttpResponse]
+      .map { response =>
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
 
@@ -145,8 +150,10 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
-
+   val result = http.get(url"$uri")
+     .setHeader(npsHeaders:_*)
+     .execute[HttpResponse]
+     .map { response =>
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)
 
@@ -224,9 +231,10 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
     logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
-
-    http.GET[HttpResponse](url, headers = npsHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
-
+    http.get(url"$url")
+      .setHeader(npsHeaders:_*)
+      .execute[HttpResponse]
+      .map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {

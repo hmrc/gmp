@@ -22,16 +22,17 @@ import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
+import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.client.HttpClientV2
 
 trait IFGetResponse
 
@@ -49,7 +50,7 @@ case object IFGetUnexpectedResponse extends IFGetResponse
 @Singleton
 class IFConnector @Inject()(val runModeConfiguration: Configuration,
                              metrics: ApplicationMetrics,
-                             http: HttpClient,
+                             http: HttpClientV2,
                              auditConnector: AuditConnector,
                              val servicesConfig: ServicesConfig)(implicit ec: ExecutionContext) extends Logging {
 
@@ -90,8 +91,10 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
-
+    val result = http.get(url"$uri")
+      .setHeader(IFHeaders:_*)
+      .execute[HttpResponse]
+      .map { response =>
       metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.IFConnectorStatus(response.status)
 
@@ -143,8 +146,10 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-    val result = http.GET[HttpResponse](uri, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec).map { response =>
-
+    val result = http.get(url"$uri")
+      .setHeader(IFHeaders:_*)
+      .execute[HttpResponse]
+      .map { response =>
       metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.IFConnectorStatus(response.status)
 
@@ -215,8 +220,10 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
 
     logger.debug(s"[IFConnector][getPersonDetails] Retrieving person details from $url")
 
-    http.GET[HttpResponse](url, headers = IFHeaders)(implicitly[HttpReads[HttpResponse]], hc.copy(authorization = None), ec) map { response =>
-
+    http.get(url"$url")
+      .setHeader(IFHeaders:_*)
+        .execute[HttpResponse]
+        .map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
 
       response.status match {
