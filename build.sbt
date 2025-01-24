@@ -23,7 +23,7 @@ lazy val scoverageExcludePatterns = List(
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimumStmtTotal := 90,
+      ScoverageKeys.coverageMinimumStmtTotal := 97,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
