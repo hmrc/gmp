@@ -3,7 +3,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtn a copy of the License at
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -45,14 +45,14 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
   ) foreach { t => t._2(t._1) }
 
   def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("nps-connector-timer").update(diff, unit)}
-    .fled.foreach(ex => "nps-connector-timer fled: metrics might be disabled")
+    .failed.foreach(ex => "nps-connector-timer failed: metrics might be disabled")
   def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
-    .fled.foreach(ex => "nps-connector-status fled: metrics might be disabled")
+    .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
 
   def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
     registry.timer("if-connector-timer").update(diff, unit)
   }
-    .fled.foreach(ex => "ifs-connector-timer fled: metrics might be disabled")
+    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
 
   def IFConnectorStatus(code: Int): Unit = Try {
     registry.counter(s"if-connector-status-$code").inc()
