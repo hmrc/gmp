@@ -48,17 +48,8 @@ class HipConnector @Inject()(
     if (appConfig.isHipEnabled) {
       val formattedScon = normalizeScon(scon)
       val url = s"$hipBaseUrl/gmp/$formattedScon/validate"
-      val correlationId = UUID.randomUUID().toString
 
-      val headers = Seq(
-        Constants.OriginatorIdKey       -> Constants.OriginatorIdValue,
-        "correlationId"                 -> correlationId,
-        "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
-        appConfig.hipEnvironmentHeader,
-        "X-Originating-System"         -> Constants.XOriginatingSystemHeader,
-        "X-Receipt-Date"               -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
-        "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
-      )
+      val headers = buildHeadersV1(hc)
 
       doAudit("hipSconValidation", userId, formattedScon, None, None, None)
 
@@ -89,7 +80,19 @@ class HipConnector @Inject()(
     }
   }
 
+  private def getCorrelationId(hc: HeaderCarrier): String =
+    hc.requestId.map(_.value).getOrElse(UUID.randomUUID().toString)
 
+  private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
+    Seq(
+      Constants.OriginatorIdKey       -> Constants.OriginatorIdValue,
+      "correlationId"                 -> getCorrelationId(hc),
+      "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
+      appConfig.hipEnvironmentHeader,
+      "X-Originating-System"         -> Constants.XOriginatingSystemHeader,
+      "X-Receipt-Date"               -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
+      "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
+    )
   private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
 
   private def normalizeScon(rawScon: String): String = {
