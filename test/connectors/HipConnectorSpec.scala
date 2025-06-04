@@ -16,37 +16,42 @@
 
 package connectors
 
+import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
 import models.ValidateSconResponse
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters._
 
 class HipConnectorSpec extends HttpClientV2Helper {
 
   implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val mockServicesConfig: ServicesConfig = app.injector.instanceOf[ServicesConfig]
-  val config: Configuration = app.injector.instanceOf[Configuration]
+  val mockAppConfig: AppConfig = mock[AppConfig]
+  val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
 
   when(mockAuditConnector.sendEvent(any())(any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
-  val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
+  // AppConfig mocks
+  when(mockAppConfig.hipUrl).thenReturn("http://localhost:9999")
+  when(mockAppConfig.hipAuthorisationToken).thenReturn("dGVzdC1hdXRo") // base64 encoded token
+  when(mockAppConfig.originatorIdKey).thenReturn("gov-uk-originator-id")
+  when(mockAppConfig.originatorIdValue).thenReturn("HMRC-GMP")
+  when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
+  when(mockAppConfig.isHipEnabled).thenReturn(true)
 
   object TestHipConnector extends HipConnector(
-    config = mockServicesConfig,
+    appConfig = mockAppConfig,
     metrics = mockMetrics,
     http = mockHttp,
     auditConnector = mockAuditConnector
@@ -65,42 +70,28 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
   "HipConnector" should {
 
-    "successfully return a ValidateSconResponse for status 200" in {
+    "return a valid response for HTTP 200" in {
       implicit val hc = HeaderCarrier()
-
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
-      val result = TestHipConnector.validateScon("user123", "S1401234Q")
-      val response = await(result)
+      val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-      response mustBe ValidateSconResponse(1)
+      result mustBe ValidateSconResponse(1)
     }
 
-    "successfully return a ValidateSconResponse for status 422" in {
+    "return a valid response for HTTP 422" in {
       implicit val hc = HeaderCarrier()
-
       requestBuilderExecute(Future.successful(HttpResponse(422, validateSconResponseJson.toString())))
 
-      val result = TestHipConnector.validateScon("user123", "S1401234Q")
-      val response = await(result)
+      val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-      response mustBe ValidateSconResponse(1)
+      result mustBe ValidateSconResponse(1)
     }
 
-    "throw UpstreamErrorResponse for 400 response" in {
-      implicit val hc = HeaderCarrier()
+    "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
+      val errorCodes = Seq(400, 403, 404, 500, 503)
 
-      requestBuilderExecute(Future.successful(HttpResponse(400, "Bad Request")))
-
-      intercept[UpstreamErrorResponse] {
-        await(TestHipConnector.validateScon("user123", "S1401234Q"))
-      }.statusCode mustBe 400
-    }
-
-    "throw UpstreamErrorResponse for 403, 404, 500, 503 responses" in {
-      val errorStatuses = Seq(403, 404, 500, 503)
-
-      errorStatuses.foreach { status =>
+      errorCodes.foreach { status =>
         implicit val hc = HeaderCarrier()
         requestBuilderExecute(Future.successful(HttpResponse(status, "Error")))
 
@@ -109,45 +100,48 @@ class HipConnectorSpec extends HttpClientV2Helper {
         }
 
         exception.statusCode mustBe status
-        exception.reportAs mustBe 500
+        exception.reportAs mustBe INTERNAL_SERVER_ERROR
       }
     }
 
-    "throw an error for invalid SCON format" in {
+    "throw IllegalArgumentException for invalid SCON" in {
       implicit val hc = HeaderCarrier()
 
       val ex = intercept[IllegalArgumentException] {
-        await(TestHipConnector.validateScon("user123", "S14012349898Q"))
+        await(TestHipConnector.validateScon("user123", "INVALID"))
       }
 
       ex.getMessage must include("Invalid SCON")
     }
 
-    "log and handle audit failure" in {
+    "log and continue if audit fails" in {
       implicit val hc = HeaderCarrier()
 
       when(mockAuditConnector.sendEvent(any())(any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("Audit failed")))
+        .thenReturn(Future.failed(new RuntimeException("Audit failure")))
 
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
-      await(TestHipConnector.validateScon("user123", "S1401234Q"))
+      noException shouldBe thrownBy(await(TestHipConnector.validateScon("user123", "S1401234Q")))
     }
 
     "set required headers including correlationId and originator-id" in {
       implicit val hc = HeaderCarrier()
 
       val headersCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
-      requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
+      requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
       await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
       verify(requestBuilder, atLeastOnce()).setHeader(headersCaptor.capture(): _*)
       val captured = headersCaptor.getAllValues.asScala
       val headerMaps = captured.map(_.toMap)
-      headerMaps.exists(_.contains("correlationId")) mustBe true
-      headerMaps.exists(_.contains("gov-uk-originator-id")) mustBe true
 
+      headerMaps.exists(_.contains("correlationId")) mustBe true
+      headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(Constants.OriginatorIdValue)) mustBe true
+      headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
+      headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
     }
+
   }
 }

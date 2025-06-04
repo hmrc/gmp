@@ -17,6 +17,7 @@
 package connectors
 
 import com.google.inject.{Inject, Singleton}
+import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
 import models._
 import play.api.Logging
@@ -27,59 +28,67 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class HipConnector @Inject()(
-                              val config: ServicesConfig,
+                              appConfig: AppConfig,
                               metrics: ApplicationMetrics,
                               http: HttpClientV2,
                               auditConnector: AuditConnector
                             )(implicit ec: ExecutionContext) extends Logging {
 
-  val hipBaseUrl: String = config.baseUrl("hip")
-  val originatorId: String = config.getConfString("hip.originator-id", "")
+  val hipBaseUrl: String = appConfig.hipUrl
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
-    val formattedScon = normalizeScon(scon)
-    val url = s"$hipBaseUrl/gmp/$formattedScon/validate"
-    val correlationId = UUID.randomUUID().toString
+    if (appConfig.isHipEnabled) {
+      val formattedScon = normalizeScon(scon)
+      val url = s"$hipBaseUrl/gmp/$formattedScon/validate"
+      val correlationId = UUID.randomUUID().toString
 
-    val headers = Seq(
-      "correlationId" -> correlationId,
-      "gov-uk-originator-id" -> originatorId
-    )
+      val headers = Seq(
+        Constants.OriginatorIdKey       -> Constants.OriginatorIdValue,
+        "correlationId"                 -> correlationId,
+        "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
+        appConfig.hipEnvironmentHeader,
+        "X-Originating-System"         -> Constants.XOriginatingSystemHeader,
+        "X-Receipt-Date"               -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
+        "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
+      )
 
-    doAudit("hipSconValidation", userId, formattedScon, None, None, None)
-    logger.debug(s"[HipConnector][validateScon] Contacting HIP at $url with correlationId: $correlationId")
+      doAudit("hipSconValidation", userId, formattedScon, None, None, None)
 
-    val startTime = System.currentTimeMillis()
+      logger.debug(s"[HipConnector][validateScon] Contacting HIP at $url with headers: $headers")
 
-    http.get(url"$url")
-      .setHeader(headers: _*)
-      .execute[HttpResponse]
-      .map { response =>
-        metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-        metrics.IFConnectorStatus(response.status)
+      val startTime = System.currentTimeMillis()
 
-        response.status match {
-          case Status.OK | Status.UNPROCESSABLE_ENTITY =>
-            response.json.as[ValidateSconResponse]
+      http.get(url"$url")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
+        .map { response =>
+          metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+          metrics.IFConnectorStatus(response.status)
 
-          case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
-            logger.error(s"[HipConnector][validateScon] HIP returned error status ${response.status} with body: ${response.body}")
-            throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
+          response.status match {
+            case Status.OK | Status.UNPROCESSABLE_ENTITY =>
+              response.json.as[ValidateSconResponse]
 
-          case other =>
-            logger.error(s"[HipConnector][validateScon] Unexpected response code $other from HIP")
-            throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
+            case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
+              throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
+
+            case other =>
+              throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
+          }
         }
-      }
+    } else {
+      Future.failed(new IllegalStateException("HIP feature is disabled. validateScon cannot be called."))
+    }
   }
+
 
   private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
 
@@ -88,18 +97,18 @@ class HipConnector @Inject()(
     scon match {
       case sconPattern(_*) => scon
       case _ =>
-        logger.warn(s"[HipConnector] Invalid SCON format: '$rawScon' -> '$scon'")
         throw new IllegalArgumentException(s"Invalid SCON: '$rawScon'")
     }
   }
 
-  private def doAudit(auditTag: String,
-                      userID: String,
-                      scon: String,
-                      nino: Option[String],
-                      surname: Option[String],
-                      firstForename: Option[String])(implicit hc: HeaderCarrier): Unit = {
-
+  private def doAudit(
+                       auditTag: String,
+                       userID: String,
+                       scon: String,
+                       nino: Option[String],
+                       surname: Option[String],
+                       firstForename: Option[String]
+                     )(implicit hc: HeaderCarrier): Unit = {
     val auditDetails: Map[String, String] = Map(
       "userId" -> userID,
       "scon" -> scon,
@@ -108,17 +117,15 @@ class HipConnector @Inject()(
       "surname" -> surname.getOrElse("")
     )
 
-    val auditResult = auditConnector.sendEvent(
+    auditConnector.sendEvent(
       DataEvent(
         auditSource = "gmp",
         auditType = EventTypes.Succeeded,
         tags = hc.toAuditTags(auditTag, "N/A"),
         detail = hc.toAuditDetails() ++ auditDetails
       )
-    )
-
-    auditResult.failed.foreach {
-      case e: Throwable => logger.warn("[HipConnector][doAudit] Audit failed: " + e.getMessage, e)
+    ).failed.foreach {
+      case e: Throwable => logger.warn("[HipConnector][doAudit] Audit failed", e)
     }
   }
 }
