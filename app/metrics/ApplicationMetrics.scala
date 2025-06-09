@@ -35,6 +35,12 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
     ("nps-connector-status-200", counter),
     ("nps-connector-status-400", counter),
     ("nps-connector-status-500", counter),
+    ("hip-connector-timer", timer),
+    ("hip-connector-status-200", counter),
+    ("hip-connector-status-400", counter),
+    ("hip-connector-status-403", counter),
+    ("hip-connector-status-500", counter),
+    ("hip-connector-status-503", counter),
     ("if-connector-timer", timer),
     ("if-connector-status-200", counter),
     ("if-connector-status-400", counter),
@@ -49,15 +55,16 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
   def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
     .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
 
-  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
-    registry.timer("if-connector-timer").update(diff, unit)
-  }
-    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
+  def hipConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("hip-connector-timer").update(diff, unit)}
+    .failed.foreach(ex => "hip-connector-timer failed: metrics might be disabled")
+  def hipConnectorStatus(code: Int): Unit = Try{registry.counter(s"hip-connector-status-$code").inc()}
+    .failed.foreach(ex => "hip-connector-status failed: metrics might be disabled")
 
-  def IFConnectorStatus(code: Int): Unit = Try {
-    registry.counter(s"if-connector-status-$code").inc()
-  }
+  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("if-connector-timer").update(diff, unit)}
+    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
+  def IFConnectorStatus(code: Int): Unit = Try{registry.counter(s"if-connector-status-$code").inc()}
     .failed.foreach(ex => "if-connector-status failed: metrics might be disabled")
+
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("mci-connection-timer").update(diff, unit)}
     .failed.foreach(ex => "mci-connection-timer failed: metrics might be disabled")
   def mciLockCount(): Unit = Try{registry.counter("mci-lock-result-count").inc()}

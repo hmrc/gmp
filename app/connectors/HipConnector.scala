@@ -61,8 +61,8 @@ class HipConnector @Inject()(
         .setHeader(headers: _*)
         .execute[HttpResponse]
         .map { response =>
-          metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-          metrics.IFConnectorStatus(response.status)
+          metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+          metrics.hipConnectorStatus(response.status)
 
           response.status match {
             case Status.OK | Status.UNPROCESSABLE_ENTITY =>
