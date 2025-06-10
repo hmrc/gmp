@@ -17,7 +17,8 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.DesConnector
+import config.AppConfig
+import connectors.{DesConnector, HipConnector}
 import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logging
@@ -31,9 +32,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
+                                       hipConnector: HipConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
-                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+                                       cc: ControllerComponents,
+                                       appConfig: AppConfig) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
 
@@ -44,8 +47,11 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
         repository.findByScon(validateSconRequest.scon).flatMap {
           case Some(cr) => Future.successful(Ok(Json.toJson(cr)))
           case None => {
-            val result = desConnector.validateScon(userId, validateSconRequest.scon)
-
+            val result = if(appConfig.isHipEnabled){
+              hipConnector.validateScon(userId, validateSconRequest.scon)
+            } else {
+              desConnector.validateScon(userId, validateSconRequest.scon)
+            }
             result.map {
               validateResult => {
                 logger.debug(s"[ValidateSconController][validateScon] : $validateResult")
