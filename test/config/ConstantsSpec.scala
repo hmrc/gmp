@@ -25,7 +25,7 @@ class ConstantsSpec extends AnyWordSpec with Matchers {
     "match expected values" in {
       Constants.OriginatorIdKey mustBe "gov-uk-originator-id"
       Constants.OriginatorIdValue mustBe "HMRC-GMP"
-      Constants.XOriginatingSystemHeader mustBe "MTDP"
+      Constants.XOriginatingSystemHeader mustBe "MDTP"
       Constants.XTransmittingSystemHeader mustBe "HIP"
     }
   }

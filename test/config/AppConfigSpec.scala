@@ -27,9 +27,10 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
   implicit val config: Configuration = Configuration.from(
     Map(
-      "microservice.services.hip.url"              -> "http://localhost:8080",
-      "microservice.services.hip.clientId"         -> "test-client-id",
-      "microservice.services.hip.secret"           -> "test-secret",
+      "microservice.services.hip.host"              -> "localhost",
+      "microservice.services.hip.port"              -> "8080",
+      "microservice.services.hip.client-id"         -> "test-client-id",
+      "microservice.services.hip.client-secret"     -> "test-secret",
       "microservice.services.hip.originatoridkey"  -> "gov-uk-originator-id",
       "microservice.services.hip.originatoridvalue"-> "HMRC-GMP",
       "microservice.services.hip.environment"      -> "test-env",
