@@ -17,8 +17,8 @@
 package controllers
 
 import base.BaseSpec
-import java.util.UUID
-import connectors.DesConnector
+import config.AppConfig
+import connectors.{DesConnector, HipConnector}
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.ArgumentMatchers.any
@@ -30,6 +30,7 @@ import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -38,9 +39,11 @@ class ValidateSconControllerSpec extends BaseSpec {
   val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]
+  val mockHipConnector = mock[HipConnector]
   val mockRepo = mock[ValidateSconRepository]
   val mockMicroserviceAuthConnector = mock[AuthConnector]
   val mockAuthConnector = mock[AuthConnector]
+  val mockAppConfig = mock[AppConfig]
 
   val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
@@ -49,74 +52,132 @@ class ValidateSconControllerSpec extends BaseSpec {
     reset(mockDesConnector)
   }
 
-  val testValidateSconController = new ValidateSconController(mockDesConnector, mockRepo, gmpAuthAction, controllerComponents)
+  val testValidateSconController = new ValidateSconController(mockDesConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
 
   "ValidateSconController" should {
+    "call DESConnector when Hip is disabled" should {
+      "respond to a valid validateScon request with OK" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
 
-    "respond to a valid validateScon request with OK" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(any(), any())(any()))
-        .thenReturn(Future.successful(ValidateSconResponse(0)))
+        val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
 
-      val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
+        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
+        status(result) must be(OK)
+      }
 
-      val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
-      status(result) must be(OK)
+      "return json" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+
+        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
+        contentType(result).get must be("application/json")
+      }
+
+      "return the correct validation result - false" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
+      }
+
+      "return the correct validation result - true" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(1)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
+      }
+
+      "respond with server error if connector returns same" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockDesConnector.validateScon(any(), any())(any())).thenReturn(Future
+          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
+
+      "return cached response" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(validateSconResponse)))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        await(testValidateSconController.validateScon("PSAID").apply(fakeRequest))
+
+        val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        (contentAsJson(cachedResult) \ "sconExists").as[JsBoolean].value must be(true)
+        verify(mockDesConnector, never()).validateScon(any(), any())(any())
+      }
     }
+    "call HIPConnector when Hip is enabled" should {
+      "respond to a valid validateScon request with OK" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
 
-    "return json" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(any(), any())(any()))
-        .thenReturn(Future.successful(ValidateSconResponse(0)))
+        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
+        status(result) must be(OK)
+      }
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+      "return json" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-      val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
-      contentType(result).get must be("application/json")
-    }
+        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
+        contentType(result).get must be("application/json")
+      }
 
-    "return the correct validation result - false" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(any(), any())(any()))
-        .thenReturn(Future.successful(ValidateSconResponse(0)))
+      "return the correct validation result - false" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(0)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
+      }
 
-      val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-      (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
-    }
+      "return the correct validation result - true" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(ValidateSconResponse(1)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-    "return the correct validation result - true" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(any(), any())(any()))
-        .thenReturn(Future.successful(ValidateSconResponse(1)))
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
+      }
 
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+      "respond with server error if connector returns same" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any())).thenReturn(Future
+          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
-      val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-      (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
-    }
+        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
 
-    "respond with server error if connector returns same" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-      when(mockDesConnector.validateScon(any(), any())(any())).thenReturn(Future
-        .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
-
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
-
-      val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-
-      status(result) must be(INTERNAL_SERVER_ERROR)
-    }
-
-    "return cached response" in {
-      when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(validateSconResponse)))
-      val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
-      await(testValidateSconController.validateScon("PSAID").apply(fakeRequest))
-
-      val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-      (contentAsJson(cachedResult) \ "sconExists").as[JsBoolean].value must be(true)
-      verify(mockDesConnector, never()).validateScon(any(), any())(any())
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
     }
   }
 }
