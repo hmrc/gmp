@@ -30,9 +30,9 @@ class AppConfig @Inject()(implicit
 
   import servicesConfig._
 
-  def hipUrl: String = getString("microservice.services.hip.url")
-  private val clientId: String = getString("microservice.services.hip.clientId")
-  private val secret: String   = getString("microservice.services.hip.secret")
+  def hipUrl: String = servicesConfig.baseUrl("hip")
+  private val clientId: String = getString("microservice.services.hip.client-id")
+  private val secret: String   = getString("microservice.services.hip.client-secret")
 
   def hipAuthorisationToken: String =
     Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))

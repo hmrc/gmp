@@ -47,7 +47,7 @@ class HipConnector @Inject()(
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
     if (appConfig.isHipEnabled) {
       val formattedScon = normalizeScon(scon)
-      val url = s"$hipBaseUrl/gmp/$formattedScon/validate"
+      val url = s"$hipBaseUrl/pensions/gmp/$formattedScon/validate"
 
       val headers = buildHeadersV1(hc)
 
@@ -57,13 +57,16 @@ class HipConnector @Inject()(
 
       val startTime = System.currentTimeMillis()
 
+      logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
+
+
       http.get(url"$url")
         .setHeader(headers: _*)
         .execute[HttpResponse]
         .map { response =>
-          metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-          metrics.hipConnectorStatus(response.status)
-
+          metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+          metrics.IFConnectorStatus(response.status)
+          logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
           response.status match {
             case Status.OK | Status.UNPROCESSABLE_ENTITY =>
               response.json.as[ValidateSconResponse]
@@ -81,7 +84,7 @@ class HipConnector @Inject()(
   }
 
   private def getCorrelationId(hc: HeaderCarrier): String =
-    hc.requestId.map(_.value).getOrElse(UUID.randomUUID().toString)
+    UUID.randomUUID().toString
 
   private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
     Seq(
