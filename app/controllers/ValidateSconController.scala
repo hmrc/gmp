@@ -47,8 +47,7 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
         repository.findByScon(validateSconRequest.scon).flatMap {
           case Some(cr) => Future.successful(Ok(Json.toJson(cr)))
           case None => {
-            val isHipEnabled: Boolean = appConfig.isHipEnabled
-            val result = if(isHipEnabled){
+            val result = if(appConfig.isHipEnabled){
               hipConnector.validateScon(userId, validateSconRequest.scon)
             } else {
               desConnector.validateScon(userId, validateSconRequest.scon)
