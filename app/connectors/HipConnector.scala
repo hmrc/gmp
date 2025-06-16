@@ -47,7 +47,7 @@ class HipConnector @Inject()(
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
     if (appConfig.isHipEnabled) {
       val formattedScon = normalizeScon(scon)
-      val url = s"$hipBaseUrl/pensions/gmp/$formattedScon/validate"
+      val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
 
       val headers = buildHeadersV1(hc)
 
