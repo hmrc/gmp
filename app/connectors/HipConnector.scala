@@ -88,7 +88,7 @@ class HipConnector @Inject()(
 
   private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
     Seq(
-      Constants.OriginatorIdKey       -> Constants.OriginatorIdValue,
+      Constants.OriginatorIdKey       -> appConfig.originatorIdValue,
       "correlationId"                 -> getCorrelationId(hc),
       "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
       appConfig.hipEnvironmentHeader,
