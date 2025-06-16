@@ -32,7 +32,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
       "microservice.services.hip.client-id"         -> "test-client-id",
       "microservice.services.hip.client-secret"     -> "test-secret",
       "microservice.services.hip.originatoridkey"  -> "gov-uk-originator-id",
-      "microservice.services.hip.originatoridvalue"-> "HMRC-GMP",
+      "microservice.services.hip.originator-id-value"-> "HMRC-GMP",
       "microservice.services.hip.environment"      -> "test-env",
       "feature.hipIntegration"                     -> true,
       "feature.ifsMigration"                       -> false
@@ -62,7 +62,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
     "expose constant header values from Constants object" in {
       appConfig.originatorIdKey mustBe Constants.OriginatorIdKey
-      appConfig.originatorIdValue mustBe Constants.OriginatorIdValue
+      appConfig.originatorIdValue mustBe  "HMRC-GMP"
       appConfig.originatingSystem mustBe Constants.XOriginatingSystemHeader
       appConfig.transmittingSystem mustBe Constants.XTransmittingSystemHeader
     }

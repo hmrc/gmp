@@ -18,7 +18,6 @@ package config
 
 object Constants {
   val OriginatorIdKey: String           = "gov-uk-originator-id"
-  val OriginatorIdValue: String         = "HMRC-GMP"
   val XOriginatingSystemHeader: String  = "MDTP"
   val XTransmittingSystemHeader: String = "HIP"
 }

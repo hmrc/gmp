@@ -42,7 +42,7 @@ class AppConfig @Inject()(implicit
 
   // These are now constants
   def originatorIdKey: String           = Constants.OriginatorIdKey
-  def originatorIdValue: String         = Constants.OriginatorIdValue
+  def originatorIdValue: String         = getString("microservice.services.hip.originator-id-value")
   def originatingSystem: String         = Constants.XOriginatingSystemHeader
   def transmittingSystem: String        = Constants.XTransmittingSystemHeader
 

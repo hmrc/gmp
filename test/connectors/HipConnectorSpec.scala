@@ -138,7 +138,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       val headerMaps = captured.map(_.toMap)
 
       headerMaps.exists(_.contains("correlationId")) mustBe true
-      headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(Constants.OriginatorIdValue)) mustBe true
+      headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(mockAppConfig.originatorIdValue)) mustBe true
       headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
       headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
     }
