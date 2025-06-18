@@ -18,7 +18,7 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models.ValidateSconResponse
+import models.HipValidateSconResponse
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
@@ -59,7 +59,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
   val validateSconResponseJson = Json.parse(
     """{
-      |  "scon_exists": 1
+      |  "schemeContractedOutNumberExists": true
       |}""".stripMargin
   )
 
@@ -76,7 +76,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-      result mustBe ValidateSconResponse(1)
+      result mustBe HipValidateSconResponse(true)
     }
 
     "return a valid response for HTTP 422" in {
@@ -85,7 +85,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-      result mustBe ValidateSconResponse(1)
+      result mustBe HipValidateSconResponse(true)
     }
 
     "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
