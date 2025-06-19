@@ -29,17 +29,17 @@ object ContributionsAndEarningsDetails{
 
 
 case class GuaranteedMinimumPensionDetails(
-                                            schemeMembershipStartDate: String,
+                                            schemeMembershipStartDate: Option[String],
                                             schemeMembershipEndDate: String,
                                             revaluationRate: String,
                                             post1988GMPContractedOutDeductionsValue: BigDecimal,
                                             gmpContractedOutDeductionsAllRateValue: BigDecimal,
                                             gmpErrorCode: String,
                                             revaluationCalculationSwitchIndicator: Boolean,
-                                            post1990GMPContractedOutTrueSexTotal: BigDecimal,
-                                            post1990GMPContractedOutOppositeSexTotal: BigDecimal,
+                                            post1990GMPContractedOutTrueSexTotal: Option[BigDecimal],
+                                            post1990GMPContractedOutOppositeSexTotal: Option[BigDecimal],
                                             inflationProofBeyondDateofDeath: Boolean,
-                                            contributionsAndEarningsDetailsList: Seq[ContributionsAndEarningsDetails]
+                                            contributionsAndEarningsDetailsList: Option[List[ContributionsAndEarningsDetails]]
                       )
 
 object GuaranteedMinimumPensionDetails {
@@ -50,10 +50,10 @@ case class HipCalculationResponse(
                                    nationalInsuranceNumber: String,
                                    schemeContractedOutNumberDetails: String,
                                    rejectionReason: String,
-                                   payableAgeDate: String,
-                                   statePensionAgeDate: String,
-                                   dateOfDeath: String,
-                                   GuaranteedMinimumPensionDetailsList: Seq[GuaranteedMinimumPensionDetails]
+                                   payableAgeDate: Option[String],
+                                   statePensionAgeDate: Option[String],
+                                   dateOfDeath: Option[String],
+                                   GuaranteedMinimumPensionDetailsList: List[GuaranteedMinimumPensionDetails]
                               )
 
 object HipCalculationResponse {
