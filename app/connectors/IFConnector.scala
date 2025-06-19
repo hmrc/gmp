@@ -16,23 +16,22 @@
 
 package connectors
 
-import java.net.URLEncoder
-import java.util.concurrent.TimeUnit
 import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.net.URLEncoder
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.client.HttpClientV2
 
 trait IFGetResponse
 

@@ -44,7 +44,7 @@ class HipConnector @Inject()(
 
   val hipBaseUrl: String = appConfig.hipUrl
 
-  def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
+  def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[HipValidateSconResponse] = {
     if (appConfig.isHipEnabled) {
       val formattedScon = normalizeScon(scon)
       val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
@@ -69,7 +69,7 @@ class HipConnector @Inject()(
           logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
           response.status match {
             case Status.OK | Status.UNPROCESSABLE_ENTITY =>
-              response.json.as[ValidateSconResponse]
+              response.json.as[HipValidateSconResponse]
 
             case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
               throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
