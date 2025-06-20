@@ -19,8 +19,8 @@ package models
 import play.api.libs.json.{Json, OFormat}
 
 case class ContributionsAndEarningsDetails(
-                        tax_year: Int,
-                        contributionsOrEarningsAmount: BigDecimal
+                        taxYear: Int,
+                        contributionOrEarningsAmount: BigDecimal
                       )
 
 object ContributionsAndEarningsDetails{

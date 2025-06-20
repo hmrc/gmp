@@ -38,11 +38,11 @@ object ContributionsAndEarnings {
 
   //HIP Transformation
   def createFromHipDetails(details: ContributionsAndEarningsDetails): ContributionsAndEarnings = {
-    ContributionsAndEarnings(details.tax_year, details.tax_year match {
-      case x if x < 1987 => f"${details.contributionsOrEarningsAmount}%1.2f"
+    ContributionsAndEarnings(details.taxYear, details.taxYear match {
+      case x if x < 1987 => f"${details.contributionOrEarningsAmount}%1.2f"
       case _ => {
         val formatter = java.text.NumberFormat.getIntegerInstance
-        formatter.format(details.contributionsOrEarningsAmount)
+        formatter.format(details.contributionOrEarningsAmount)
       }
     })
   }

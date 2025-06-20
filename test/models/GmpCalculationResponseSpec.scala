@@ -147,4 +147,120 @@ class GmpCalculationResponseSpec extends BaseSpec {
     }
   }
 
+  "GmpCalculationResponse.createFromCalculationResponse" should {
+
+    "Correctly transform a full HIP response with all fields" in{
+
+      val hipJson = Json.parse(
+        s"""{
+          "nationalInsuranceNumber": "AA000001A",
+          "schemeContractedOutNumberDetails": "S2123456B",
+          "rejectionReason": "No match for person details provided",
+          "payableAgeDate": "2022-06-27",
+          "statePensionAgeDate": "2022-06-27",
+          "dateOfDeath": "2022-06-27",
+          "GuaranteedMinimumPensionDetailsList": [
+          {
+          "schemeMembershipStartDate": "2022-06-27",
+          "schemeMembershipEndDate": "2022-06-27",
+          "revaluationRate": "(NONE)",
+          "post1988GMPContractedOutDeductionsValue": 10.56,
+          "gmpContractedOutDeductionsAllRateValue": 10.56,
+          "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+          "revaluationCalculationSwitchIndicator": true,
+          "post1990GMPContractedOutTrueSexTotal": 10.56,
+          "post1990GMPContractedOutOppositeSexTotal": 10.56,
+          "inflationProofBeyondDateofDeath": true,
+          "contributionsAndEarningsDetailsList": [{
+                                                 "taxYear": 2000,
+                                                 "contributionOrEarningsAmount": 1560
+                                                 }]
+          }
+          ]
+          }""").as[HipCalculationResponse]
+
+
+      val gmpResponse = GmpCalculationResponse.createFromHipResponse(hipJson)("John Johnson",
+        None, None, true, 0)
+
+      gmpResponse.nino must be ("AA000001A")
+      gmpResponse.scon must be ("S2123456B")
+      gmpResponse.name must include ("John")
+      gmpResponse.spaDate must be (Some(LocalDate.parse("2022-06-27", fullDateFormatter)))
+      gmpResponse.revaluationRate must be (None)
+      gmpResponse.calculationPeriods.head.gmpTotal must be("10.56")
+      gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.contEarnings must be("1,560")
+      gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.taxYear must be(2000)
+    }
+
+    "handle an empty GuaranteedMinimumPensionDetailsList gracefully" in {
+      val hipJson =
+        """
+          {
+            "nationalInsuranceNumber": "",
+            "schemeContractedOutNumberDetails": "",
+            "rejectionReason": "Some error",
+            "GuaranteedMinimumPensionDetailsList": []
+          }
+        """
+      val hipResponse = Json.parse(hipJson).as[HipCalculationResponse]
+      val result = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
+        None, None, true, 0)
+
+      result.calculationPeriods mustBe empty
+    }
+
+    "handle an empty contributionsAndEarningsDetailsList gracefully" in{
+      val hipJson =
+        """{
+          "nationalInsuranceNumber": "AA000001A",
+          "schemeContractedOutNumberDetails": "S2123456B",
+          "rejectionReason": "No match for person details provided",
+          "payableAgeDate": "2022-06-27",
+          "statePensionAgeDate": "2022-06-27",
+          "dateOfDeath": "2022-06-27",
+          "GuaranteedMinimumPensionDetailsList": [
+          {
+          "schemeMembershipStartDate": "2022-06-27",
+          "schemeMembershipEndDate": "2022-06-27",
+          "revaluationRate": "(NONE)",
+          "post1988GMPContractedOutDeductionsValue": 10.56,
+          "gmpContractedOutDeductionsAllRateValue": 10.56,
+          "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+          "revaluationCalculationSwitchIndicator": true,
+          "post1990GMPContractedOutTrueSexTotal": 10.56,
+          "post1990GMPContractedOutOppositeSexTotal": 10.56,
+          "inflationProofBeyondDateofDeath": true,
+          "contributionsAndEarningsDetailsList": []
+          }
+          ]
+          }
+          """
+
+      val hipResponse =Json.parse(hipJson).as[HipCalculationResponse]
+
+      val gmpResponse = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
+        None, None, true, 0)
+
+      gmpResponse.calculationPeriods.head.contsAndEarnings.head mustBe empty
+
+    }
+
+    "handle an empty GuaranteedMinimumPensionDetailsList and rejectionReason gracefully" in {
+      val hipJson =
+        """
+          {
+            "nationalInsuranceNumber": "",
+            "schemeContractedOutNumberDetails": "",
+            "rejectionReason": "",
+            "GuaranteedMinimumPensionDetailsList": []
+          }
+        """
+      val hipResponse = Json.parse(hipJson).as[HipCalculationResponse]
+      val result = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
+        None, None, true, 0)
+
+      result.globalErrorCode mustBe 0
+    }
+    }
 }
