@@ -35,6 +35,17 @@ object ContributionsAndEarnings {
       }
     })
   }
+
+  //HIP Transformation
+  def createFromHipDetails(details: ContributionsAndEarningsDetails): ContributionsAndEarnings = {
+    ContributionsAndEarnings(details.taxYear, details.taxYear match {
+      case x if x < 1987 => f"${details.contributionOrEarningsAmount}%1.2f"
+      case _ => {
+        val formatter = java.text.NumberFormat.getIntegerInstance
+        formatter.format(details.contributionOrEarningsAmount)
+      }
+    })
+  }
 }
 
 case class CalculationPeriod(startDate: Option[LocalDate],
@@ -62,6 +73,31 @@ object CalculationPeriod {
       npsLgmpcalc.gmp_cod_p90_os_tot.map(value => f"$value%1.2f"),
       npsLgmpcalc.inflation_proof_beyond_dod,
       npsLgmpcalc.npsLcntearn.map(earnings => earnings.map(ContributionsAndEarnings.createFromNpsLcntearn))
+    )
+  }
+
+  def mapRevaluationRate(rate: String): Int = rate match {
+    case "(NONE)" => 0
+    case "S148"   => 1
+    case "FIXED"  => 2
+    case "LIMITED"=> 3
+    case _        => 0 // Default to 0 for unknown values
+  }
+
+  //HIP Transformation
+  def createFromHipGmpDetails(details: GuaranteedMinimumPensionDetails): CalculationPeriod = {
+    CalculationPeriod(
+      startDate = details.schemeMembershipStartDate.map(LocalDate.parse(_)),
+      endDate = LocalDate.parse(details.schemeMembershipEndDate),
+      gmpTotal = f"${details.gmpContractedOutDeductionsAllRateValue}%1.2f",
+      post88GMPTotal = f"${details.post1988GMPContractedOutDeductionsValue}%1.2f",
+      revaluationRate =  mapRevaluationRate(details.revaluationRate),//HIP sends revaluationRate as string,mapping to int.
+      errorCode = 0 , //HIP sends rejectionReason as String,defaulting to 0,update later
+      revalued = Some(if (details.revaluationCalculationSwitchIndicator) 1 else 0),
+      dualCalcPost90TrueTotal = details.post1990GMPContractedOutTrueSexTotal.map(value => f"$value%1.2f"),
+      dualCalcPost90OppositeTotal = details.post1990GMPContractedOutOppositeSexTotal.map(value => f"$value%1.2f"),
+      inflationProofBeyondDod = Some(if (details.inflationProofBeyondDateofDeath) 1 else 0),
+      contsAndEarnings = details.contributionsAndEarningsDetailsList.map(details => details.map(ContributionsAndEarnings.createFromHipDetails))
     )
   }
 }
@@ -122,6 +158,30 @@ object GmpCalculationResponse {
       calculationResponse.dod_date.map(LocalDate.parse(_)),
       dualCalc,
       calcType
+    )
+  }
+
+  //HIP Transformation
+  def createFromHipResponse(HipCalculationResponse: HipCalculationResponse)(
+    name: String,
+    revaluationRate: Option[String],
+    revaluationDate: Option[String],
+    dualCalc: Boolean,
+    calcType: Int
+  ): GmpCalculationResponse = {
+    GmpCalculationResponse(
+      name = name,
+      nino = HipCalculationResponse.nationalInsuranceNumber,
+      scon = HipCalculationResponse.schemeContractedOutNumberDetails,
+      revaluationRate = revaluationRate,
+      revaluationDate = revaluationDate.map(LocalDate.parse(_)),
+      calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
+      globalErrorCode = if (HipCalculationResponse.rejectionReason.nonEmpty) 1 else 0,
+      spaDate = HipCalculationResponse.statePensionAgeDate.map(LocalDate.parse),
+      payableAgeDate = HipCalculationResponse.payableAgeDate.map(LocalDate.parse),
+      dateOfDeath = HipCalculationResponse.dateOfDeath.map(LocalDate.parse),
+      dualCalc = dualCalc,
+      calcType = calcType
     )
   }
 }
