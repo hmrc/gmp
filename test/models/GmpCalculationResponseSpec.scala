@@ -181,7 +181,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
 
 
       val gmpResponse = GmpCalculationResponse.createFromHipResponse(hipJson)("John Johnson",
-        Some("FIXED"), None, true, 0)
+        Some("FIXED"), None, true, 0,"AA000001A","S2123456B")
 
       gmpResponse.nino must be ("AA000001A")
       gmpResponse.scon must be ("S2123456B")
@@ -205,7 +205,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
         """
       val hipResponse = Json.parse(hipJson).as[HipCalculationResponse]
       val result = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
-        None, None, true, 0)
+        None, None, true, 0,"AA000001A","S2123456B")
 
       result.calculationPeriods mustBe empty
     }
@@ -240,7 +240,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
       val hipResponse =Json.parse(hipJson).as[HipCalculationResponse]
 
       val gmpResponse = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
-        None, None, true, 0)
+        None, None, true, 0,"AA000001A","S2123456B")
 
       gmpResponse.calculationPeriods.head.contsAndEarnings.head mustBe empty
 
@@ -258,7 +258,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
         """
       val hipResponse = Json.parse(hipJson).as[HipCalculationResponse]
       val result = GmpCalculationResponse.createFromHipResponse(hipResponse)("John Johnson",
-        None, None, true, 0)
+        None, None, true, 0,"AA000001A","S2123456B")
 
       result.globalErrorCode mustBe 0
     }

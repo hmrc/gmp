@@ -167,16 +167,18 @@ object GmpCalculationResponse {
     revaluationRate: Option[String],
     revaluationDate: Option[String],
     dualCalc: Boolean,
-    calcType: Int
+    calcType: Int,
+    nino: String,
+    scon: String,
   ): GmpCalculationResponse = {
     GmpCalculationResponse(
       name = name,
-      nino = HipCalculationResponse.nationalInsuranceNumber,
-      scon = HipCalculationResponse.schemeContractedOutNumberDetails,
+      nino = nino,
+      scon = scon,
       revaluationRate = revaluationRate,
       revaluationDate = revaluationDate.map(LocalDate.parse(_)),
       calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
-      globalErrorCode = if (HipCalculationResponse.rejectionReason.nonEmpty) 1 else 0,
+      globalErrorCode = 0,
       spaDate = HipCalculationResponse.statePensionAgeDate.map(LocalDate.parse),
       payableAgeDate = HipCalculationResponse.payableAgeDate.map(LocalDate.parse),
       dateOfDeath = HipCalculationResponse.dateOfDeath.map(LocalDate.parse),
