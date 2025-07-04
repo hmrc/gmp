@@ -76,13 +76,14 @@ object CalculationPeriod {
       npsLgmpcalc.npsLcntearn.map(earnings => earnings.map(ContributionsAndEarnings.createFromNpsLcntearn))
     )
   }
-
-  def mapRevaluationRate(rate: String): Int = rate match {
-    case "(NONE)" => 0
-    case "S148"   => 1
-    case "FIXED"  => 2
-    case "LIMITED"=> 3
-    case _        => 0 // Default to 0 for unknown values
+  def mapRevaluationRate(rate: String): Int = {
+    val rateMap = Map(
+      "(NONE)"   -> 0,
+      "S148"     -> 1,
+      "FIXED"    -> 2,
+      "LIMITED"  -> 3
+    )
+    rateMap.getOrElse(rate, 0) // Default to 0 for unknown values
   }
 
   //HIP Transformation
