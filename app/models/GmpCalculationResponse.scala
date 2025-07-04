@@ -16,9 +16,10 @@
 
 package models
 
+import metrics.HipErrorCodeMapper
+
 import java.time.LocalDate
 import play.api.libs.json._
-import utils.HipErrorCodeMapper
 
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)

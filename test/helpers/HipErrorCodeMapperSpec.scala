@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package utils
+package helpers
+
 
 import base.BaseSpec
+import metrics.HipErrorCodeMapper
 
 class HipErrorCodeMapperSpec extends BaseSpec {
 
@@ -55,3 +57,4 @@ class HipErrorCodeMapperSpec extends BaseSpec {
     }
   }
 }
+

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package utils
+package metrics
+
 
 object HipErrorCodeMapper {
   private val rejectionReasonMap: Map[String, Int] = Map(
