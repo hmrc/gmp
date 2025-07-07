@@ -18,24 +18,25 @@ package utils
 
 
 object HipErrorCodeMapper {
-  private val rejectionReasonMap: Map[String, Int] = Map(
+
+  private final val DefaultErrorCode = 0
+
+  private final val rejectionReasonMap: Map[String, Int] = Map(
     "No match for person details provided" -> 63119, //used in stub
     "GMP Calculation not possible" -> 63120, //used in stub
     "Date of birth not held" -> 63121 //used in stub
   )
-  private val gmpErrorCodeMap: Map[String, Int] = Map(
+  private final val gmpErrorCodeMap: Map[String, Int] = Map(
     "Earnings in excess" -> 56004, //used in stub
     "Earnings erroneous" -> 56003, //used in stub,
     "More than one scheme with the same ECON - no control earnings" -> 56021,
     "No pre 1997 liability held for transfer chain" -> 56067
   )
 
-  def mapRejectionReason(rejectionReason: String): Int = {
-    if(rejectionReason == null || rejectionReason.isEmpty) 0
-    else rejectionReasonMap.getOrElse(rejectionReason, 0)
-  }
+  def mapRejectionReason(rejectionReason: String): Int =
+    Option(rejectionReason).filter(_.nonEmpty).flatMap(rejectionReasonMap.get).getOrElse(DefaultErrorCode)
 
-  def mapGmpErrorCode(gmperrorcode: String): Int =
-    if(gmperrorcode == null || gmperrorcode.isEmpty) 0
-    else gmpErrorCodeMap.getOrElse(gmperrorcode, 0)
+  def mapGmpErrorCode(gmpErrorCode: String): Int =
+    Option(gmpErrorCode).filter(_.nonEmpty).flatMap(gmpErrorCodeMap.get).getOrElse(DefaultErrorCode)
+
 }
