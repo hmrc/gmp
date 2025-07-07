@@ -18,16 +18,20 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models.ValidateSconResponse
+import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import java.net.URL
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneOffset}
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
@@ -39,8 +43,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
   val mockAppConfig: AppConfig = mock[AppConfig]
   val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
 
-  when(mockAuditConnector.sendEvent(any())(any(), any()))
-    .thenReturn(Future.successful(AuditResult.Success))
+  when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
 
   // AppConfig mocks
   when(mockAppConfig.hipUrl).thenReturn("http://localhost:9999")
@@ -49,19 +52,12 @@ class HipConnectorSpec extends HttpClientV2Helper {
   when(mockAppConfig.originatorIdValue).thenReturn("HMRC-GMP")
   when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
   when(mockAppConfig.isHipEnabled).thenReturn(true)
-
-  object TestHipConnector extends HipConnector(
-    appConfig = mockAppConfig,
-    metrics = mockMetrics,
-    http = mockHttp,
-    auditConnector = mockAuditConnector
-  )
-
   val validateSconResponseJson = Json.parse(
     """{
       |  "scon_exists": 1
-      |}""".stripMargin
-  )
+      |}""".stripMargin)
+
+  object TestHipConnector extends HipConnector(appConfig = mockAppConfig, metrics = mockMetrics, http = mockHttp, auditConnector = mockAuditConnector)
 
   before {
     reset(mockHttp)
@@ -69,79 +65,105 @@ class HipConnectorSpec extends HttpClientV2Helper {
   }
 
   "HipConnector" should {
-
-    "return a valid response for HTTP 200" in {
-      implicit val hc = HeaderCarrier()
-      requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
-
-      val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
-
-      result mustBe ValidateSconResponse(1)
-    }
-
-    "return a valid response for HTTP 422" in {
-      implicit val hc = HeaderCarrier()
-      requestBuilderExecute(Future.successful(HttpResponse(422, validateSconResponseJson.toString())))
-
-      val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
-
-      result mustBe ValidateSconResponse(1)
-    }
-
-    "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
-      val errorCodes = Seq(400, 403, 404, 500, 503)
-
-      errorCodes.foreach { status =>
+    "for validateScon" should {
+      "return a valid response for HTTP 200" in {
         implicit val hc = HeaderCarrier()
-        requestBuilderExecute(Future.successful(HttpResponse(status, "Error")))
+        requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
-        val exception = intercept[UpstreamErrorResponse] {
-          await(TestHipConnector.validateScon("user123", "S1401234Q"))
+        val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
+
+        result mustBe ValidateSconResponse(1)
+      }
+
+      "return a valid response for HTTP 422" in {
+        implicit val hc = HeaderCarrier()
+        requestBuilderExecute(Future.successful(HttpResponse(422, validateSconResponseJson.toString())))
+
+        val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
+
+        result mustBe ValidateSconResponse(1)
+      }
+
+      "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
+        val errorCodes = Seq(400, 403, 404, 500, 503)
+
+        errorCodes.foreach { status =>
+          implicit val hc = HeaderCarrier()
+          requestBuilderExecute(Future.successful(HttpResponse(status, "Error")))
+
+          val exception = intercept[UpstreamErrorResponse] {
+            await(TestHipConnector.validateScon("user123", "S1401234Q"))
+          }
+
+          exception.statusCode mustBe status
+          exception.reportAs mustBe INTERNAL_SERVER_ERROR
+        }
+      }
+
+      "throw IllegalArgumentException for invalid SCON" in {
+        implicit val hc = HeaderCarrier()
+
+        val ex = intercept[IllegalArgumentException] {
+          await(TestHipConnector.validateScon("user123", "INVALID"))
         }
 
-        exception.statusCode mustBe status
-        exception.reportAs mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-
-    "throw IllegalArgumentException for invalid SCON" in {
-      implicit val hc = HeaderCarrier()
-
-      val ex = intercept[IllegalArgumentException] {
-        await(TestHipConnector.validateScon("user123", "INVALID"))
+        ex.getMessage must include("Invalid SCON")
       }
 
-      ex.getMessage must include("Invalid SCON")
-    }
-
-    "log and continue if audit fails" in {
-      implicit val hc = HeaderCarrier()
+      "log and continue if audit fails" in {
+        implicit val hc = HeaderCarrier()
 
       when(mockAuditConnector.sendEvent(any())(any(), any()))
         .thenReturn(Future.failed(new RuntimeException("Audit failure")))
 
-      requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
+        requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
-      noException shouldBe thrownBy(await(TestHipConnector.validateScon("user123", "S1401234Q")))
+        noException shouldBe thrownBy(await(TestHipConnector.validateScon("user123", "S1401234Q")))
+      }
+
+      "set required headers including correlationId and originator-id" in {
+        implicit val hc = HeaderCarrier()
+
+        val headersCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
+
+        requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
+        await(TestHipConnector.validateScon("user123", "S1401234Q"))
+
+        verify(requestBuilder, atLeastOnce()).setHeader(headersCaptor.capture(): _*)
+        val captured = headersCaptor.getAllValues.asScala
+        val headerMaps = captured.map(_.toMap)
+
+        headerMaps.exists(_.contains("correlationId")) mustBe true
+        headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(mockAppConfig.originatorIdValue)) mustBe true
+        headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
+        headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
+      }
     }
-
-    "set required headers including correlationId and originator-id" in {
+    "for post call" should {
       implicit val hc = HeaderCarrier()
+      val mockRequestBuilder = mock[RequestBuilder]
+      val calculateUrl: String = "http://localhost:9943/pensions/individuals/gmp/calculate"
+      when(TestHipConnector.calcURI).thenReturn(calculateUrl)
+      def getCorrelationId(hc: HeaderCarrier): String = UUID.randomUUID().toString
+      when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
+      val headers: Seq[(String, String)] = Seq(Constants.OriginatorIdKey -> mockAppConfig.originatorIdValue,
+        "correlationId" -> getCorrelationId(hc), "Authorization" -> s"Basic ${mockAppConfig.hipAuthorisationToken}",
+        mockAppConfig.hipEnvironmentHeader, "X-Originating-System" -> Constants.XOriginatingSystemHeader,
+        "X-Receipt-Date" -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
+        "X-Transmitting-System" -> Constants.XTransmittingSystemHeader)
+      when(TestHipConnector.buildHeadersV1(hc)).thenReturn(headers)
+      when(mockRequestBuilder.setHeader(headers: _*)).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      val request = HipCalculationRequest("", "", "", "", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+      val successResponse = HipCalculationResponse("", "", "", Some(""), Some(""), Some(""), List.empty)
+      when(mockRequestBuilder.execute).thenReturn(Future.successful(HttpResponse(200, successResponse.toString)))
 
-      val headersCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
-
-      requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
-      await(TestHipConnector.validateScon("user123", "S1401234Q"))
-
-      verify(requestBuilder, atLeastOnce()).setHeader(headersCaptor.capture(): _*)
-      val captured = headersCaptor.getAllValues.asScala
-      val headerMaps = captured.map(_.toMap)
-
-      headerMaps.exists(_.contains("correlationId")) mustBe true
-      headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(mockAppConfig.originatorIdValue)) mustBe true
-      headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
-      headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
+      "return successful response for status 200" in {
+        val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
+        requestBuilderExecute(Future.successful(httpResponse))
+        val result = await(TestHipConnector.calculate("user123", request))
+        println(result)
+      }
     }
-
   }
 }

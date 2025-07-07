@@ -17,12 +17,9 @@
 package controllers
 
 import base.BaseSpec
-
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector, IFGetHiddenRecordResponse, IFGetSuccessResponse}
+import connectors._
 import controllers.auth.FakeAuthAction
-import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
+import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse, HipCalculationResponse}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json._
@@ -35,6 +32,8 @@ import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -48,6 +47,7 @@ class CalculationControllerSpec extends BaseSpec {
 
   val mockDesConnector: DesConnector = mock[DesConnector]
   val mockIfConnector: IFConnector = mock[IFConnector]
+  val mockHipConnector: HipConnector = mock[HipConnector]
   val mockRepo: CalculationRepository = mock[CalculationRepository]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
@@ -56,9 +56,10 @@ class CalculationControllerSpec extends BaseSpec {
 
   val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
-  val testCalculationController = new  CalculationController(
-    desConnector =  mockDesConnector,
+  val testCalculationController = new CalculationController(
+    desConnector = mockDesConnector,
     ifConnector = mockIfConnector,
+    hipConnector = mockHipConnector,
     repository = mockRepo,
     authAction = gmpAuthAction,
     auditConnector = mockAuditConnector,
@@ -69,7 +70,9 @@ class CalculationControllerSpec extends BaseSpec {
     reset(mockRepo)
     reset(mockDesConnector)
     reset(mockIfConnector)
+    reset(mockHipConnector)
     when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(true)
+    when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(true)
     when(mockIfConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(IFGetSuccessResponse))
     when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
@@ -84,6 +87,8 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any()))
           .thenReturn(Future
             .successful(Json.parse(
@@ -118,6 +123,8 @@ class CalculationControllerSpec extends BaseSpec {
       "respond to a valid calculation request with OK using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any()))
           .thenReturn(Future
             .successful(Json.parse(
@@ -149,10 +156,51 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(OK)
       }
 
+      "respond to a valid calculation request with OK using HIP connector" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockHipConnector.calculate(any(), any())(any()))
+          .thenReturn(Future
+            .successful(Json.parse(
+              """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+            ).as[HipCalculationResponse]))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        status(result) must be(OK)
+      }
+
       "return json using Des connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
             """{
@@ -184,6 +232,8 @@ class CalculationControllerSpec extends BaseSpec {
       "return json using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
             """{
@@ -212,10 +262,49 @@ class CalculationControllerSpec extends BaseSpec {
         contentType(result).get must be("application/json")
       }
 
-      "return a Calculation Response with the correct SCON with Des Connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+      "return json using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(Json.parse(
+            """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+          ).as[HipCalculationResponse]))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        contentType(result).get must be("application/json")
+      }
+
+      "return a Calculation Response with the correct SCON with Des Connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
@@ -263,6 +352,8 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with the correct SCON using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
@@ -307,8 +398,49 @@ class CalculationControllerSpec extends BaseSpec {
         (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(true)
       }
 
+      "return a Calculation Response with the correct SCON using HIP connector" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(Json.parse(
+            """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+          ).as[HipCalculationResponse]
+          ))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(calculationRequest.copy(revaluationDate = Some("1990-01-01"), revaluationRate = Some(1))))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "scon").as[JsString].value must be("S2123456B")
+        (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(true)
+      }
+
       "respond with server error if des connector returns same" in {
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -323,6 +455,7 @@ class CalculationControllerSpec extends BaseSpec {
 
       "respond with server error if IF connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
@@ -334,10 +467,26 @@ class CalculationControllerSpec extends BaseSpec {
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
 
-      "contain revalued amounts when revaluation requested using Des connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+      "respond with server error if HIP connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
+
+      "contain revalued amounts when revaluation requested using Des connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
             Json.parse(
@@ -377,6 +526,8 @@ class CalculationControllerSpec extends BaseSpec {
       "contain revalued amounts when revaluation requested using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
             Json.parse(
@@ -413,10 +564,55 @@ class CalculationControllerSpec extends BaseSpec {
 
       }
 
-      "return a Calculation Response with no revalued amounts when not revalued using Des connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+      "contain revalued amounts when revaluation requested using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(Json.parse(
+            """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+          ).as[HipCalculationResponse]
+          ))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        (contentAsJson(result) \ "scon").as[JsString].value must be("S2123456B")
+        (contentAsJson(result) \ "calculationPeriods").as[Array[JsValue]].length must be(1)
+        (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("gmpTotal").as[JsString].value must be("10.56")
+
+      }
+
+      "return a Calculation Response with no revalued amounts when not revalued using Des connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
@@ -451,8 +647,10 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return a Calculation Response with no revalued amounts when not revalued using DES connector" in {
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
@@ -487,7 +685,9 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return a Calculation Response with no revalued amounts when not revalued using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
 
@@ -520,10 +720,51 @@ class CalculationControllerSpec extends BaseSpec {
         (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
       }
 
-      "return an OK when http status code 422 with DES connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+      "return a Calculation Response with no revalued amounts when not revalued using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+          .successful(Json.parse(
+            """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+          ).as[HipCalculationResponse]
+          ))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("revaluedGmpTotal").getClass must be(classOf[JsUndefined])
+      }
+
+      "return an OK when http status code 422 with DES connector" in {
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val npsResponse = Json.parse(
           """{
               "nino": "AB123456",
@@ -555,6 +796,8 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return an OK when http status code 422 with IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val npsResponse = Json.parse(
           """{
@@ -579,6 +822,44 @@ class CalculationControllerSpec extends BaseSpec {
         ).as[CalculationResponse]
 
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        status(result) must be(OK)
+      }
+
+      "return an OK when http status code 422 with HIP connector" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        val hipCalculationResponse = Json.parse(
+          """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+        ).as[HipCalculationResponse]
+
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(hipCalculationResponse))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -619,11 +900,23 @@ class CalculationControllerSpec extends BaseSpec {
         testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         verify(mockIfConnector, never()).calculate(any(), any())(any())
       }
+
+      "not call NPS using HIP connector" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        verify(mockHipConnector, never()).calculate(any(), any())(any())
+      }
     }
 
     "when dual calculation" must {
       "return false" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest))
@@ -658,6 +951,7 @@ class CalculationControllerSpec extends BaseSpec {
               }"""
         ).as[CalculationResponse]
         when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
@@ -696,8 +990,50 @@ class CalculationControllerSpec extends BaseSpec {
         ).as[CalculationResponse]
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(false)
+      }
+    }
+
+    "when dual calculation with no cache with HIP connector" must {
+      "return false" in {
+        val hipCalculationResponse = Json.parse(
+          """{
+                "nationalInsuranceNumber": "AA000001A",
+                "schemeContractedOutNumberDetails": "S2123456B",
+                "rejectionReason": "No match for person details provided",
+                "payableAgeDate": "2022-06-27",
+                "statePensionAgeDate": "2022-06-27",
+                "dateOfDeath": "2022-06-27",
+                "GuaranteedMinimumPensionDetailsList": [
+                  {
+                  "schemeMembershipStartDate": "2022-06-27",
+                  "schemeMembershipEndDate": "2022-06-27",
+                  "revaluationRate": "(NONE)",
+                  "post1988GMPContractedOutDeductionsValue": 10.56,
+                  "gmpContractedOutDeductionsAllRateValue": 10.56,
+                  "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
+                  "revaluationCalculationSwitchIndicator": true,
+                  "post1990GMPContractedOutTrueSexTotal": 10.56,
+                  "post1990GMPContractedOutOppositeSexTotal": 10.56,
+                  "inflationProofBeyondDateofDeath": true,
+                  "contributionsAndEarningsDetailsList": []
+                  }
+                ]
+                }"""
+        ).as[HipCalculationResponse]
+        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(hipCalculationResponse))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
