@@ -18,6 +18,7 @@ package models
 
 import java.time.LocalDate
 import play.api.libs.json._
+import utils.HipErrorCodeMapper
 
 
 case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
@@ -92,7 +93,7 @@ object CalculationPeriod {
       gmpTotal = f"${details.gmpContractedOutDeductionsAllRateValue}%1.2f",
       post88GMPTotal = f"${details.post1988GMPContractedOutDeductionsValue}%1.2f",
       revaluationRate =  mapRevaluationRate(details.revaluationRate),//HIP sends revaluationRate as string,mapping to int.
-      errorCode = 0 , //HIP sends rejectionReason as String,defaulting to 0,update later
+      errorCode = HipErrorCodeMapper.mapGmpErrorCode(details.gmpErrorCode),
       revalued = Some(if (details.revaluationCalculationSwitchIndicator) 1 else 0),
       dualCalcPost90TrueTotal = details.post1990GMPContractedOutTrueSexTotal.map(value => f"$value%1.2f"),
       dualCalcPost90OppositeTotal = details.post1990GMPContractedOutOppositeSexTotal.map(value => f"$value%1.2f"),
@@ -167,16 +168,18 @@ object GmpCalculationResponse {
     revaluationRate: Option[String],
     revaluationDate: Option[String],
     dualCalc: Boolean,
-    calcType: Int
+    calcType: Int ,
+    nino: String,
+    scon: String
   ): GmpCalculationResponse = {
     GmpCalculationResponse(
       name = name,
-      nino = HipCalculationResponse.nationalInsuranceNumber,
-      scon = HipCalculationResponse.schemeContractedOutNumberDetails,
+      nino = nino,
+      scon = scon,
       revaluationRate = revaluationRate,
       revaluationDate = revaluationDate.map(LocalDate.parse(_)),
       calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
-      globalErrorCode = if (HipCalculationResponse.rejectionReason.nonEmpty) 1 else 0,
+      globalErrorCode = HipErrorCodeMapper.mapRejectionReason(HipCalculationResponse.rejectionReason),
       spaDate = HipCalculationResponse.statePensionAgeDate.map(LocalDate.parse),
       payableAgeDate = HipCalculationResponse.payableAgeDate.map(LocalDate.parse),
       dateOfDeath = HipCalculationResponse.dateOfDeath.map(LocalDate.parse),

@@ -87,7 +87,9 @@ class CalculationController @Inject()(desConnector: DesConnector,
                     Some(calculationRequest.revaluationRate.toString),
                     calculationRequest.revaluationDate,
                     calculationRequest.dualCalc.fold(false)(_ == 1),
-                    calculationRequest.calctype.get
+                    calculationRequest.calctype.get,
+                    calculationRequest.nino,
+                    calculationRequest.scon
                   ))
                   case Right(calculation) => calculation.map(c => GmpCalculationResponse.createFromCalculationResponse(c)(
                     calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname,

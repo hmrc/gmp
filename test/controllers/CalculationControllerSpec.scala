@@ -407,7 +407,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumberDetails": "S2123456B",
+                "schemeContractedOutNumberDetails": "S1301234T",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -434,7 +434,7 @@ class CalculationControllerSpec extends BaseSpec {
           body = Json.toJson(calculationRequest.copy(revaluationDate = Some("1990-01-01"), revaluationRate = Some(1))))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        (contentAsJson(result) \ "scon").as[JsString].value must be("S2123456B")
+        (contentAsJson(result) \ "scon").as[JsString].value must be("S1301234T")
         (contentAsJson(result) \ "dualCalc").as[JsBoolean].value must be(true)
       }
 
@@ -573,7 +573,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumberDetails": "S2123456B",
+                "schemeContractedOutNumberDetails": "S1301234T",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -601,7 +601,7 @@ class CalculationControllerSpec extends BaseSpec {
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
-        (contentAsJson(result) \ "scon").as[JsString].value must be("S2123456B")
+        (contentAsJson(result) \ "scon").as[JsString].value must be("S1301234T")
         (contentAsJson(result) \ "calculationPeriods").as[Array[JsValue]].length must be(1)
         (contentAsJson(result) \ "calculationPeriods").as[Seq[JsValue]].head.\("gmpTotal").as[JsString].value must be("10.56")
 

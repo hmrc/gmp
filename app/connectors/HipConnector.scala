@@ -76,7 +76,7 @@ import scala.util.{Failure, Success}
     }
   }
 
-  def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] = Seq(Constants.OriginatorIdKey -> appConfig.originatorIdValue,
+  private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] = Seq(Constants.OriginatorIdKey -> appConfig.originatorIdValue,
     "correlationId" -> getCorrelationId(hc), "Authorization" -> s"Basic ${appConfig.hipAuthorisationToken}",
     appConfig.hipEnvironmentHeader, "X-Originating-System" -> Constants.XOriginatingSystemHeader,
     "X-Receipt-Date" -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
@@ -104,7 +104,10 @@ import scala.util.{Failure, Success}
     logger.info(s"[HipConnector calculate request body]:${Json.toJson(request)}")
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber), Some(request.surname), Some(request.firstForename))
     val startTime = System.currentTimeMillis()
-    val result = http.post(url"$calcURI").setHeader(buildHeadersV1(hc): _*).withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
+    val headers = buildHeadersV1(hc)
+    val result = http.post(url"$calcURI")
+      .setHeader(headers: _*)
+      .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
       logger.info(s"[HipConnector calculate response]:${response.json}")
       metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
       metrics.desConnectorStatus(response.status)

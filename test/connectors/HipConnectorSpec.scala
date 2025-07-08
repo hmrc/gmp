@@ -22,16 +22,12 @@ import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.scalacheck.Gen.const
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
-import java.net.URL
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneOffset}
-import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
@@ -58,11 +54,6 @@ class HipConnectorSpec extends HttpClientV2Helper {
       |}""".stripMargin)
 
   object TestHipConnector extends HipConnector(appConfig = mockAppConfig, metrics = mockMetrics, http = mockHttp, auditConnector = mockAuditConnector)
-
-  before {
-    reset(mockHttp)
-    when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
-  }
 
   "HipConnector" should {
     "for validateScon" should {
@@ -113,8 +104,8 @@ class HipConnectorSpec extends HttpClientV2Helper {
       "log and continue if audit fails" in {
         implicit val hc = HeaderCarrier()
 
-      when(mockAuditConnector.sendEvent(any())(any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("Audit failure")))
+        when(mockAuditConnector.sendEvent(any())(any(), any()))
+          .thenReturn(Future.failed(new RuntimeException("Audit failure")))
 
         requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
@@ -140,30 +131,70 @@ class HipConnectorSpec extends HttpClientV2Helper {
       }
     }
     "for post call" should {
-      implicit val hc = HeaderCarrier()
-      val mockRequestBuilder = mock[RequestBuilder]
       val calculateUrl: String = "http://localhost:9943/pensions/individuals/gmp/calculate"
       when(TestHipConnector.calcURI).thenReturn(calculateUrl)
-      def getCorrelationId(hc: HeaderCarrier): String = UUID.randomUUID().toString
-      when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
-      val headers: Seq[(String, String)] = Seq(Constants.OriginatorIdKey -> mockAppConfig.originatorIdValue,
-        "correlationId" -> getCorrelationId(hc), "Authorization" -> s"Basic ${mockAppConfig.hipAuthorisationToken}",
-        mockAppConfig.hipEnvironmentHeader, "X-Originating-System" -> Constants.XOriginatingSystemHeader,
-        "X-Receipt-Date" -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
-        "X-Transmitting-System" -> Constants.XTransmittingSystemHeader)
-      when(TestHipConnector.buildHeadersV1(hc)).thenReturn(headers)
-      when(mockRequestBuilder.setHeader(headers: _*)).thenReturn(mockRequestBuilder)
-      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
-      val request = HipCalculationRequest("", "", "", "", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-      val successResponse = HipCalculationResponse("", "", "", Some(""), Some(""), Some(""), List.empty)
-      when(mockRequestBuilder.execute).thenReturn(Future.successful(HttpResponse(200, successResponse.toString)))
-
       "return successful response for status 200" in {
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        implicit val hc = HeaderCarrier()
         val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
-        val result = await(TestHipConnector.calculate("user123", request))
-        println(result)
+        await(TestHipConnector.calculate("user123", request)).map { result =>
+          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        }
       }
+      "return a response for status 400" in {
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        val httpResponse = HttpResponse(BAD_REQUEST, "")
+        requestBuilderExecute(Future.successful(httpResponse))
+        await(TestHipConnector.calculate("user123", request)).map { result =>
+          result mustBe ""
+        }
+      }
+      "return a valid response for HTTP 422" in {
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(UNPROCESSABLE_ENTITY, Json.toJson(successResponse).toString())
+        requestBuilderExecute(Future.successful(httpResponse))
+        await(TestHipConnector.calculate("user123", request)).map { result =>
+          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        }
+      }
+
+      "return fallback HipCalculationResponse for 400 Bad Request" in {
+        val httpResponse = HttpResponse(BAD_REQUEST, "Bad Request")
+        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        val result = TestHipConnector.calculate("user123", request).futureValue
+        result.schemeContractedOutNumberDetails mustBe 400.toString
+      }
+
+      "fail the future if HTTP call fails" in {
+        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.failed(new RuntimeException("Connection error")))
+        val ex = intercept[RuntimeException] {
+          await(TestHipConnector.calculate("user123", request))
+        }
+        ex.getMessage must include("Connection error")
+      }
+
+      "throw UpstreamErrorResponse for error status code 500" in {
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          val httpResponse = HttpResponse(500, "Error")
+          implicit val hc = HeaderCarrier()
+          requestBuilderExecute(Future.successful(httpResponse))
+          val exception = intercept[UpstreamErrorResponse] {
+            await(TestHipConnector.calculate("user123", request))
+          }
+          exception.statusCode mustBe 500
+          exception.reportAs mustBe INTERNAL_SERVER_ERROR
+        }
     }
   }
 }
