@@ -18,7 +18,7 @@ package controllers
 
 import base.BaseSpec
 import config.AppConfig
-import connectors.{DesConnector, HipConnector}
+import connectors.{DesConnector, HipConnector, IFConnector}
 import controllers.auth.FakeAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.ArgumentMatchers.any
@@ -39,6 +39,7 @@ class ValidateSconControllerSpec extends BaseSpec {
   val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
   val validateSconResponse = GmpValidateSconResponse(true)
   val mockDesConnector = mock[DesConnector]
+  val mockIfConnector = mock[IFConnector]
   val mockHipConnector = mock[HipConnector]
   val mockRepo = mock[ValidateSconRepository]
   val mockMicroserviceAuthConnector = mock[AuthConnector]
@@ -52,7 +53,7 @@ class ValidateSconControllerSpec extends BaseSpec {
     reset(mockDesConnector)
   }
 
-  val testValidateSconController = new ValidateSconController(mockDesConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
+  val testValidateSconController = new ValidateSconController(mockDesConnector, mockIfConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
 
   "ValidateSconController" should {
     "call DESConnector when Hip is disabled" should {

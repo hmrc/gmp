@@ -23,7 +23,7 @@ import models._
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -106,18 +106,25 @@ class HipConnector @Inject()(
       Some(request.surname), Some(request.firstForename))
     val startTime = System.currentTimeMillis()
     val headers = buildHeadersV1(hc)
+    logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
     val result = http.post(url"$calcURI")
       .setHeader(headers: _*)
       .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
         logger.info(s"[HipConnector calculate response]:${response.json}")
         metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         metrics.desConnectorStatus(response.status)
-        response.status match {
-          case OK | UNPROCESSABLE_ENTITY => response.json.as[HipCalculationResponse]
-          case BAD_REQUEST => logger.info("[HipConnector][calculate] : NPS returned code 400")
-            HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, "", None, None, Some(request.schemeContractedOutNumber), Nil)
-          case errorStatus: Int => logger.error(s"[HipConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
-            throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+        response.json.validate[HipCalculationResponse] match {
+          case JsSuccess(value, _) => {
+            response.status match {
+              case OK => value
+              case BAD_REQUEST => logger.info("[HipConnector][calculate] : NPS returned code 400")
+                HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, "", None, None, Some(request.schemeContractedOutNumber), Nil)
+              case errorStatus: Int => logger.error(s"[HipConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
+                throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+            }
+          }
+          case JsError(errors) => logger.error(s"[HipConnector][calculate] JSON validation failed: $errors")
+            throw new RuntimeException("Invalid JSON response from HIP")
         }
       }
     result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)

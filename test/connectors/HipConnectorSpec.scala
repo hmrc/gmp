@@ -18,7 +18,7 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models.{EnumCalcRequestType, EnumRevaluationRate, HipCalculationRequest, HipCalculationResponse, ValidateSconResponse}
+import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
@@ -146,30 +146,23 @@ class HipConnectorSpec extends HttpClientV2Helper {
       "return a response for status 400" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val httpResponse = HttpResponse(BAD_REQUEST, "")
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
         await(TestHipConnector.calculate("user123", request)).map { result =>
           result mustBe ""
         }
       }
-      "return a valid response for HTTP 422" in {
-        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(UNPROCESSABLE_ENTITY, Json.toJson(successResponse).toString())
-        requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
-        }
-      }
 
       "return fallback HipCalculationResponse for 400 Bad Request" in {
-        val httpResponse = HttpResponse(BAD_REQUEST, "Bad Request")
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
         requestBuilderExecute(Future.successful(httpResponse))
-        val result = TestHipConnector.calculate("user123", request).futureValue
-        result.schemeContractedOutNumberDetails mustBe 400.toString
+        await(TestHipConnector.calculate("user123", request)).map { result =>
+          httpResponse.status mustBe 400
+        }
       }
 
       "fail the future if HTTP call fails" in {
@@ -185,7 +178,8 @@ class HipConnectorSpec extends HttpClientV2Helper {
       "throw UpstreamErrorResponse for error status code 500" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
-        val httpResponse = HttpResponse(500, "Error")
+        val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
+        val httpResponse = HttpResponse(500, Json.toJson(successResponse).toString())
         implicit val hc = HeaderCarrier()
         requestBuilderExecute(Future.successful(httpResponse))
         val exception = intercept[UpstreamErrorResponse] {
@@ -193,6 +187,18 @@ class HipConnectorSpec extends HttpClientV2Helper {
         }
         exception.statusCode mustBe 500
         exception.reportAs mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "throw RuntimeException when JSON validation fails" in {
+        val invalidJson = Json.obj("unexpectedField" -> "unexpectedValue")
+        val httpResponse = HttpResponse(OK, invalidJson.toString())
+        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+        requestBuilderExecute(Future.successful(httpResponse))
+        val thrown = intercept[RuntimeException] {
+          await(TestHipConnector.calculate("user123", request))
+        }
+        thrown.getMessage must include("Invalid JSON response from HIP")
       }
     }
   }

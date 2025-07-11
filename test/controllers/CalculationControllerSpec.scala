@@ -17,6 +17,7 @@
 package controllers
 
 import base.BaseSpec
+import config.AppConfig
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -53,7 +54,7 @@ class CalculationControllerSpec extends BaseSpec {
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockControllerComponents: ControllerComponents = stubMessagesControllerComponents()
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  val mockServicesConfig: ServicesConfig = mock[ServicesConfig]
+  val mockAppConfig: AppConfig = mock[AppConfig]
 
   val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
 
@@ -64,16 +65,16 @@ class CalculationControllerSpec extends BaseSpec {
     repository = mockRepo,
     authAction = gmpAuthAction,
     auditConnector = mockAuditConnector,
-    servicesConfig = mockServicesConfig,
-    cc = mockControllerComponents)
+    cc = mockControllerComponents,
+    appConfig = mockAppConfig)
 
   before {
     reset(mockRepo)
     reset(mockDesConnector)
     reset(mockIfConnector)
     reset(mockHipConnector)
-    when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(true)
-    when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(true)
+    when(mockAppConfig.isIfsEnabled).thenReturn(true)
+    when(mockAppConfig.isHipEnabled).thenReturn(true)
     when(mockIfConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(IFGetSuccessResponse))
     when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
   }
@@ -87,8 +88,8 @@ class CalculationControllerSpec extends BaseSpec {
       "respond to a valid calculation request with OK using Des connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any()))
           .thenReturn(Future
@@ -124,7 +125,7 @@ class CalculationControllerSpec extends BaseSpec {
       "respond to a valid calculation request with OK using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any()))
           .thenReturn(Future
@@ -160,7 +161,7 @@ class CalculationControllerSpec extends BaseSpec {
       "respond to a valid calculation request with OK using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockHipConnector.calculate(any(), any())(any()))
           .thenReturn(Future
@@ -198,8 +199,8 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return json using Des connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -233,7 +234,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return json using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
@@ -266,7 +267,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return json using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
@@ -301,8 +302,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return a Calculation Response with the correct SCON with Des Connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -353,7 +354,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with the correct SCON using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
@@ -402,7 +403,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with the correct SCON using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
@@ -440,8 +441,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "respond with server error if des connector returns same" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -456,7 +457,7 @@ class CalculationControllerSpec extends BaseSpec {
 
       "respond with server error if IF connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
@@ -471,7 +472,7 @@ class CalculationControllerSpec extends BaseSpec {
       "respond with server error if HIP connector returns same" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
@@ -483,8 +484,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "contain revalued amounts when revaluation requested using Des connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -527,7 +528,7 @@ class CalculationControllerSpec extends BaseSpec {
       "contain revalued amounts when revaluation requested using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(
@@ -568,7 +569,7 @@ class CalculationControllerSpec extends BaseSpec {
       "contain revalued amounts when revaluation requested using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
@@ -609,8 +610,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return a Calculation Response with no revalued amounts when not revalued using Des connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -647,8 +648,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return a Calculation Response with no revalued amounts when not revalued using DES connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -686,7 +687,7 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return a Calculation Response with no revalued amounts when not revalued using IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
@@ -724,7 +725,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with no revalued amounts when not revalued using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
           .successful(Json.parse(
@@ -760,8 +761,8 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return an OK when http status code 422 with DES connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -797,7 +798,7 @@ class CalculationControllerSpec extends BaseSpec {
 
       "return an OK when http status code 422 with IF connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val npsResponse = Json.parse(
@@ -832,7 +833,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return an OK when http status code 422 with HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val hipCalculationResponse = Json.parse(
           """{
@@ -882,7 +883,7 @@ class CalculationControllerSpec extends BaseSpec {
 
 
       "not call NPS using DES connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
@@ -904,7 +905,7 @@ class CalculationControllerSpec extends BaseSpec {
 
       "not call NPS using HIP connector" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -917,7 +918,7 @@ class CalculationControllerSpec extends BaseSpec {
     "when dual calculation" must {
       "return false" in {
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest))
@@ -951,8 +952,8 @@ class CalculationControllerSpec extends BaseSpec {
                 }]
               }"""
         ).as[CalculationResponse]
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
@@ -991,7 +992,7 @@ class CalculationControllerSpec extends BaseSpec {
         ).as[CalculationResponse]
 
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockServicesConfig.getBoolean("feature.hipIntegration")).thenReturn(false)
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -1031,7 +1032,7 @@ class CalculationControllerSpec extends BaseSpec {
                 ]
                 }"""
         ).as[HipCalculationResponse]
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(hipCalculationResponse))
@@ -1090,7 +1091,7 @@ class CalculationControllerSpec extends BaseSpec {
 
     "when citizens details return 423" must {
       "return a global error using DES connector" in {
-        when(mockServicesConfig.getBoolean("ifs.enabled")).thenReturn(false)
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.getPersonDetails(org.mockito.ArgumentMatchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
