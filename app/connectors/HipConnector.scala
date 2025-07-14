@@ -22,17 +22,21 @@ import metrics.ApplicationMetrics
 import models._
 import play.api.Logging
 import play.api.http.Status
+import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
+
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class HipConnector @Inject()(
@@ -43,6 +47,9 @@ class HipConnector @Inject()(
                             )(implicit ec: ExecutionContext) extends Logging {
 
   val hipBaseUrl: String = appConfig.hipUrl
+  val baseURI = "pensions/individuals/gmp"
+  val calcURI = s"$hipBaseUrl/$baseURI/calculate"
+  private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
     if (appConfig.isHipEnabled) {
@@ -83,8 +90,48 @@ class HipConnector @Inject()(
     }
   }
 
-  private def getCorrelationId(hc: HeaderCarrier): String =
-    UUID.randomUUID().toString
+  private def normalizeScon(rawScon: String): String = {
+    val scon = rawScon.replaceAll("\\s+", "").toUpperCase
+    scon match {
+      case sconPattern(_*) => scon
+      case _ =>
+        throw new IllegalArgumentException(s"Invalid SCON: '$rawScon'")
+    }
+  }
+
+  def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
+    logger.info(s"calculate url for HipConnector:$calcURI")
+    logger.info(s"[HipConnector calculate request body]:${Json.toJson(request)}")
+    doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
+      Some(request.surname), Some(request.firstForename))
+    val startTime = System.currentTimeMillis()
+    val headers = buildHeadersV1(hc)
+    logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
+    val result = http.post(url"$calcURI")
+      .setHeader(headers: _*)
+      .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
+        logger.info(s"[HipConnector calculate response]:${response.json}")
+        metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        metrics.desConnectorStatus(response.status)
+        response.json.validate[HipCalculationResponse] match {
+          case JsSuccess(value, _) => {
+            response.status match {
+              case OK => value
+              case BAD_REQUEST => logger.info("[HipConnector][calculate] : NPS returned code 400")
+                HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, "", None, None, Some(request.schemeContractedOutNumber), Nil)
+              case errorStatus: Int => logger.error(s"[HipConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
+                throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+            }
+          }
+          case JsError(errors) => logger.error(s"[HipConnector][calculate] JSON validation failed: $errors")
+            throw new RuntimeException("Invalid JSON response from HIP")
+        }
+      }
+    result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)
+    case Failure(exception) => logger.error("Calculation failed: " + exception.getMessage)
+    }
+    result
+  }
 
   private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
     Seq(
@@ -96,16 +143,9 @@ class HipConnector @Inject()(
       "X-Receipt-Date"               -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
       "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
     )
-  private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
 
-  private def normalizeScon(rawScon: String): String = {
-    val scon = rawScon.replaceAll("\\s+", "").toUpperCase
-    scon match {
-      case sconPattern(_*) => scon
-      case _ =>
-        throw new IllegalArgumentException(s"Invalid SCON: '$rawScon'")
-    }
-  }
+  private def getCorrelationId(hc: HeaderCarrier): String =
+    UUID.randomUUID().toString
 
   private def doAudit(
                        auditTag: String,

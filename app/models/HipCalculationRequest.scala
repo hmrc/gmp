@@ -26,7 +26,7 @@ object EnumRevaluationRate extends Enumeration {
   val S148 = Value("S148")
 
   implicit val format: Format[EnumRevaluationRate.Value] = new Format[EnumRevaluationRate.Value] {
-    def writes(enum: EnumRevaluationRate.Value): JsValue = JsString(enum.toString)
+    def writes(enumRevalRate: EnumRevaluationRate.Value): JsValue = JsString(enumRevalRate.toString)
 
     def reads(json: JsValue): JsResult[EnumRevaluationRate.Value] = json match {
       case JsString(str) => JsSuccess(EnumRevaluationRate.withName(str))
@@ -44,7 +44,7 @@ object EnumCalcRequestType extends Enumeration {
   val SPA = Value("SPA Calculation")
 
   implicit val format: Format[EnumCalcRequestType.Value] = new Format[EnumCalcRequestType.Value] {
-    def writes(enum: EnumCalcRequestType.Value): JsValue = JsString(enum.toString)
+    def writes(enumCalcReqType: EnumCalcRequestType.Value): JsValue = JsString(enumCalcReqType.toString)
 
     def reads(json: JsValue): JsResult[EnumCalcRequestType.Value] = json match {
       case JsString(str) => JsSuccess(EnumCalcRequestType.withName(str))

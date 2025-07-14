@@ -18,7 +18,7 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import config.AppConfig
-import connectors.{DesConnector, HipConnector}
+import connectors.{DesConnector, HipConnector, IFConnector}
 import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logging
@@ -32,6 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
+                                       ifConnector: IFConnector,
                                        hipConnector: HipConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
@@ -46,11 +47,11 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
 
         repository.findByScon(validateSconRequest.scon).flatMap {
           case Some(cr) => Future.successful(Ok(Json.toJson(cr)))
-          case None => {
-            val result = if(appConfig.isHipEnabled){
-              hipConnector.validateScon(userId, validateSconRequest.scon)
-            } else {
-              desConnector.validateScon(userId, validateSconRequest.scon)
+          case None =>
+            val result = (appConfig.isHipEnabled, appConfig.isIfsEnabled) match {
+              case (true, _) => hipConnector.validateScon(userId, validateSconRequest.scon)
+              case (false, true) => ifConnector.validateScon(userId, validateSconRequest.scon)
+              case _ => desConnector.validateScon(userId, validateSconRequest.scon)
             }
             result.map {
               validateResult => {
@@ -66,7 +67,6 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
                 logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
                 InternalServerError(e.getMessage)
             }
-          }
         }
       }
     }
