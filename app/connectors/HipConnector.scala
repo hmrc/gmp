@@ -47,8 +47,7 @@ class HipConnector @Inject()(
                             )(implicit ec: ExecutionContext) extends Logging {
 
   val hipBaseUrl: String = appConfig.hipUrl
-  val baseURI = "pensions/individuals/gmp"
-  val calcURI = s"$hipBaseUrl/$baseURI/calculate"
+  val calcURI = s"$hipBaseUrl/pension/gmp/calculation"
   private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[ValidateSconResponse] = {
