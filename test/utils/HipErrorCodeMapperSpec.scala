@@ -26,7 +26,7 @@ class HipErrorCodeMapperSpec extends BaseSpec {
     "return correct int for known rejection reason" in {
       HipErrorCodeMapper.mapRejectionReason("No match for person details provided") mustBe 63119
       HipErrorCodeMapper.mapRejectionReason("GMP Calculation not possible") mustBe 63120
-      HipErrorCodeMapper.mapRejectionReason("Date of birth not held") mustBe 63121
+      HipErrorCodeMapper.mapRejectionReason("Date of birth not held") mustBe 56010
     }
     "return 0 for unknown rejection reason" in {
       HipErrorCodeMapper.mapRejectionReason("Invalid Person") mustBe 0
@@ -42,7 +42,7 @@ class HipErrorCodeMapperSpec extends BaseSpec {
     "return correct int for known GMP error code" in {
       HipErrorCodeMapper.mapGmpErrorCode("Earnings in excess") mustBe 56004
       HipErrorCodeMapper.mapGmpErrorCode("Earnings erroneous") mustBe 56003
-      HipErrorCodeMapper.mapGmpErrorCode("More than one scheme with the same ECON - no control earnings") mustBe 56021
+      HipErrorCodeMapper.mapGmpErrorCode("More than one scheme with the same ECON – no control earnings") mustBe 56021
       HipErrorCodeMapper.mapGmpErrorCode("No pre 1997 liability held for transfer chain") mustBe 56067
     }
     "return 0 for unknown GMP error code" in {
