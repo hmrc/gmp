@@ -4,16 +4,16 @@ import sbt._
 object AppDependencies {
 
   private val playVersion = "play-30"
-  private val bootstrapVersion = "9.6.0"
-  private val hmrcMongoVersion = "2.4.0"
+  private val bootstrapVersion = "9.13.0"
+  private val hmrcMongoVersion = "2.6.0"
 
   val compile = Seq(
     ws,
     "uk.gov.hmrc"            %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-$playVersion"        % hmrcMongoVersion,
     "uk.gov.hmrc"            %% "tax-year"                        % "5.0.0",
-    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.17" cross CrossVersion.full),
-    "com.github.ghik"         % "silencer-lib" % "1.7.17" % Provided cross CrossVersion.full
+    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.19" cross CrossVersion.full),
+    "com.github.ghik"         % "silencer-lib" % "1.7.19" % Provided cross CrossVersion.full
   )
 
   val test: Seq[ModuleID] = Seq(
