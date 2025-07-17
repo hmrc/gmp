@@ -198,7 +198,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val thrown = intercept[RuntimeException] {
           await(TestHipConnector.calculate("user123", request))
         }
-        thrown.getMessage must include("Invalid JSON response from HIP")
+        thrown.getMessage must include("Failed to parse fields")
       }
     }
   }

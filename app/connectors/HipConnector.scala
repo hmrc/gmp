@@ -122,8 +122,17 @@ class HipConnector @Inject()(
                 throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
             }
           }
-          case JsError(errors) => logger.error(s"[HipConnector][calculate] JSON validation failed: $errors")
-            throw new RuntimeException("Invalid JSON response from HIP")
+          case JsError(errors) =>
+            val errorFields = errors.map(_._1.toString()).mkString(", ")
+            val responseCode = response.status
+            val responseBody = response.body.take(1000) // truncate if very long
+
+            val detailedMsg =
+              s"HIP returned invalid JSON (status: $responseCode). Failed to parse fields: $errorFields. Body: $responseBody"
+
+            logger.error(s"[HipConnector][calculate] $detailedMsg")
+            throw new RuntimeException(detailedMsg)
+
         }
       }
     result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)
