@@ -20,7 +20,7 @@ import base.BaseSpec
 import config.AppConfig
 import connectors.{DesConnector, HipConnector, IFConnector}
 import controllers.auth.FakeAuthAction
-import models.{GmpValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
+import models.{ValidateSconResponse, GmpValidateSconResponse, HipValidateSconResponse, ValidateSconRequest}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json.{JsBoolean, Json}
@@ -127,7 +127,7 @@ class ValidateSconControllerSpec extends BaseSpec {
       "respond to a valid validateScon request with OK" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockHipConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+          .thenReturn(Future.successful(HipValidateSconResponse(false)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
         val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
 
@@ -138,7 +138,7 @@ class ValidateSconControllerSpec extends BaseSpec {
       "return json" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockHipConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+          .thenReturn(Future.successful(HipValidateSconResponse(false)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
@@ -149,7 +149,7 @@ class ValidateSconControllerSpec extends BaseSpec {
       "return the correct validation result - false" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockHipConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+          .thenReturn(Future.successful(HipValidateSconResponse(false)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
@@ -160,7 +160,7 @@ class ValidateSconControllerSpec extends BaseSpec {
       "return the correct validation result - true" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockHipConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(1)))
+          .thenReturn(Future.successful(HipValidateSconResponse(true)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
 
