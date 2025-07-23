@@ -39,37 +39,38 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
                                        cc: ControllerComponents,
                                        appConfig: AppConfig) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
-  def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
+  def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) { implicit request =>
+    withJsonBody[ValidateSconRequest] { validateSconRequest =>
+      repository.findByScon(validateSconRequest.scon).flatMap {
+        case Some(cachedResponse) =>
+          Future.successful(Ok(Json.toJson(cachedResponse)))
 
-    implicit request => {
-
-      withJsonBody[ValidateSconRequest] { validateSconRequest =>
-
-        repository.findByScon(validateSconRequest.scon).flatMap {
-          case Some(cr) => Future.successful(Ok(Json.toJson(cr)))
-          case None =>
-            val result = (appConfig.isHipEnabled, appConfig.isIfsEnabled) match {
-              case (true, _) => hipConnector.validateScon(userId, validateSconRequest.scon)
-              case (false, true) => ifConnector.validateScon(userId, validateSconRequest.scon)
-              case _ => desConnector.validateScon(userId, validateSconRequest.scon)
+        case None =>
+          val validationFuture = if (appConfig.isHipEnabled) {
+            hipConnector.validateScon(userId, validateSconRequest.scon).map { hipResponse =>
+              val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
+              logger.debug(s"[ValidateSconController][validateScon][transformed HIP Result]: $transformedResult")
+              repository.insertByScon(validateSconRequest.scon, transformedResult)
+              Ok(Json.toJson(transformedResult))
             }
-            result.map {
-              validateResult => {
-                logger.debug(s"[ValidateSconController][validateScon] : $validateResult")
-                val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(validateResult)
-
-                logger.debug(s"[ValidateSconController][transformedResult] : $transformedResult")
-                repository.insertByScon(validateSconRequest.scon, transformedResult)
-                Ok(Json.toJson(transformedResult))
-              }
-            }.recover {
-              case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
-                InternalServerError(e.getMessage)
+          } else {
+            desConnector.validateScon(userId, validateSconRequest.scon).map { desResponse =>
+              val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(desResponse)
+              logger.debug(s"[ValidateSconController][validateScon][transformed DES Result]: $transformedResult")
+              repository.insertByScon(validateSconRequest.scon, transformedResult)
+              Ok(Json.toJson(transformedResult))
             }
-        }
+          }
+
+          validationFuture.recoverWith {
+            case e: UpstreamErrorResponse if e.statusCode == 500 =>
+              logger.debug(s"[ValidateSconController][validateScon][ERROR:500]: ${e.getMessage}")
+              Future.successful(InternalServerError(e.getMessage))
+          }
+
       }
     }
   }
+
 
 }

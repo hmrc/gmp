@@ -18,6 +18,7 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
+import models.HipValidateSconResponse
 import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
@@ -32,6 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 class HipConnectorSpec extends HttpClientV2Helper {
+
   implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
@@ -49,8 +51,9 @@ class HipConnectorSpec extends HttpClientV2Helper {
   when(mockAppConfig.isHipEnabled).thenReturn(true)
   val validateSconResponseJson = Json.parse(
     """{
-      |  "scon_exists": 1
-      |}""".stripMargin)
+      |  "schemeContractedOutNumberExists": true
+      |}""".stripMargin
+  )
 
   object TestHipConnector extends HipConnector(appConfig = mockAppConfig, metrics = mockMetrics, http = mockHttp, auditConnector = mockAuditConnector)
 
@@ -62,8 +65,8 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
         val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-        result mustBe ValidateSconResponse(1)
-      }
+      result mustBe HipValidateSconResponse(true)
+    }
 
       "return a valid response for HTTP 422" in {
         implicit val hc = HeaderCarrier()
@@ -71,8 +74,8 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
         val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-        result mustBe ValidateSconResponse(1)
-      }
+      result mustBe HipValidateSconResponse(true)
+    }
 
       "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
         val errorCodes = Seq(400, 403, 404, 500, 503)
