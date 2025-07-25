@@ -75,6 +75,7 @@ object HipCalculationRequest {
       case 1 => EnumRevaluationRate.S148
       case 2 => EnumRevaluationRate.FIXED
       case 3 => EnumRevaluationRate.LIMITED
+      case _ => EnumRevaluationRate.NONE
     }
     val calcTypeEnum = calcReq.calctype.map {
       case 0 => EnumCalcRequestType.DOL
