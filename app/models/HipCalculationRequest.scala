@@ -70,12 +70,13 @@ object HipCalculationRequest {
   implicit val formats: OFormat[HipCalculationRequest] = Json.format[HipCalculationRequest]
 
   def from(calcReq: CalculationRequest): HipCalculationRequest = {
-    val revalEnum = calcReq.revaluationRate.map {
-      case 0 => EnumRevaluationRate.NONE
-      case 1 => EnumRevaluationRate.S148
-      case 2 => EnumRevaluationRate.FIXED
-      case 3 => EnumRevaluationRate.LIMITED
-      case _ => EnumRevaluationRate.NONE
+    val revalEnum = calcReq.revaluationRate match {
+      case Some(0) => Some(EnumRevaluationRate.NONE)
+      case Some(1) => Some(EnumRevaluationRate.S148)
+      case Some(2) => Some(EnumRevaluationRate.FIXED)
+      case Some(3) => Some(EnumRevaluationRate.LIMITED)
+      case Some(_) => Some(EnumRevaluationRate.NONE) // fallback for unexpected int
+      case None    => Some(EnumRevaluationRate.NONE)
     }
     val calcTypeEnum = calcReq.calctype.map {
       case 0 => EnumCalcRequestType.DOL
