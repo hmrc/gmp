@@ -108,7 +108,7 @@ case class GmpCalculationResponse(
                                    name: String,
                                    nino: String,
                                    scon: String,
-                                   revaluationRate: Option[Int],
+                                   revaluationRate: Option[String],
                                    revaluationDate: Option[LocalDate],
                                    calculationPeriods: List[CalculationPeriod],
                                    globalErrorCode: Int,
@@ -150,7 +150,7 @@ object GmpCalculationResponse {
     dualCalc: Boolean,
     calcType: Int
   ): GmpCalculationResponse = {
-    GmpCalculationResponse(name, nino, scon, revaluationRate,
+    GmpCalculationResponse(name, nino, scon, revaluationRate.map(_.toString),
       revaluationDate.map(LocalDate.parse(_)),
       calculationResponse.npsLgmpcalc.map(CalculationPeriod.createFromNpsLgmpcalc),
       calculationResponse.rejection_reason,
@@ -165,7 +165,7 @@ object GmpCalculationResponse {
   //HIP Transformation
   def createFromHipResponse(HipCalculationResponse: HipCalculationResponse)(
     name: String,
-    revaluationRate: Option[Int],
+    revaluationRate: Option[String],
     revaluationDate: Option[String],
     dualCalc: Boolean,
     calcType: Int ,
@@ -176,10 +176,7 @@ object GmpCalculationResponse {
       name = name,
       nino = nino,
       scon = scon,
-      revaluationRate = revaluationRate match {
-        case Some(0) => None
-        case other => other
-      },
+      revaluationRate = revaluationRate,
       revaluationDate = revaluationDate.map(LocalDate.parse(_)),
       calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
       globalErrorCode = HipErrorCodeMapper.mapRejectionReason(HipCalculationResponse.rejectionReason),

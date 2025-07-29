@@ -91,14 +91,14 @@ class GmpCalculationResponseSpec extends BaseSpec {
       }
 
       "return false when no cop errorsr" in {
-        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some(1), Some(inputDate2),
+        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some("1"), Some(inputDate2),
           List(CalculationPeriod(Some(inputDate1), inputDate1, "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
                CalculationPeriod(Some(inputDate1), inputDate1, "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None, false, 1)
         response.hasErrors must be(false)
       }
 
       "return true when one cop error" in {
-        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some(1), Some(inputDate2),
+        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some("1"), Some(inputDate2),
           List(CalculationPeriod(Some(inputDate1), inputDate1, "1.11", "2.22", 1, 0, Some(1), None, None, None, None),
                CalculationPeriod(Some(inputDate1), inputDate1, "1.11", "2.22", 1, 6666, None, None, None, None, None)), 0, None, None, None, false, 1)
         response.hasErrors must be(true)
@@ -114,13 +114,13 @@ class GmpCalculationResponseSpec extends BaseSpec {
 
     "errorCodes" must {
       "return an empty list when no error codes" in {
-        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some(1), Some(inputDate2),
+        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some("1"), Some(inputDate2),
           List(CalculationPeriod(Some(inputDate5), inputDate1, "1.11", "2.22", 1, 0, Some(1), None, None, None, None)), 0, None, None, None, false, 1)
         response.errorCodes.size must be(0)
       }
 
       "return a list of error codes with global error code" in {
-        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some(1), Some(inputDate2),
+        val response = GmpCalculationResponse("John Johnson", nino, "S1234567T", Some("1"), Some(inputDate2),
           List(CalculationPeriod(Some(inputDate1),inputDate1, "0.00", "0.00", 0, 0, None, None, None, None, None)), 48160, None, None, None, false, 1)
         response.errorCodes.size must be(1)
         response.errorCodes.head must be(48160)
@@ -163,7 +163,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
           {
           "schemeMembershipStartDate": "2022-06-27",
           "schemeMembershipEndDate": "2022-06-27",
-          "revaluationRate": "1",
+          "revaluationRate": "FIXED",
           "post1988GMPContractedOutDeductionsValue": 10.56,
           "gmpContractedOutDeductionsAllRateValue": 10.56,
           "gmpErrorCode": "Input revaluation date is before the termination date held on hmrc records",
@@ -181,13 +181,13 @@ class GmpCalculationResponseSpec extends BaseSpec {
 
 
       val gmpResponse = GmpCalculationResponse.createFromHipResponse(hipJson)("John Johnson",
-        Some(1), None, true, 0,"AA000001A","S2123456B")
+        Some("FIXED"), None, true, 0,"AA000001A","S2123456B")
 
       gmpResponse.nino must be ("AA000001A")
       gmpResponse.scon must be ("S2123456B")
       gmpResponse.name must include ("John")
       gmpResponse.spaDate must be (Some(LocalDate.parse("2022-06-27", fullDateFormatter)))
-      gmpResponse.revaluationRate mustBe Some(1)
+      gmpResponse.revaluationRate mustBe Some("FIXED")
       gmpResponse.calculationPeriods.head.gmpTotal must be("10.56")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.contEarnings must be("1,560")
       gmpResponse.calculationPeriods.head.contsAndEarnings.get.head.taxYear must be(2000)

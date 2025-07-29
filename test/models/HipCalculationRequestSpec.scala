@@ -17,7 +17,6 @@
 package models
 
 import base.BaseSpec
-import models.EnumRevaluationRate.NONE
 
 import java.time.format.DateTimeFormatter
 import play.api.libs.json.{JsError, JsNumber, JsString, JsSuccess, Json}
@@ -48,7 +47,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       hipRequest.surname must be ("lewis")
       hipRequest.firstForename must be ("stan")
       hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (Some(NONE))
+      hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType must be (None)
       hipRequest.revaluationDate must be ("2022-06-01")
       hipRequest.terminationDate must be ("2022-06-30")
@@ -76,7 +75,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       hipRequest.surname must be ("lewis")
       hipRequest.firstForename must be ("stan")
       hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (Some(NONE))
+      hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
       hipRequest.revaluationDate must be ("2022-06-01")
       hipRequest.terminationDate must be ("2022-06-30")
@@ -133,7 +132,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       hipRequest.surname must be ("lewis")
       hipRequest.firstForename must be ("stan")
       hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (Some(NONE))
+      hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
       hipRequest.revaluationDate must be ("(NONE)")
       hipRequest.terminationDate must be ("(NONE)")
