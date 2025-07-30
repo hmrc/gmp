@@ -44,8 +44,8 @@ class HipCalculationRequestSpec extends BaseSpec{
 
       hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("lewis")
-      hipRequest.firstForename must be ("stan")
+      hipRequest.surname must be ("LEW")
+      hipRequest.firstForename must be ("S")
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType must be (None)
@@ -72,8 +72,8 @@ class HipCalculationRequestSpec extends BaseSpec{
 
       hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("lewis")
-      hipRequest.firstForename must be ("stan")
+      hipRequest.surname must be ("LEW")
+      hipRequest.firstForename must be ("S")
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
@@ -100,8 +100,8 @@ class HipCalculationRequestSpec extends BaseSpec{
 
       hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("lewis")
-      hipRequest.firstForename must be ("stan")
+      hipRequest.surname must be ("LEW")
+      hipRequest.firstForename must be ("S")
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate mustBe Some(EnumRevaluationRate.NONE)
       hipRequest.calculationRequestType must be (None)
@@ -129,8 +129,8 @@ class HipCalculationRequestSpec extends BaseSpec{
 
       hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("lewis")
-      hipRequest.firstForename must be ("stan")
+      hipRequest.surname must be ("LEW")
+      hipRequest.firstForename must be ("S")
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
