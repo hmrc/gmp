@@ -137,7 +137,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       when(TestHipConnector.calcURI).thenReturn(calculateUrl)
       "return successful response for status 200" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
         implicit val hc = HeaderCarrier()
         val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
@@ -148,7 +148,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       }
       "return a response for status 400" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
         val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
@@ -161,7 +161,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
         val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         requestBuilderExecute(Future.successful(httpResponse))
         await(TestHipConnector.calculate("user123", request)).map { result =>
           httpResponse.status mustBe 400
@@ -170,7 +170,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       "fail the future if HTTP call fails" in {
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         requestBuilderExecute(Future.failed(new RuntimeException("Connection error")))
         val ex = intercept[RuntimeException] {
           await(TestHipConnector.calculate("user123", request))
@@ -180,7 +180,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       "throw UpstreamErrorResponse for error status code 500" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         val successResponse = HipCalculationResponse("", "S2123456B", "", Some(""), Some(""), Some(""), List.empty)
         val httpResponse = HttpResponse(500, Json.toJson(successResponse).toString())
         implicit val hc = HeaderCarrier()
@@ -196,7 +196,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val invalidJson = Json.obj("unexpectedField" -> "unexpectedValue")
         val httpResponse = HttpResponse(OK, invalidJson.toString())
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), "", "", true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         requestBuilderExecute(Future.successful(httpResponse))
         val thrown = intercept[RuntimeException] {
           await(TestHipConnector.calculate("user123", request))
