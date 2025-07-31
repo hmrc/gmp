@@ -143,7 +143,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
         await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+          result.schemeContractedOutNumber mustBe "S2123456B"
         }
       }
       "return a response for status 400" in {
