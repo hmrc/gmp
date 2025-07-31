@@ -154,7 +154,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
       val hipJson = Json.parse(
         s"""{
           "nationalInsuranceNumber": "AA000001A",
-          "schemeContractedOutNumberDetails": "S2123456B",
+          "schemeContractedOutNumber": "S2123456B",
           "rejectionReason": "No match for person details provided",
           "payableAgeDate": "2022-06-27",
           "statePensionAgeDate": "2022-06-27",
@@ -198,7 +198,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
         """
           {
             "nationalInsuranceNumber": "",
-            "schemeContractedOutNumberDetails": "",
+            "schemeContractedOutNumber": "",
             "rejectionReason": "Some error",
             "GuaranteedMinimumPensionDetailsList": []
           }
@@ -214,7 +214,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
       val hipJson =
         """{
           "nationalInsuranceNumber": "AA000001A",
-          "schemeContractedOutNumberDetails": "S2123456B",
+          "schemeContractedOutNumber": "S2123456B",
           "rejectionReason": "No match for person details provided",
           "payableAgeDate": "2022-06-27",
           "statePensionAgeDate": "2022-06-27",
@@ -251,7 +251,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
         """
           {
             "nationalInsuranceNumber": "",
-            "schemeContractedOutNumberDetails": "",
+            "schemeContractedOutNumber": "",
             "rejectionReason": "",
             "GuaranteedMinimumPensionDetailsList": []
           }
