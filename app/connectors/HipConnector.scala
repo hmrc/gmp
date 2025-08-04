@@ -101,7 +101,7 @@ class HipConnector @Inject()(
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
     logger.info(s"calculate url for HipConnector:$calcURI")
     logger.info(s"[HipConnector calculate request body]:${Json.toJson(request)}")
-    doAudit("gmpCalculation", userId, request.schemeContractedOutNumberDetails, Some(request.nationalInsuranceNumber),
+    doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
       Some(request.surname), Some(request.firstForename))
     val startTime = System.currentTimeMillis()
     val headers = buildHeadersV1(hc)
@@ -117,7 +117,7 @@ class HipConnector @Inject()(
             response.status match {
               case OK => value
               case BAD_REQUEST => logger.info("[HipConnector][calculate] : NPS returned code 400")
-                HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, Some(""), None, None, Some(request.schemeContractedOutNumberDetails), Nil)
+                HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, Some(""), None, None, Some(request.schemeContractedOutNumber), Nil)
               case errorStatus: Int => logger.error(s"[HipConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
                 throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
             }
