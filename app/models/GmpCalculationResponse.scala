@@ -179,7 +179,7 @@ object GmpCalculationResponse {
       revaluationRate = revaluationRate,
       revaluationDate = revaluationDate.map(LocalDate.parse(_)),
       calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
-      globalErrorCode = HipErrorCodeMapper.mapRejectionReason(HipCalculationResponse.rejectionReason.get),
+      globalErrorCode = HipErrorCodeMapper.mapRejectionReason(HipCalculationResponse.rejectionReason.getOrElse("")),
       spaDate = HipCalculationResponse.statePensionAgeDate.map(LocalDate.parse),
       payableAgeDate = HipCalculationResponse.payableAgeDate.map(LocalDate.parse),
       dateOfDeath = HipCalculationResponse.dateOfDeath.map(LocalDate.parse),
