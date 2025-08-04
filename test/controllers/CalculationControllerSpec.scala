@@ -168,7 +168,7 @@ class CalculationControllerSpec extends BaseSpec {
             .successful(Json.parse(
               """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S2123456B",
+                "schemeContractedOutNumberDetails": "S2123456B",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -273,7 +273,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S2123456B",
+                "schemeContractedOutNumberDetails": "S2123456B",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -409,7 +409,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S1301234T",
+                "schemeContractedOutNumberDetails": "S1301234T",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -575,7 +575,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S1301234T",
+                "schemeContractedOutNumberDetails": "S1301234T",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -731,7 +731,7 @@ class CalculationControllerSpec extends BaseSpec {
           .successful(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S2123456B",
+                "schemeContractedOutNumberDetails": "S2123456B",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -838,7 +838,7 @@ class CalculationControllerSpec extends BaseSpec {
         val hipCalculationResponse = Json.parse(
           """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S2123456B",
+                "schemeContractedOutNumberDetails": "S2123456B",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
@@ -1010,7 +1010,7 @@ class CalculationControllerSpec extends BaseSpec {
         val hipCalculationResponse = Json.parse(
           """{
                 "nationalInsuranceNumber": "AA000001A",
-                "schemeContractedOutNumber": "S2123456B",
+                "schemeContractedOutNumberDetails": "S2123456B",
                 "rejectionReason": "No match for person details provided",
                 "payableAgeDate": "2022-06-27",
                 "statePensionAgeDate": "2022-06-27",
