@@ -42,7 +42,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumberDetails must be ("S1234567T")
+      hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
       hipRequest.surname must be ("LEW")
       hipRequest.firstForename must be ("S")
@@ -70,7 +70,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumberDetails must be ("S1234567T")
+      hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
       hipRequest.surname must be ("LEW")
       hipRequest.firstForename must be ("S")
@@ -98,7 +98,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumberDetails must be ("S1234567T")
+      hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
       hipRequest.surname must be ("LEW")
       hipRequest.firstForename must be ("S")
@@ -127,7 +127,7 @@ class HipCalculationRequestSpec extends BaseSpec{
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumberDetails must be ("S1234567T")
+      hipRequest.schemeContractedOutNumber must be ("S1234567T")
       hipRequest.nationalInsuranceNumber must be ("AA123456A")
       hipRequest.surname must be ("LEW")
       hipRequest.firstForename must be ("S")

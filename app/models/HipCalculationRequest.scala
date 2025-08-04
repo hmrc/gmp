@@ -55,7 +55,7 @@ object EnumCalcRequestType extends Enumeration {
   }
 }
 
-case class HipCalculationRequest(schemeContractedOutNumberDetails: String,
+case class HipCalculationRequest(schemeContractedOutNumber: String,
                                  nationalInsuranceNumber: String,
                                  surname: String,
                                  firstForename: String,
@@ -87,7 +87,7 @@ object HipCalculationRequest {
       case 4 => EnumCalcRequestType.SPA
     }
     HipCalculationRequest(
-      schemeContractedOutNumberDetails = calcReq.scon,
+      schemeContractedOutNumber = calcReq.scon,
       nationalInsuranceNumber = calcReq.nino,
       surname = URLEncoder.encode((if (calcReq.surname.length < 3) {
         calcReq.surname
