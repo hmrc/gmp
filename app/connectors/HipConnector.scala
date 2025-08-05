@@ -22,7 +22,7 @@ import metrics.ApplicationMetrics
 import models._
 import play.api.Logging
 import play.api.http.Status
-import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
@@ -101,17 +101,22 @@ class HipConnector @Inject()(
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
     logger.info(s"calculate url for HipConnector:$calcURI")
     logger.info(s"[HipConnector calculate request body]:${Json.toJson(request)}")
+
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
       Some(request.surname), Some(request.firstForename))
+
     val startTime = System.currentTimeMillis()
     val headers = buildHeadersV1(hc)
     logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
+
     val result = http.post(url"$calcURI")
       .setHeader(headers: _*)
-      .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
+      .withBody(Json.toJson(request))
+      .execute[HttpResponse]
+      .map { response =>
+        metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        metrics.hipConnectorStatus(response.status)
         logger.info(s"[HipConnector calculate response]:${response.json}")
-        metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-        metrics.desConnectorStatus(response.status)
         response.json.validate[HipCalculationResponse] match {
           case JsSuccess(value, _) => {
             response.status match {
