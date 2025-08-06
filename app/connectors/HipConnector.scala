@@ -110,8 +110,8 @@ class HipConnector @Inject()(
       .setHeader(headers: _*)
       .withBody(Json.toJson(request)).execute[HttpResponse].map { response =>
         logger.info(s"[HipConnector calculate response]:${response.status}:::::${response.headers.get("correlationId")}:::::${response.json}")
-        metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-        metrics.desConnectorStatus(response.status)
+        metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        metrics.hipConnectorStatus(response.status)
         response.status match {
           case OK =>
             response.json.validate[HipCalculationResponse] match {
@@ -125,8 +125,8 @@ class HipConnector @Inject()(
                 logger.error(s"[HipConnector][calculate] $detailedMsg")
                 throw new RuntimeException(detailedMsg)
             }
-          case BAD_REQUEST | FORBIDDEN | NOT_FOUND => logger.info("[HipConnector][calculate] : HIP returned code 400")
-            HipCalculationResponse(request.nationalInsuranceNumber, BAD_REQUEST.toString, Some(""), None, None, Some(request.schemeContractedOutNumber), Nil)
+          case BAD_REQUEST | FORBIDDEN | NOT_FOUND => logger.info(s"[HipConnector][calculate] : HIP returned code ${response.status} and response body: ${response.body}")
+            throw UpstreamErrorResponse(response.body, response.status)
           case errorStatus: Int => logger.error(s"[HipConnector][calculate] : HIP returned code $errorStatus and response body: ${response.body}")
             throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
         }

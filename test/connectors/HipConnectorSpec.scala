@@ -152,9 +152,11 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
         val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result mustBe ""
+        val exception = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        exception.statusCode mustBe BAD_REQUEST
+        exception.reportAs mustBe BAD_REQUEST
       }
 
       "return fallback HipCalculationResponse for 400 Bad Request" in {
@@ -163,9 +165,10 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
           Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          httpResponse.status mustBe 400
+        val exception = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        exception.statusCode mustBe BAD_REQUEST
       }
 
       "fail the future if HTTP call fails" in {
