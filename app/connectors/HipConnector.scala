@@ -125,10 +125,51 @@ class HipConnector @Inject()(
                 logger.error(s"[HipConnector][calculate] $detailedMsg")
                 throw new RuntimeException(detailedMsg)
             }
-          case BAD_REQUEST | FORBIDDEN | NOT_FOUND => logger.info(s"[HipConnector][calculate] : HIP returned code ${response.status} and response body: ${response.body}")
-            throw UpstreamErrorResponse(response.body, response.status)
-          case errorStatus: Int => logger.error(s"[HipConnector][calculate] : HIP returned code $errorStatus and response body: ${response.body}")
-            throw UpstreamErrorResponse("HIP connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+          case BAD_REQUEST => logger.warn(s"[HipConnector][calculate] : HIP returned 400 (Bad Request). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              BAD_REQUEST.toString,
+              Some("The request was invalid — please check the provided details."),
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+          case FORBIDDEN =>
+            logger.warn(s"[HipConnector][calculate] : HIP returned 403 (Forbidden). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              FORBIDDEN.toString,
+              Some("You are not authorised to perform this calculation."),
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+
+          case NOT_FOUND =>
+            logger.warn(s"[HipConnector][calculate] : HIP returned 404 (Not Found). Body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              NOT_FOUND.toString,
+              Some("The requested calculation could not be found."),
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
+
+          case errorStatus: Int =>
+            logger.error(s"[HipConnector][calculate] : HIP returned $errorStatus and response body: ${response.body}")
+            HipCalculationResponse(
+              request.nationalInsuranceNumber,
+              errorStatus.toString,
+              Some("An unexpected error occurred while processing your request."),
+              None,
+              None,
+              Some(request.schemeContractedOutNumber),
+              Nil
+            )
         }
       }
     result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)
