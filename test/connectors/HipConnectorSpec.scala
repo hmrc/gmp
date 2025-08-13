@@ -199,7 +199,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val ex = intercept[UpstreamErrorResponse] {
           await(TestHipConnector.calculate("user123", request))
         }
-        ex.getMessage must include("HIP connector calculate failed")
+        ex.getMessage must include("HIP connector calculation failed")
       }
 
       "throw RuntimeException when JSON validation fails" in {
