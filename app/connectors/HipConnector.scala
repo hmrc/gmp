@@ -161,15 +161,7 @@ class HipConnector @Inject()(
 
           case errorStatus: Int =>
             logger.error(s"[HipConnector][calculate] : HIP returned $errorStatus and response body: ${response.body}")
-            HipCalculationResponse(
-              request.nationalInsuranceNumber,
-              errorStatus.toString,
-              Some("An unexpected error occurred while processing your request."),
-              None,
-              None,
-              Some(request.schemeContractedOutNumber),
-              Nil
-            )
+            throw UpstreamErrorResponse("HIP connector calculation failed", errorStatus, INTERNAL_SERVER_ERROR)
         }
       }
     result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)

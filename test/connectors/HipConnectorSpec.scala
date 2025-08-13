@@ -196,9 +196,10 @@ class HipConnectorSpec extends HttpClientV2Helper {
         val httpResponse = HttpResponse(500, Json.toJson(successResponse).toString())
         implicit val hc = HeaderCarrier()
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        val ex = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        ex.getMessage must include("HIP connector calculate failed")
       }
 
       "throw RuntimeException when JSON validation fails" in {
