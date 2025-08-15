@@ -118,7 +118,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val surname = URLEncoder.encode(request.surname.trim.filter(_.isLetter).take(3).toUpperCase, "UTF-8")
+    val surname = URLEncoder.encode(request.surname.filter(_.isLetter).take(3).toUpperCase, "UTF-8")
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
 
     val uri =
