@@ -16,23 +16,22 @@
 
 package connectors
 
-import java.net.URLEncoder
-import java.util.concurrent.TimeUnit
 import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.net.URLEncoder
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.client.HttpClientV2
 
 trait IFGetResponse
 
@@ -117,10 +116,12 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val surname = URLEncoder.encode((if (request.surname.length < 3) {
-      request.surname
+    val filteredSurname = request.surname.trim.filter(_.isLetter)
+
+    val surname = URLEncoder.encode((if (filteredSurname.length < 3) {
+      filteredSurname
     } else {
-      request.surname.substring(0, 3)
+      filteredSurname.substring(0, 3)
     }).toUpperCase.trim, "UTF-8")
 
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
@@ -141,7 +142,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
           case params => params
         }
       }"""
-    doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
+    doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(filteredSurname), Some(request.firstForename))
     logger.debug(s"[IFConnector][calculate] Contacting IF at $uri")
 
     val startTime = System.currentTimeMillis()
