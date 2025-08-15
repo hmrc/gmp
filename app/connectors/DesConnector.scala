@@ -118,14 +118,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val filteredSurname = request.surname.trim.filter(_.isLetter)
-
-    val surname = URLEncoder.encode((if (filteredSurname.length < 3) {
-      filteredSurname
-    } else {
-      filteredSurname.substring(0, 3)
-    }).toUpperCase.trim, "UTF-8")
-
+    val surname = URLEncoder.encode(request.surname.trim.filter(_.isLetter).take(3).toUpperCase, "UTF-8")
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
 
     val uri =
@@ -145,7 +138,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
         }
       }"""
 
-    doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(filteredSurname), Some(request.firstForename))
+    doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
     logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
