@@ -18,18 +18,8 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class GmpValidateSconResponse(sconExists: Boolean)
+case class HipValidateSconResponse(schemeContractedOutNumberExists: Boolean)
 
-object GmpValidateSconResponse {
-  implicit val formats: OFormat[GmpValidateSconResponse] = Json.format[GmpValidateSconResponse]
-
-  def createFromValidateSconResponse(validateSconResponse: ValidateSconResponse): GmpValidateSconResponse = {
-    validateSconResponse.scon_exists match {
-      case 0 => GmpValidateSconResponse(false)
-      case 1 => GmpValidateSconResponse(true)
-    }
-  }
-  def createFromHipValidateSconResponse(hipValidateSconResponse: HipValidateSconResponse): GmpValidateSconResponse = {
-     GmpValidateSconResponse(hipValidateSconResponse.schemeContractedOutNumberExists)
-  }
+object HipValidateSconResponse {
+  implicit val formats: OFormat[HipValidateSconResponse] = Json.format[HipValidateSconResponse]
 }
