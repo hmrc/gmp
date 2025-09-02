@@ -23,6 +23,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
+import org.mongodb.scala.SingleObservableFuture
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
@@ -32,7 +33,7 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with ScalaFutures {
-  override lazy val repository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
+  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
 
   val calculationRequest: CalculationRequest =  CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
 

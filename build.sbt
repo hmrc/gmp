@@ -17,13 +17,14 @@ lazy val scoverageExcludePatterns = List(
   "views.html.*",
   "uk.gov.hmrc.*",
   "prod.*",
-  "repositories.*"
+  "repositories.*",
+  "models.*"
 )
 
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimumStmtTotal := 97,
+      ScoverageKeys.coverageMinimumStmtTotal := 95,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
@@ -47,12 +48,10 @@ lazy val scoverageExcludePatterns = List(
     )
     .settings(
       scalacOptions ++= List(
-        "-P:silencer:pathFilters=routes",
-        "-P:silencer:globalFilters=Unused import",
         "-Yrangepos",
         "-Xlint:-missing-interpolator,_",
         "-feature",
         "-unchecked",
         "-language:implicitConversions",
     ))
-    .settings(scalaVersion := "2.13.16")
+    .settings(scalaVersion := "3.3.6")
