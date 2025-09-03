@@ -122,11 +122,17 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
+
+      // Test that the method completes successfully despite audit failure
       noException shouldBe thrownBy(await(TestHipConnector.validateScon("user123", "S1401234Q")))
+
     }
 
     "set required headers including correlationId and originator-id" in {
-      implicit val hc = HeaderCarrier()
+      implicit val hc = HeaderCarrier(
+        requestId = Some(RequestId("test-request-id")),
+        sessionId = Some(SessionId("test-session-id"))
+      )
 
       val headersCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
 
@@ -137,10 +143,46 @@ class HipConnectorSpec extends HttpClientV2Helper {
       val captured = headersCaptor.getAllValues.asScala
       val headerMaps = captured.map(_.toMap)
 
-      headerMaps.exists(_.contains("correlationId")) mustBe true
+      // Verify correlation ID is present and follows the expected format (UUID)
+      val correlationId = headerMaps.flatMap(_.get("correlationId")).headOption
+      correlationId must be(defined)
+      correlationId.foreach { cid =>
+        // UUID regex pattern
+        val uuidPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+        cid must fullyMatch regex uuidPattern
+      }
+
+      // Verify other required headers
       headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(mockAppConfig.originatorIdValue)) mustBe true
       headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
       headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
+      headerMaps.exists(_.get("Authorization").contains(s"Basic ${mockAppConfig.hipAuthorisationToken}")) mustBe true
+    }
+    
+    "normalize different SCON formats correctly" in {
+      implicit val hc = HeaderCarrier()
+      
+      val testCases = Seq(
+        "s1401234q" -> "S1401234Q",  // lowercase to uppercase
+        "S1401234Q" -> "S1401234Q",  // already correct
+        "S 140 1234 Q" -> "S1401234Q" // spaces removed
+      )
+      
+      testCases.foreach { case (input, expected) =>
+        requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
+        
+        val result = await(TestHipConnector.validateScon("user123", input))
+        
+        result mustBe HipValidateSconResponse(true)
+        
+        // Verify the normalized SCON was used in the URL
+        val urlCaptor = ArgumentCaptor.forClass(classOf[URL])
+        verify(mockHttp, atLeastOnce()).get(urlCaptor.capture())(any())
+        urlCaptor.getValue.toString must include(expected)
+        
+        reset(mockHttp)
+        when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+      }
     }
 
   }
