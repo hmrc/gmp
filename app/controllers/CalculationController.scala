@@ -92,19 +92,11 @@ class CalculationController @Inject()(desConnector: DesConnector,
   }
 
   private def handleNewCalculation(userId: String, calculationRequest: CalculationRequest)(implicit hc: HeaderCarrier): Future[GmpCalculationResponse] = {
-    val connectorResult: Either[Future[HipCalculationResponse], Future[CalculationResponse]] =
       (appConfig.isIfsEnabled, appConfig.isHipEnabled) match {
-        case (true, false) => Right(ifConnector.calculate(userId, calculationRequest))
-        case (_, true) => Left(hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)))
-        case _ => Right(desConnector.calculate(userId, calculationRequest))
+        case (true, false) => ifConnector.calculate(userId, calculationRequest).map(mapDesOrIfToGmp(_, calculationRequest))
+        case (_, true) => hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)).map(mapHipToGmp(_, calculationRequest))
+        case _ => desConnector.calculate(userId, calculationRequest).map(mapDesOrIfToGmp(_, calculationRequest))
       }
-
-    connectorResult match {
-      case Left(hipCalc) =>
-        hipCalc.map(mapHipToGmp(_, calculationRequest))
-      case Right(calc) =>
-        calc.map(mapDesOrIfToGmp(_, calculationRequest))
-    }
   }
 
   private def mapHipToGmp(c: HipCalculationResponse, req: CalculationRequest): GmpCalculationResponse = {

@@ -22,7 +22,7 @@ import metrics.ApplicationMetrics
 import models._
 import play.api.Logging
 import play.api.http.Status
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
+import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http._
@@ -113,7 +113,7 @@ class HipConnector @Inject()(
         metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         metrics.hipConnectorStatus(response.status)
         response.status match {
-          case OK =>
+          case OK | UNPROCESSABLE_ENTITY =>
             response.json.validate[HipCalculationResponse] match {
               case JsSuccess(value, _) => value
               case JsError(errors) =>
@@ -173,7 +173,7 @@ class HipConnector @Inject()(
         }
       }
     result.onComplete { case Success(response) => logger.info("Calculation successful: " + response)
-    case Failure(exception) => logger.error("Calculation failed: " + exception.getMessage)
+    case Failure(exception) => logger.error("Calculation failed: " + exception)
     }
     result
   }

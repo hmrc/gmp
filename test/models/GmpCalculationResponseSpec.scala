@@ -307,14 +307,14 @@ class GmpCalculationResponseSpec extends BaseSpec {
 
     }
 
-    "Correctly map revaluationRate (NONE) to expected 0 int value" in {
+    "Correctly map revaluationRate FIXED to expected 2 int value" in {
 
       val details = GuaranteedMinimumPensionDetails(
         schemeMembershipStartDate = Some("2020-01-01"),
         schemeMembershipEndDate = "2024-01-01",
         gmpContractedOutDeductionsAllRateValue = BigDecimal("123.45"),
         post1988GMPContractedOutDeductionsValue = BigDecimal("67.89"),
-        revaluationRate = "(NONE)",
+        revaluationRate = "FIXED",
         gmpErrorCode = "Input revaluation date is before the termination date held on hmrc records",
         revaluationCalculationSwitchIndicator = true,
         post1990GMPContractedOutTrueSexTotal = Some(BigDecimal("45.67")),
@@ -324,7 +324,7 @@ class GmpCalculationResponseSpec extends BaseSpec {
       )
 
       val result = CalculationPeriod.createFromHipGmpDetails(details)
-      result.revaluationRate mustBe 0
+      result.revaluationRate mustBe 2
 
     }
     "Correctly map revaluationRate S148 to expected 1 int value" in {

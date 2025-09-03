@@ -33,64 +33,8 @@ class HipCalculationRequestSpec extends BaseSpec{
         nino = "AA123456A",
         surname = "lewis",
         firstForename = "stan",
-        revaluationRate = None, // Maps to "(NONE)"
-        calctype = None, // Maps to "DOL Calculation"
-        revaluationDate = Some("2022-06-01"),
-        terminationDate = Some("2022-06-30"),
-        requestEarnings = Some(1), // Maps to true
-        dualCalc = Some(1)
-      )
-      val hipRequest = HipCalculationRequest.from(calcReq)
-
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
-      hipRequest.calculationRequestType must be (None)
-      hipRequest.revaluationDate must be (Some("2022-06-01"))
-      hipRequest.terminationDate must be (Some("2022-06-30"))
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
-    }
-
-    "correctly transform CalculationRequest int values into HipCalculationRequest String" in{
-      val calcReq = CalculationRequest(
-        scon = "S1234567T",
-        nino = "AA123456A",
-        surname = "lewis",
-        firstForename = "stan",
-        revaluationRate = None, // Maps to "(NONE)"
-        calctype = Some(0), // Maps to "DOL Calculation"
-        revaluationDate = Some("2022-06-01"),
-        terminationDate = Some("2022-06-30"),
-        requestEarnings = Some(1), // Maps to true
-        dualCalc = Some(1)
-      )
-      val hipRequest = HipCalculationRequest.from(calcReq)
-
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
-      hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
-      hipRequest.revaluationDate must be (Some("2022-06-01"))
-      hipRequest.terminationDate must be (Some("2022-06-30"))
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
-    }
-
-    "correctly transform CalculationRequest HMRC as revaluationRate into HipCalculationRequest None value" in{
-      val calcReq = CalculationRequest(
-        scon = "S1234567T",
-        nino = "AA123456A",
-        surname = "lewis",
-        firstForename = "stan",
-        revaluationRate = Some(0), // Maps to "(NONE)"
-        calctype = None, // Maps to "DOL Calculation"
+        revaluationRate = Some(0),
+        calctype = Some(0),
         revaluationDate = Some("2022-06-01"),
         terminationDate = Some("2022-06-30"),
         requestEarnings = Some(1), // Maps to true
@@ -104,40 +48,24 @@ class HipCalculationRequestSpec extends BaseSpec{
       hipRequest.firstForename must be ("S")
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate mustBe Some(EnumRevaluationRate.NONE)
-      hipRequest.calculationRequestType must be (None)
+      hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
       hipRequest.revaluationDate must be (Some("2022-06-01"))
       hipRequest.terminationDate must be (Some("2022-06-30"))
       hipRequest.includeContributionAndEarnings must be (true)
       hipRequest.includeDualCalculation must be (true)
-    }
 
-
-    "correctly transform CalculationRequest missing dates to HipCalculationRequest correctly" in{
-      val calcReq = CalculationRequest(
-        scon = "S1234567T",
-        nino = "AA123456A",
-        surname = "lewis",
-        firstForename = "stan",
-        revaluationRate = None, // Maps to "(NONE)"
-        calctype = Some(0), // Maps to "DOL Calculation"
-        revaluationDate = None,
-        terminationDate = None,
-        requestEarnings = Some(1), // Maps to true
-        dualCalc = Some(1)// Maps to true
-      )
-      val hipRequest = HipCalculationRequest.from(calcReq)
-
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
-      hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
-      hipRequest.revaluationDate must be (None)
-      hipRequest.terminationDate must be (None)
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
+      val hipRequest1 = HipCalculationRequest.from(calcReq.copy(revaluationRate = Some(1), calctype = Some(1), surname = "VA"))
+      hipRequest1.calculationRequestType mustBe Some(EnumCalcRequestType.Revaluation)
+      hipRequest1.revaluationRate mustBe Some(EnumRevaluationRate.S148)
+      hipRequest1.surname must be ("VA")
+      val hipRequest2 = HipCalculationRequest.from(calcReq.copy(revaluationRate = Some(2), calctype = Some(2)))
+      hipRequest2.calculationRequestType mustBe Some(EnumCalcRequestType.PayableAge)
+      hipRequest2.revaluationRate mustBe Some(EnumRevaluationRate.FIXED)
+      val hipRequest3 = HipCalculationRequest.from(calcReq.copy(revaluationRate = Some(3), calctype = Some(3)))
+      hipRequest3.calculationRequestType mustBe Some(EnumCalcRequestType.Survivor)
+      hipRequest3.revaluationRate mustBe Some(EnumRevaluationRate.LIMITED)
+      val hipRequest4 = HipCalculationRequest.from(calcReq.copy(calctype = Some(4)))
+      hipRequest4.calculationRequestType mustBe Some(EnumCalcRequestType.SPA)
     }
 
   }
@@ -157,6 +85,11 @@ class HipCalculationRequestSpec extends BaseSpec{
       Json.fromJson[EnumCalcRequestType.Value](JsString("Survivor Calculation")) mustBe JsSuccess(EnumCalcRequestType.Survivor)
       Json.fromJson[EnumCalcRequestType.Value](JsString("SPA Calculation")) mustBe JsSuccess(EnumCalcRequestType.SPA)
     }
+    "fail to deserialize invalid value" in {
+      val json = JsNumber(1)
+      val parsed = json.validate[EnumCalcRequestType.Value]
+      parsed mustBe a[JsError]
+    }
   }
 
   "EnumRevaluationRate" should {
@@ -171,6 +104,11 @@ class HipCalculationRequestSpec extends BaseSpec{
       Json.fromJson[EnumRevaluationRate.Value](JsString("FIXED")) mustBe JsSuccess(EnumRevaluationRate.FIXED)
       Json.fromJson[EnumRevaluationRate.Value](JsString("LIMITED")) mustBe JsSuccess(EnumRevaluationRate.LIMITED)
       Json.fromJson[EnumRevaluationRate.Value](JsString("S148")) mustBe JsSuccess(EnumRevaluationRate.S148)
+    }
+    "fail to deserialize invalid value" in {
+      val json = JsNumber(1)
+      val parsed = json.validate[EnumRevaluationRate.Value]
+      parsed mustBe a[JsError]
     }
   }
 }
