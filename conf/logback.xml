@@ -24,6 +24,7 @@
             <pattern>%message%n</pattern>
         </encoder>
     </appender>
+
     <logger name="uk.gov" level="WARN"/>
 
     <logger name="com.google.inject" level="INFO"/>
