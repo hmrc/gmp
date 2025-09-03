@@ -24,9 +24,6 @@
             <pattern>%message%n</pattern>
         </encoder>
     </appender>
-    <logger name="connectors.HipConnector" level="INFO">
-        <appender-ref ref="STDOUT"/>
-    </logger>
     <logger name="uk.gov" level="WARN"/>
 
     <logger name="com.google.inject" level="INFO"/>
