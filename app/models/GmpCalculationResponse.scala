@@ -78,7 +78,6 @@ object CalculationPeriod {
   }
 
   def mapRevaluationRate(rate: String): Int = rate match {
-    case "(NONE)" => 0
     case "S148"   => 1
     case "FIXED"  => 2
     case "LIMITED"=> 3
