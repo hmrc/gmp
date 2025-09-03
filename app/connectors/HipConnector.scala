@@ -62,7 +62,7 @@ class HipConnector @Inject()(
           metrics.hipConnectorTimer(duration, TimeUnit.MILLISECONDS)
           metrics.hipConnectorStatus(response.status)
           response.status match {
-            case Status.OK | Status.UNPROCESSABLE_ENTITY =>
+            case Status.OK  =>
               response.json.as[HipValidateSconResponse]
 
             case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>

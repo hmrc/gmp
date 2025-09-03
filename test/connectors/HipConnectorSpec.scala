@@ -79,14 +79,6 @@ class HipConnectorSpec extends HttpClientV2Helper {
       result mustBe HipValidateSconResponse(true)
     }
 
-    "return a valid response for HTTP 422" in {
-      implicit val hc = HeaderCarrier()
-      requestBuilderExecute(Future.successful(HttpResponse(422, validateSconResponseJson.toString())))
-
-      val result = await(TestHipConnector.validateScon("user123", "S1401234Q"))
-
-      result mustBe HipValidateSconResponse(true)
-    }
 
     "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
       val errorCodes = Seq(400, 403, 404, 500, 503)
