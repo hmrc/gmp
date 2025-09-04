@@ -35,6 +35,12 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
     ("nps-connector-status-200", counter),
     ("nps-connector-status-400", counter),
     ("nps-connector-status-500", counter),
+    ("hip-connector-timer", timer),
+    ("hip-connector-status-200", counter),
+    ("hip-connector-status-400", counter),
+    ("hip-connector-status-403", counter),
+    ("hip-connector-status-500", counter),
+    ("hip-connector-status-503", counter),
     ("if-connector-timer", timer),
     ("if-connector-status-200", counter),
     ("if-connector-status-400", counter),
@@ -44,24 +50,67 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
     ("mci-error-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("nps-connector-timer").update(diff, unit)}
-    .failed.foreach(ex => "nps-connector-timer failed: metrics might be disabled")
-  def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
-    .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
-
-  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
-    registry.timer("if-connector-timer").update(diff, unit)
+  private def recordMetric(metricName: String, action: => Unit): Unit = {
+    Try(action).failed.foreach { ex =>
+      logger.warn(s"$metricName failed: ${ex.getMessage}")
+    }
   }
-    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
 
-  def IFConnectorStatus(code: Int): Unit = Try {
-    registry.counter(s"if-connector-status-$code").inc()
+  // NPS (DES) metrics
+  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
+    recordMetric("nps-connector-timer", {
+      registry.timer("nps-connector-timer").update(diff, unit)
+    })
   }
-    .failed.foreach(ex => "if-connector-status failed: metrics might be disabled")
-  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("mci-connection-timer").update(diff, unit)}
-    .failed.foreach(ex => "mci-connection-timer failed: metrics might be disabled")
-  def mciLockCount(): Unit = Try{registry.counter("mci-lock-result-count").inc()}
-    .failed.foreach(ex => "mci-lock-result-count failed: metrics might be disabled")
-  def mciErrorCount(): Unit = Try{registry.counter("mci-error-count").inc()}
-    .failed.foreach(ex => "mci-error-count failed: metrics might be disabled")
+  
+  def desConnectorStatus(code: Int): Unit = {
+    recordMetric(s"nps-connector-status-$code", {
+      registry.counter(s"nps-connector-status-$code").inc()
+    })
+  }
+
+  // HIP metrics
+  def hipConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
+    recordMetric("hip-connector-timer", {
+      registry.timer("hip-connector-timer").update(diff, unit)
+    })
+  }
+  
+  def hipConnectorStatus(code: Int): Unit = {
+    recordMetric(s"hip-connector-status-$code", {
+      registry.counter(s"hip-connector-status-$code").inc()
+    })
+  }
+
+  // IF metrics
+  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
+    recordMetric("if-connector-timer", {
+      registry.timer("if-connector-timer").update(diff, unit)
+    })
+  }
+  
+  def IFConnectorStatus(code: Int): Unit = {
+    recordMetric(s"if-connector-status-$code", {
+      registry.counter(s"if-connector-status-$code").inc()
+    })
+  }
+
+  // MCI metrics
+  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = {
+    recordMetric("mci-connection-timer", {
+      registry.timer("mci-connection-timer").update(diff, unit)
+    })
+  }
+  
+  def mciLockCount(): Unit = {
+    recordMetric("mci-lock-result-count", {
+      registry.counter("mci-lock-result-count").inc()
+    })
+  }
+  
+  def mciErrorCount(): Unit = {
+    recordMetric("mci-error-count", {
+      registry.counter("mci-error-count").inc()
+    })
+  }
 }

@@ -17,7 +17,8 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.DesConnector
+import config.AppConfig
+import connectors.{DesConnector, HipConnector}
 import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logging
@@ -26,44 +27,70 @@ import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.LoggingUtils._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
+                                       hipConnector: HipConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
-                                       cc: ControllerComponents) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+                                       cc: ControllerComponents,
+                                       appConfig: AppConfig)(implicit val ec: ExecutionContext)
+  extends BackendController(cc) with Logging {
 
-  def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) {
+  def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) { implicit request =>
+    withJsonBody[ValidateSconRequest] { validateSconRequest =>
+      val redactedScon = redactSensitive(validateSconRequest.scon)
+      
+      repository.findByScon(validateSconRequest.scon).flatMap {
+        case Some(cachedResponse) =>
+          logger.debug(s"[ValidateSconController][validateScon] Cache hit for SCON: $redactedScon")
+          Future.successful(Ok(Json.toJson(cachedResponse)))
 
-    implicit request => {
-
-      withJsonBody[ValidateSconRequest] { validateSconRequest =>
-
-        repository.findByScon(validateSconRequest.scon).flatMap {
-          case Some(cr) => Future.successful(Ok(Json.toJson(cr)))
-          case None => {
-            val result = desConnector.validateScon(userId, validateSconRequest.scon)
-
-            result.map {
-              validateResult => {
-                logger.debug(s"[ValidateSconController][validateScon] : $validateResult")
-                val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(validateResult)
-
-                logger.debug(s"[ValidateSconController][transformedResult] : $transformedResult")
+        case None =>
+          val validationFuture = if (appConfig.isHipEnabled) {
+            logger.debug(s"[ValidateSconController][validateScon] Using HIP connector for SCON: $redactedScon")
+            hipConnector.validateScon(userId, validateSconRequest.scon)
+              .map { hipResponse =>
+                val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
+                logger.debug(s"[ValidateSconController][validateScon] HIP validation successful for SCON: $redactedScon")
                 repository.insertByScon(validateSconRequest.scon, transformedResult)
                 Ok(Json.toJson(transformedResult))
               }
-            }.recover {
-              case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                logger.debug(s"[ValidateSconController][validateScon][transformedResult][ERROR:500] : ${e.getMessage}")
-                InternalServerError(e.getMessage)
+          } else {
+            logger.debug(s"[ValidateSconController][validateScon] Using DES connector for SCON: $redactedScon")
+            desConnector.validateScon(userId, validateSconRequest.scon).map { desResponse =>
+              val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(desResponse)
+              logger.debug(s"[ValidateSconController][validateScon] DES validation successful for SCON: $redactedScon")
+              repository.insertByScon(validateSconRequest.scon, transformedResult)
+              Ok(Json.toJson(transformedResult))
             }
           }
-        }
+
+          validationFuture.recover {
+            case e: IllegalArgumentException =>
+              logger.warn(s"[ValidateSconController][validateScon] Invalid SCON format for SCON: $redactedScon")
+              BadRequest(Json.obj("error" -> "Invalid SCON format"))
+
+            case e: UpstreamErrorResponse if e.statusCode == 400 =>
+              logger.warn(s"[ValidateSconController][validateScon] Bad request for SCON: $redactedScon - ${e.statusCode}")
+              BadRequest(Json.obj("error" -> "Invalid request", "details" -> "Bad request"))
+
+            case e: UpstreamErrorResponse if e.statusCode == 500 =>
+              logger.error(s"[ValidateSconController][validateScon] Service error for SCON: $redactedScon - ${e.statusCode}")
+              InternalServerError(Json.obj("error" -> "Service unavailable"))
+
+            case e: Exception =>
+              logger.error(s"[ValidateSconController][validateScon] Unexpected error for SCON: $redactedScon - ${e.getClass.getSimpleName}")
+              InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
+          }
       }
+    }.recover {
+      case e: Exception =>
+        logger.error(s"[ValidateSconController][validateScon] Request processing failed - ${e.getClass.getSimpleName}")
+        BadRequest(Json.obj("error" -> "Invalid request format"))
     }
   }
-
 }
