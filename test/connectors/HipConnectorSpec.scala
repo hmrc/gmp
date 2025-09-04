@@ -79,7 +79,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     }
 
     "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
-      val errorCodes = Seq(400, 403, 404, 422, 500, 503)
+      val errorCodes = Seq(400, 403, 404, 499, 500, 503)
 
       errorCodes.foreach { status =>
         implicit val hc = HeaderCarrier()
