@@ -87,7 +87,8 @@ class HipConnector @Inject()(
       "X-Receipt-Date"               -> DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
       "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
     )
-  private val sconPattern = "^[sS][012468]\\d{6}[abcdefhjklmnpqrtwxyABCDEFHJKLMNPQRTWXY]$".r
+  private val sconPattern = "^([S]{0,1}[0124568]\\d{6}(?![GIOSUVZ])[A-Z]{0,1})$".r
+
 
   private def normalizeScon(rawScon: String): String = {
     val scon = rawScon.replaceAll("\\s+", "").toUpperCase
