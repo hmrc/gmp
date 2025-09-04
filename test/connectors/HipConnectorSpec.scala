@@ -69,7 +69,6 @@ class HipConnectorSpec extends HttpClientV2Helper {
   }
 
   "HipConnector" should {
-
     "return a valid response for HTTP 200" in {
       implicit val hc = HeaderCarrier()
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
@@ -79,9 +78,8 @@ class HipConnectorSpec extends HttpClientV2Helper {
       result mustBe HipValidateSconResponse(true)
     }
 
-
     "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
-      val errorCodes = Seq(400, 403, 404, 500, 503)
+      val errorCodes = Seq(400, 403, 404, 422, 500, 503)
 
       errorCodes.foreach { status =>
         implicit val hc = HeaderCarrier()
@@ -102,8 +100,22 @@ class HipConnectorSpec extends HttpClientV2Helper {
       val ex = intercept[IllegalArgumentException] {
         await(TestHipConnector.validateScon("user123", "INVALID"))
       }
-
       ex.getMessage must include("Invalid SCON")
+
+      val ex2 = intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "s1401234Q"))
+      }
+      ex2.getMessage must include("Invalid SCON")
+
+      val ex3 = intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "S3401234A"))
+      }
+      ex3.getMessage must include("Invalid SCON")
+
+      val ex4 = intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "S1401234a"))
+      }
+      ex4.getMessage must include("Invalid SCON")
     }
 
     "log and continue if audit fails" in {
@@ -149,32 +161,6 @@ class HipConnectorSpec extends HttpClientV2Helper {
       headerMaps.exists(_.get("X-Originating-System").contains(Constants.XOriginatingSystemHeader)) mustBe true
       headerMaps.exists(_.get("X-Transmitting-System").contains(Constants.XTransmittingSystemHeader)) mustBe true
       headerMaps.exists(_.get("Authorization").contains(s"Basic ${mockAppConfig.hipAuthorisationToken}")) mustBe true
-    }
-    
-    "normalize different SCON formats correctly" in {
-      implicit val hc = HeaderCarrier()
-      
-      val testCases = Seq(
-        "s1401234q" -> "S1401234Q",  // lowercase to uppercase
-        "S1401234Q" -> "S1401234Q",  // already correct
-        "S 140 1234 Q" -> "S1401234Q" // spaces removed
-      )
-      
-      testCases.foreach { case (input, expected) =>
-        requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
-        
-        val result = await(TestHipConnector.validateScon("user123", input))
-        
-        result mustBe HipValidateSconResponse(true)
-        
-        // Verify the normalized SCON was used in the URL
-        val urlCaptor = ArgumentCaptor.forClass(classOf[URL])
-        verify(mockHttp, atLeastOnce()).get(urlCaptor.capture())(any())
-        urlCaptor.getValue.toString must include(expected)
-        
-        reset(mockHttp)
-        when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
-      }
     }
 
   }

@@ -12,6 +12,12 @@ Guaranteed Minimum Pension microservice with HIP (Hosted Integration Platform) a
 - Caching for improved performance
 - Comprehensive test coverage (98.68% statement, 91.43% branch)
 
+## SCON Structure(^S[0124568]\d{6}(?![GIOSUVZ])[A-Z]$)
+- An SCON always begins with S (mandatory).
+- It’s followed by a digit indicating the scheme type (e.g. 0,1,2,4,5,6,8 depending on the scheme rules).
+- Then 6 more digits.
+- Suffix letter, must avoid certain letters [GIOSUVZ].
+
 API
 ----
 
