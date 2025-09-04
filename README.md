@@ -119,7 +119,7 @@ Content-Type: application/json
 
 2. Run the application:
    ```bash
-   sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
+   sbt run 
    ```
 
 ### Configuration
