@@ -120,7 +120,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
       !response.hasErrors, response.errorCodes, response.calcType, response.dualCalc, response.scon, cached, idType)
     )
     resultsEventResult.failed.foreach({
-      e: Throwable => logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
+      (e: Throwable) => logger.warn("[CalculationController][sendResultsEvent] : resultsEventResult: " + e.getMessage, e)
     })
   }
 }

@@ -31,7 +31,7 @@ class ValidateSconRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterAll
   with ScalaFutures {
-  override lazy val repository = new ValidateSconMongoRepository(mongoComponent, ExecutionContext.global)
+  override val repository: ValidateSconMongoRepository = new ValidateSconMongoRepository(mongoComponent, ExecutionContext.global)
 
   override protected def beforeAll(): Unit =  {
     dropDatabase()

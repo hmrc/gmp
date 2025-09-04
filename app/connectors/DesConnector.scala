@@ -23,7 +23,7 @@ import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
 import play.api.libs.json.Format.GenericFormat
-import play.api.libs.json.Json
+
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
@@ -33,7 +33,6 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.HttpReadsInstances.readFromJson
 import uk.gov.hmrc.http.client.HttpClientV2
 
 trait DesGetResponse
@@ -150,7 +149,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-   val result = http.get(url"$uri")
+    val result = http.get(url"$uri")
      .setHeader(npsHeaders:_*)
      .execute[HttpResponse]
      .map { response =>

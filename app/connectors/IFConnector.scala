@@ -22,7 +22,6 @@ import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._
@@ -209,7 +208,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
         detail = hc.toAuditDetails() ++ auditDetails))
 
     auditResult.failed.foreach({
-      e: Throwable => logger.warn("[IFConnector][doAudit] : auditResult: " + e.getMessage, e)
+      (e: Throwable) => logger.warn("[IFConnector][doAudit] : auditResult: " + e.getMessage, e)
     })
   }
 
