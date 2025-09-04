@@ -22,7 +22,6 @@ import com.google.inject.{Inject, Singleton}
 import metrics.ApplicationMetrics
 import models._
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.AuditExtensions._

@@ -45,23 +45,23 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
   ) foreach { t => t._2(t._1) }
 
   def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("nps-connector-timer").update(diff, unit)}
-    .failed.foreach(ex => "nps-connector-timer failed: metrics might be disabled")
+    .failed.foreach(_ => "nps-connector-timer failed: metrics might be disabled")
   def desConnectorStatus(code: Int): Unit = Try{registry.counter(s"nps-connector-status-$code").inc()}
-    .failed.foreach(ex => "nps-connector-status failed: metrics might be disabled")
+    .failed.foreach(_ => "nps-connector-status failed: metrics might be disabled")
 
   def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = Try {
     registry.timer("if-connector-timer").update(diff, unit)
   }
-    .failed.foreach(ex => "ifs-connector-timer failed: metrics might be disabled")
+    .failed.foreach(_ => "ifs-connector-timer failed: metrics might be disabled")
 
   def IFConnectorStatus(code: Int): Unit = Try {
     registry.counter(s"if-connector-status-$code").inc()
   }
-    .failed.foreach(ex => "if-connector-status failed: metrics might be disabled")
+    .failed.foreach(_ => "if-connector-status failed: metrics might be disabled")
   def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = Try{registry.timer("mci-connection-timer").update(diff, unit)}
-    .failed.foreach(ex => "mci-connection-timer failed: metrics might be disabled")
+    .failed.foreach(_ => "mci-connection-timer failed: metrics might be disabled")
   def mciLockCount(): Unit = Try{registry.counter("mci-lock-result-count").inc()}
-    .failed.foreach(ex => "mci-lock-result-count failed: metrics might be disabled")
+    .failed.foreach(_ => "mci-lock-result-count failed: metrics might be disabled")
   def mciErrorCount(): Unit = Try{registry.counter("mci-error-count").inc()}
-    .failed.foreach(ex => "mci-error-count failed: metrics might be disabled")
+    .failed.foreach(_ => "mci-error-count failed: metrics might be disabled")
 }

@@ -17,8 +17,7 @@
 package repositories
 
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.mongodb.scala.bson.BsonDocument
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
@@ -113,18 +112,18 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
         }
       }
 
-      "does not include one that matches the requests scon and nino" should {
-        "return None" in {
-          val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
-          val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
-          val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
-          val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
+        "does not include one that matches the requests scon and nino" should {
+          "return None" in {
+            val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
+            val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
+            val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
+            val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
 
-          Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
-          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-          gmpCalcResposne.isDefined shouldBe false
+            Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
+            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+            gmpCalcResposne.isDefined shouldBe false
+          }
         }
-      }
     }
   }
 }

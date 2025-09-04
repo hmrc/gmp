@@ -24,7 +24,7 @@ lazy val scoverageExcludePatterns = List(
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimumStmtTotal := 95,
+      ScoverageKeys.coverageMinimumStmtTotal := 97,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
@@ -48,10 +48,12 @@ lazy val scoverageExcludePatterns = List(
     )
     .settings(
       scalacOptions ++= List(
-        "-Yrangepos",
-        "-Xlint:-missing-interpolator,_",
         "-feature",
-        "-unchecked",
         "-language:implicitConversions",
-    ))
+        "-unchecked",
+        "-Wconf:src=routes/.*:s"
+      ),
+      scalacOptions := scalacOptions.value.distinct
+    )
     .settings(scalaVersion := "3.3.6")
+
