@@ -54,5 +54,5 @@ lazy val scoverageExcludePatterns = List(
         "-feature",
         "-unchecked",
         "-language:implicitConversions",
-    ))
+    )).disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
     .settings(scalaVersion := "2.13.16")
