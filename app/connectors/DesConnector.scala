@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.net.URLEncoder
+import java.net.{URL, URLEncoder}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -118,11 +118,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       "revalrate" -> request.revaluationRate, "revaldate" -> request.revaluationDate, "calctype" -> request.calctype,
       "request_earnings" -> request.requestEarnings, "dualcalc" -> request.dualCalc, "term_date" -> request.terminationDate)
 
-    val surname = URLEncoder.encode((if (request.surname.length < 3) {
-      request.surname
-    } else {
-      request.surname.substring(0, 3)
-    }).toUpperCase.trim, "UTF-8")
+    val surname = URLEncoder.encode(request.surname.take(3).toUpperCase.trim, "UTF-8")
 
     val firstname = URLEncoder.encode(request.firstForename.charAt(0).toUpper.toString, "UTF-8")
 
@@ -148,7 +144,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-   val result = http.get(url"$uri")
+   val result = http.get(new URL(uri))
      .setHeader(npsHeaders:_*)
      .execute[HttpResponse]
      .map { response =>
@@ -229,7 +225,7 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
     val url = s"$citizenDetailsUrl/citizen-details/$nino/etag"
 
     logger.debug(s"[DesConnector][getPersonDetails] Retrieving person details from $url")
-    http.get(url"$url")
+    http.get(new URL(url))
       .setHeader(npsHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
