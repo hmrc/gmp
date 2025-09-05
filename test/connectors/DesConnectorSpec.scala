@@ -211,7 +211,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
 
-        urlCaptor.getValue.toString must include("/surname/O'S/")
+        urlCaptor.getValue.toString must include("/surname/O%27S/")
       }
 
       "generate correct url when nino is not all uppercase" in {
