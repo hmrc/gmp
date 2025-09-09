@@ -54,6 +54,6 @@ lazy val scoverageExcludePatterns = List(
         "-Wconf:src=routes/.*:s"
       ),
       scalacOptions := scalacOptions.value.distinct
-    )
+    ).disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
     .settings(scalaVersion := "3.3.6")
 
