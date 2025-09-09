@@ -48,7 +48,7 @@ class HipConnector @Inject()(
       val formattedScon = normalizeScon(scon)
       val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
 
-      val headers = buildHeadersV1(hc)
+      val headers = buildHeadersV1
 
       doAudit("hipSconValidation", userId, formattedScon, None, None, None)
       
@@ -74,13 +74,12 @@ class HipConnector @Inject()(
         }
   }
 
-  private def getCorrelationId(hc: HeaderCarrier): String =
-    UUID.randomUUID().toString
+  private def getCorrelationId: String = UUID.randomUUID().toString
 
-  private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
+  private def buildHeadersV1: Seq[(String, String)] =
     Seq(
       Constants.OriginatorIdKey       -> appConfig.originatorIdValue,
-      "correlationId"                 -> getCorrelationId(hc),
+      "correlationId"                 -> getCorrelationId,
       "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
       appConfig.hipEnvironmentHeader,
       "X-Originating-System"         -> Constants.XOriginatingSystemHeader,
