@@ -17,13 +17,11 @@
 package config
 
 import javax.inject.{Inject, Singleton}
-import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.Base64
 
 @Singleton
 class AppConfig @Inject()(implicit
-                          configuration: Configuration,
                           servicesConfig: ServicesConfig,
                           val featureSwitches: FeatureSwitches
                          ) {

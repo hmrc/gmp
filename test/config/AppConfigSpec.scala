@@ -39,8 +39,8 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     )
   )
 
-  implicit val servicesConfig = new ServicesConfig(config)
-  implicit val featureSwitches = new FeatureSwitches(config)
+  implicit val servicesConfig: ServicesConfig = new ServicesConfig(config)
+  implicit val featureSwitches: FeatureSwitches = new FeatureSwitches(config)
 
   val appConfig = new AppConfig()
 

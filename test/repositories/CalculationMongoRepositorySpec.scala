@@ -17,12 +17,12 @@
 package repositories
 
 import models.{CalculationRequest, GmpCalculationResponse}
-import org.mongodb.scala.bson.BsonDocument
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
+import org.mongodb.scala.SingleObservableFuture
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
@@ -32,7 +32,7 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with ScalaFutures {
-  override lazy val repository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
+  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
 
   val calculationRequest: CalculationRequest =  CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
 
@@ -112,18 +112,18 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
         }
       }
 
-      "does not include one that matches the requests scon and nino" should {
-        "return None" in {
-          val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
-          val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
-          val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
-          val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
+        "does not include one that matches the requests scon and nino" should {
+          "return None" in {
+            val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
+            val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
+            val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
+            val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
 
-          Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
-          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-          gmpCalcResposne.isDefined shouldBe false
+            Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
+            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+            gmpCalcResposne.isDefined shouldBe false
+          }
         }
-      }
     }
   }
 }

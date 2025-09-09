@@ -144,35 +144,35 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
 
     val startTime = System.currentTimeMillis()
 
-   val result = http.get(new URL(uri))
-     .setHeader(npsHeaders:_*)
-     .execute[HttpResponse]
-     .map { response =>
-      metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      metrics.desConnectorStatus(response.status)
+     val result = http.get(new URL(uri))
+       .setHeader(npsHeaders:_*)
+       .execute[HttpResponse]
+       .map { response =>
+        metrics.desConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        metrics.desConnectorStatus(response.status)
 
-      response.status match {
-        case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
-        case BAD_REQUEST => {
-          logger.info("[DesConnector][calculate] : NPS returned code 400")
-          CalculationResponse(request.nino,
-            BAD_REQUEST,
-            None,
-            None,
-            None,
-            Scon(
-              request.scon.substring(PrefixStart, PrefixEnd).toUpperCase,
-              request.scon.substring(NumberStart, NumberEnd).toInt,
-              request.scon.substring(SuffixStart, SuffixEnd).toUpperCase
-            ),
-            Nil)
-        }
-        case errorStatus: Int => {
-          logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
-          throw UpstreamErrorResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+        response.status match {
+          case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
+          case BAD_REQUEST => {
+            logger.info("[DesConnector][calculate] : NPS returned code 400")
+            CalculationResponse(request.nino,
+              BAD_REQUEST,
+              None,
+              None,
+              None,
+              Scon(
+                request.scon.substring(PrefixStart, PrefixEnd).toUpperCase,
+                request.scon.substring(NumberStart, NumberEnd).toInt,
+                request.scon.substring(SuffixStart, SuffixEnd).toUpperCase
+              ),
+              Nil)
+          }
+          case errorStatus: Int => {
+            logger.error(s"[DesConnector][calculate] : NPS returned code $errorStatus and response body: ${response.body}")
+            throw UpstreamErrorResponse("DES connector calculate failed", errorStatus, INTERNAL_SERVER_ERROR)
+          }
         }
       }
-    }
 
     result
 
