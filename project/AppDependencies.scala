@@ -11,17 +11,15 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc"            %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-$playVersion"        % hmrcMongoVersion,
-    "uk.gov.hmrc"            %% "tax-year"                        % "5.0.0",
-    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.19" cross CrossVersion.full),
-    "com.github.ghik"         % "silencer-lib" % "1.7.19" % Provided cross CrossVersion.full
+    "uk.gov.hmrc"            %% "tax-year"                        % "5.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"            %% s"bootstrap-test-$playVersion"  % bootstrapVersion,
+    "org.scalatestplus"      %% "mockito-4-11"                  % "3.2.17.0",
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test-$playVersion" % hmrcMongoVersion,
     "org.scalatestplus.play" %% "scalatestplus-play"            % "7.0.1",
     "org.scalatestplus"      %% "scalacheck-1-17"               % "3.2.18.0",
-    "org.mockito"            %% "mockito-scala-scalatest"       % "1.17.37",
     "org.apache.pekko"       %% "pekko-testkit"                 % "1.0.3",
   ).map(_ % "test")
 

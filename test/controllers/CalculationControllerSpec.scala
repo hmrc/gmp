@@ -20,7 +20,7 @@ import base.BaseSpec
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector, IFGetHiddenRecordResponse, IFGetSuccessResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, IFConnector, IFGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse}
 import org.mockito.ArgumentMatchers.any

@@ -25,21 +25,20 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.{JsBoolean, Json}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, StubControllerComponentsFactory}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with StubControllerComponentsFactory with ScalaFutures {
 
   private val validateSconRequest = ValidateSconRequest("S1401234Q")
-  private val validateSconResponse = GmpValidateSconResponse(true)
+//  private val validateSconResponse = GmpValidateSconResponse(true)
   private val mockDesConnector = mock[DesConnector]
   private val mockHipConnector = mock[HipConnector]
   private val mockRepo = mock[ValidateSconRepository]
