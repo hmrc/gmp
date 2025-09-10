@@ -48,8 +48,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
     implicit request => {
 
       withJsonBody[CalculationRequest] { calculationRequest =>
-
-        val result = repository.findByRequest(calculationRequest).flatMap {
+        repository.findByRequest(calculationRequest).flatMap {
           case Some(cr) =>
             sendResultsEvent(cr, cached = true, userId)
             Future.successful(Ok(Json.toJson(cr)))
@@ -84,9 +83,6 @@ class CalculationController @Inject()(desConnector: DesConnector,
                 }
             }
         }
-        result.map {
-          res => res
-        }
       }
     }
   }
@@ -94,7 +90,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
   private def handleNewCalculation(userId: String, calculationRequest: CalculationRequest)(implicit hc: HeaderCarrier): Future[GmpCalculationResponse] = {
       (appConfig.isIfsEnabled, appConfig.isHipEnabled) match {
         case (true, false) => ifConnector.calculate(userId, calculationRequest).map(mapDesOrIfToGmp(_, calculationRequest))
-        case (_, true) => hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)).map(mapHipToGmp(_, calculationRequest))
+        case (false, true) => hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)).map(mapHipToGmp(_, calculationRequest))
         case _ => desConnector.calculate(userId, calculationRequest).map(mapDesOrIfToGmp(_, calculationRequest))
       }
   }

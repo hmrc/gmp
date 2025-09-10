@@ -25,11 +25,11 @@ case class ContributionsAndEarnings(taxYear: Int, contEarnings: String)
 
 object ContributionsAndEarnings {
   implicit val formats: OFormat[ContributionsAndEarnings] = Json.format[ContributionsAndEarnings]
-
+  private val contributionsAndEarningsBefore1987: Int = 1987
   //DES Transformation
   def createFromNpsLcntearn(earnings: NpsLcntearn): ContributionsAndEarnings = {
     ContributionsAndEarnings(earnings.rattd_tax_year, earnings.rattd_tax_year match {
-      case x if x < 1987 => f"${earnings.contributions_earnings}%1.2f"
+      case x if x < contributionsAndEarningsBefore1987 => f"${earnings.contributions_earnings}%1.2f"
       case _ => {
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.format(earnings.contributions_earnings)
@@ -40,7 +40,7 @@ object ContributionsAndEarnings {
   //HIP Transformation
   def createFromHipDetails(details: ContributionsAndEarningsDetails): ContributionsAndEarnings = {
     ContributionsAndEarnings(details.taxYear, details.taxYear match {
-      case x if x < 1987 => f"${details.contributionOrEarningsAmount}%1.2f"
+      case x if x < contributionsAndEarningsBefore1987 => f"${details.contributionOrEarningsAmount}%1.2f"
       case _ => {
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.format(details.contributionOrEarningsAmount)
