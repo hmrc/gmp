@@ -146,37 +146,43 @@ class HipConnectorSpec extends HttpClientV2Helper {
           result.schemeContractedOutNumberDetails mustBe "S2123456B"
         }
       }
-      "return a response for status 400" in {
+      "throw UpstreamErrorResponse for status 400" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(BAD_REQUEST, Json.toJson(successResponse).toString())
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        val httpResponse = HttpResponse(BAD_REQUEST, "Bad Request")
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        
+        val ex = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        ex.statusCode mustBe BAD_REQUEST
+        ex.message must include("Bad Request")
       }
 
-      "return fallback HipCalculationResponse for 403 Forbidden" in {
-        val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(FORBIDDEN, Json.toJson(successResponse).toString())
+      "throw UpstreamErrorResponse for 403 Forbidden" in {
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        val httpResponse = HttpResponse(FORBIDDEN, "Forbidden")
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        
+        val ex = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        ex.statusCode mustBe FORBIDDEN
+        ex.message must include("Forbidden")
       }
 
-      "return fallback HipCalculationResponse for 404 Not Found Request" in {
-        val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(NOT_FOUND, Json.toJson(successResponse).toString())
+      "throw UpstreamErrorResponse for 404 Not Found Request" in {
         val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        val httpResponse = HttpResponse(NOT_FOUND, "Not Found")
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        
+        val ex = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        ex.statusCode mustBe NOT_FOUND
+        ex.message must include("Not Found")
       }
 
       "fail the future if HTTP call fails" in {
@@ -191,14 +197,16 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       "throw UpstreamErrorResponse for error status code 500" in {
         val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
-        val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
-        val httpResponse = HttpResponse(500, Json.toJson(successResponse).toString())
+          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        val httpResponse = HttpResponse(500, "Internal Server Error")
         implicit val hc = HeaderCarrier()
         requestBuilderExecute(Future.successful(httpResponse))
-        await(TestHipConnector.calculate("user123", request)).map { result =>
-          result.schemeContractedOutNumberDetails mustBe "S2123456B"
+        
+        val ex = intercept[UpstreamErrorResponse] {
+          await(TestHipConnector.calculate("user123", request))
         }
+        ex.statusCode mustBe 500
+        ex.reportAs mustBe INTERNAL_SERVER_ERROR
       }
 
       "throw RuntimeException when JSON validation fails" in {
