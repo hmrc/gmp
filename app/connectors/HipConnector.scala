@@ -48,33 +48,28 @@ class HipConnector @Inject()(
 
   val hipBaseUrl: String = appConfig.hipUrl
   val calcURI = s"$hipBaseUrl/ni/gmp/calculation"
-  private val sconPattern = """^([S]?([0124568])\d{6}(?![GIOSUVZ])[A-Z]?)$""".r
+  private val sconPattern = "^S[0124568]\\d{6}(?![GIOSUVZ])[A-Z]$".r
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[HipValidateSconResponse] = {
-    if (appConfig.isHipEnabled) {
+
       val formattedScon = normalizeScon(scon)
       val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
 
-      val headers = buildHeadersV1(hc)
+      val headers = buildHeadersV1
 
       doAudit("hipSconValidation", userId, formattedScon, None, None, None)
 
-      logger.debug(s"[HipConnector][validateScon] Contacting HIP at $url with headers: $headers")
-
       val startTime = System.currentTimeMillis()
-
-      logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
-
 
       http.get(url"$url")
         .setHeader(headers: _*)
         .execute[HttpResponse]
         .map { response =>
-          metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+          val duration = System.currentTimeMillis() - startTime
+          metrics.hipConnectorTimer(duration, TimeUnit.MILLISECONDS)
           metrics.hipConnectorStatus(response.status)
-          logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
           response.status match {
-            case Status.OK | Status.UNPROCESSABLE_ENTITY =>
+            case Status.OK  =>
               response.json.as[HipValidateSconResponse]
 
             case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
@@ -84,9 +79,6 @@ class HipConnector @Inject()(
               throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
           }
         }
-    } else {
-      Future.failed(new IllegalStateException("HIP feature is disabled. validateScon cannot be called."))
-    }
   }
 
   private def normalizeScon(rawScon: String): String = {
@@ -104,7 +96,7 @@ class HipConnector @Inject()(
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
       Some(request.surname), Some(request.firstForename))
     val startTime = System.currentTimeMillis()
-    val headers = buildHeadersV1(hc)
+    val headers = buildHeadersV1
     logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
 
     http.post(url"$calcURI")
@@ -151,10 +143,13 @@ class HipConnector @Inject()(
       }
   }
 
-  private def buildHeadersV1(hc: HeaderCarrier): Seq[(String, String)] =
+  private def getCorrelationId: String = UUID.randomUUID().toString
+
+
+  private def buildHeadersV1: Seq[(String, String)] =
     Seq(
       Constants.OriginatorIdKey       -> appConfig.originatorIdValue,
-      "correlationId"                 -> getCorrelationId(hc),
+      "correlationId"                 -> getCorrelationId,
       "Authorization"                 -> s"Basic ${appConfig.hipAuthorisationToken}",
       appConfig.hipEnvironmentHeader,
       "X-Originating-System"         -> Constants.XOriginatingSystemHeader,
@@ -162,8 +157,7 @@ class HipConnector @Inject()(
       "X-Transmitting-System"        -> Constants.XTransmittingSystemHeader
     )
 
-  private def getCorrelationId(hc: HeaderCarrier): String =
-    UUID.randomUUID().toString
+
 
   private def doAudit(
                        auditTag: String,
@@ -173,12 +167,14 @@ class HipConnector @Inject()(
                        surname: Option[String],
                        firstForename: Option[String]
                      )(implicit hc: HeaderCarrier): Unit = {
+    val correlationId = hc.requestId.map(_.value).orElse(hc.sessionId.map(_.value)).getOrElse("unknown")
     val auditDetails: Map[String, String] = Map(
       "userId" -> userID,
       "scon" -> scon,
       "nino" -> nino.getOrElse(""),
       "firstName" -> firstForename.getOrElse(""),
-      "surname" -> surname.getOrElse("")
+      "surname" -> surname.getOrElse(""),
+      "correlationId" -> correlationId
     )
 
     auditConnector.sendEvent(

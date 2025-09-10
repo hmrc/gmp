@@ -208,7 +208,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
         detail = hc.toAuditDetails() ++ auditDetails))
 
     auditResult.failed.foreach({
-      e: Throwable => logger.warn("[IFConnector][doAudit] : auditResult: " + e.getMessage, e)
+      (e: Throwable) => logger.warn("[IFConnector][doAudit] : auditResult: " + e.getMessage, e)
     })
   }
 
