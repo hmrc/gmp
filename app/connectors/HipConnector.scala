@@ -19,24 +19,25 @@ package connectors
 import com.google.inject.{Inject, Singleton}
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models._
+import models.*
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.AuditExtensions.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
+import play.api.libs.ws.JsonBodyWritables.*
+import utils.LoggingUtils
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 @Singleton
 class HipConnector @Inject()(
@@ -51,34 +52,34 @@ class HipConnector @Inject()(
   private val sconPattern = "^S[0124568]\\d{6}(?![GIOSUVZ])[A-Z]$".r
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[HipValidateSconResponse] = {
+    // First validate the SCON format - this will throw IllegalArgumentException for invalid formats
+    val formattedScon = normalizeScon(scon)
+    
+    val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
+    val headers = buildHeadersV1
+    
+    doAudit("hipSconValidation", userId, formattedScon, None, None, None)
+    
+    val startTime = System.currentTimeMillis()
 
-      val formattedScon = normalizeScon(scon)
-      val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
+    http.get(url"$url")
+      .setHeader(headers: _*)
+      .execute[HttpResponse]
+      .map { response =>
+        val duration = System.currentTimeMillis() - startTime
+        metrics.hipConnectorTimer(duration, TimeUnit.MILLISECONDS)
+        metrics.hipConnectorStatus(response.status)
+        response.status match {
+          case Status.OK  =>
+            response.json.as[HipValidateSconResponse]
 
-      val headers = buildHeadersV1
+          case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
+            throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
 
-      doAudit("hipSconValidation", userId, formattedScon, None, None, None)
-
-      val startTime = System.currentTimeMillis()
-
-      http.get(url"$url")
-        .setHeader(headers: _*)
-        .execute[HttpResponse]
-        .map { response =>
-          val duration = System.currentTimeMillis() - startTime
-          metrics.hipConnectorTimer(duration, TimeUnit.MILLISECONDS)
-          metrics.hipConnectorStatus(response.status)
-          response.status match {
-            case Status.OK  =>
-              response.json.as[HipValidateSconResponse]
-
-            case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
-              throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
-
-            case other =>
-              throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
-          }
+          case other =>
+            throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
         }
+      }
   }
 
   private def normalizeScon(rawScon: String): String = {
@@ -92,7 +93,8 @@ class HipConnector @Inject()(
 
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
     logger.info(s"calculate url for HipConnector:$calcURI")
-    logger.info(s"[HipConnector calculate request body]:${Json.toJson(request)}")
+    val requestJson = Json.toJson(request).toString()
+    logger.info(s"[HipConnector][calculate] Request: ${LoggingUtils.redactCalculationData(requestJson)}")
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
       Some(request.surname), Some(request.firstForename))
     val startTime = System.currentTimeMillis()
@@ -104,7 +106,9 @@ class HipConnector @Inject()(
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>
-        logger.info(s"[HipConnector calculate response]:${response.status}:::::${response.headers.get("correlationId")}:::::${response.json}")
+        val responseBody = response.json.toString()
+        logger.info(s"[HipConnector][calculate] Response status: ${response.status}, correlationId: ${response.headers.get("correlationId")}")
+        logger.debug(s"[HipConnector][calculate] Response body: ${LoggingUtils.redactCalculationData(responseBody)}")
         metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
         metrics.hipConnectorStatus(response.status)
 
@@ -115,8 +119,9 @@ class HipConnector @Inject()(
               case JsError(errors) =>
                 val errorFields = errors.map(_._1.toString()).mkString(", ")
                 val responseBody = response.body.take(1000)
-                val detailedMsg = s"HIP returned invalid JSON (status: ${response.status}). Failed to parse fields: $errorFields. Body: $responseBody"
+                val detailedMsg = s"HIP returned invalid JSON (status: ${response.status}). Failed to parse fields: $errorFields"
                 logger.error(s"[HipConnector][calculate] $detailedMsg")
+                logger.debug(s"[HipConnector][calculate] Error response body: ${LoggingUtils.redactError(responseBody)}")
                 throw new RuntimeException(detailedMsg)
             }
           case status =>

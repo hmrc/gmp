@@ -49,4 +49,51 @@ object LoggingUtils {
         .take(100) // Limit error message length
     }
   }
+  
+  /**
+   * Redacts sensitive information from calculation requests and responses
+   * @param json The JSON string containing calculation data
+   * @return Redacted JSON string with sensitive information removed
+   */
+  def redactCalculationData(json: String): String = {
+    import play.api.libs.json._
+    
+    def redactField(js: JsValue, path: JsPath): JsValue = {
+      js.transform(path.json.prune).getOrElse(js) match {
+        case JsObject(fields) => 
+          JsObject(fields.map { case (k, v) => 
+            k -> (v match {
+              case JsString(s) if k.toLowerCase.contains("nino") || k.equalsIgnoreCase("scon") => 
+                JsString(redactSensitive(s))
+              case JsString(s) if k.toLowerCase.contains("name") || k.toLowerCase.contains("surname") => 
+                JsString(if (s.length > 3) s.take(1) + "*" * (s.length - 1) else "*" * s.length)
+              case o: JsObject => redactField(o, path)
+              case a: JsArray => 
+                JsArray(a.value.map(redactField(_, path)))
+              case _ => v
+            })
+          })
+        case a: JsArray => 
+          JsArray(a.value.map(redactField(_, path)))
+        case other => other
+      }
+    }
+    
+    try {
+      Json.parse(json) match {
+        case obj: JsObject => 
+          val redacted = redactField(obj, __)
+          Json.prettyPrint(redacted)
+        case arr: JsArray =>
+          val redacted = redactField(arr, __)
+          Json.prettyPrint(redacted)
+        case _ => json
+      }
+    } catch {
+      case _: Throwable => 
+        // If JSON parsing fails, return a redacted version of the string
+        redactError(json)
+    }
+  }
+  
 }

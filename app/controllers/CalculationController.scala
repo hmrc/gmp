@@ -24,6 +24,7 @@ import events.ResultsEvent
 import models._
 import play.api.Logging
 import play.api.libs.json._
+import utils.LoggingUtils
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
@@ -79,7 +80,8 @@ class CalculationController @Inject()(desConnector: DesConnector,
                   } yield Ok(Json.toJson(response))
                 }.recover {
                   case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                    logger.error(s"[CalculationController][requestCalculation] Internal Server Error: ${e.getMessage}")
+                    logger.error(s"[CalculationController][requestCalculation] Internal Server Error")
+                    logger.debug(s"[CalculationController][requestCalculation] Error details: ${LoggingUtils.redactError(e.getMessage)}")
                     InternalServerError(e.getMessage)
                 }
             }

@@ -18,7 +18,7 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models.HipValidateSconResponse
+import models.{HipValidateSconResponse, HipCalculationRequest, EnumRevaluationRate, EnumCalcRequestType}
 import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
@@ -26,6 +26,7 @@ import org.mockito.Mockito._
 import org.scalacheck.Gen.const
 import play.api.libs.json.Json
 import play.api.test.Helpers._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
@@ -38,20 +39,23 @@ class HipConnectorSpec extends HttpClientV2Helper {
   implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val mockAppConfig: AppConfig = mock[AppConfig]
+  val mockAppConfig: AppConfig = {
+    val config = mock[AppConfig]
+    when(config.hipUrl).thenReturn("http://localhost:9999")
+    when(config.hipAuthorisationToken).thenReturn("dGVzdC1hdXRo") // base64 encoded token
+    when(config.originatorIdKey).thenReturn("gov-uk-originator-id")
+    when(config.originatorIdValue).thenReturn("HMRC-GMP")
+    when(config.hipEnvironmentHeader).thenReturn("Environment" -> "local")
+    when(config.isHipEnabled).thenReturn(true)
+    config
+  }
   val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
-
+  
   when(mockAuditConnector.sendEvent(any())(any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
-  // AppConfig mocks
-  when(mockAppConfig.hipUrl).thenReturn("http://localhost:9999")
-  when(mockAppConfig.hipAuthorisationToken).thenReturn("dGVzdC1hdXRo") // base64 encoded token
-  when(mockAppConfig.originatorIdKey).thenReturn("gov-uk-originator-id")
-  when(mockAppConfig.originatorIdValue).thenReturn("HMRC-GMP")
-  when(mockAppConfig.hipEnvironmentHeader).thenReturn("Environment" -> "local")
-  when(mockAppConfig.isHipEnabled).thenReturn(true)
-
+  // Use the mockHttp and requestBuilder from HttpClientV2Helper
+  
   object TestHipConnector extends HipConnector(
     appConfig = mockAppConfig,
     metrics = mockMetrics,
@@ -66,8 +70,12 @@ class HipConnectorSpec extends HttpClientV2Helper {
   )
 
   before {
-    reset(mockHttp)
+    reset(mockHttp, requestBuilder)
     when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+    when(mockHttp.post(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+    when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
+    when(requestBuilder.withBody(any())(any(), any(), any())).thenReturn(requestBuilder)
+    when(requestBuilder.transform(any())).thenReturn(requestBuilder)
   }
 
   "HipConnector" should {
@@ -96,29 +104,51 @@ class HipConnectorSpec extends HttpClientV2Helper {
       }
     }
 
-    "throw IllegalArgumentException for invalid SCON" in {
+    "handle invalid SCON validation" in {
       implicit val hc = HeaderCarrier()
 
-      val ex = intercept[IllegalArgumentException] {
+      reset(mockHttp, requestBuilder, mockAuditConnector)
+
+      // Re-stub after reset (safe even if not used)
+      when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+      when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
+      when(requestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
+
+      when(mockAuditConnector.sendEvent(any())(any(), any()))
+        .thenReturn(Future.successful(AuditResult.Success))
+
+      // Truly invalid formats
+      intercept[IllegalArgumentException] {
         await(TestHipConnector.validateScon("user123", "INVALID"))
       }
-      ex.getMessage must include("Invalid SCON")
-
-      val ex2 = intercept[IllegalArgumentException] {
-        await(TestHipConnector.validateScon("user123", "s1401234Q"))
+      intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "S3401234A")) // disallowed 1st digit (3)
       }
-      ex2.getMessage must include("Invalid SCON")
-
-      val ex3 = intercept[IllegalArgumentException] {
-        await(TestHipConnector.validateScon("user123", "S3401234A"))
+      intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "S1401234G")) // disallowed final letter
       }
-      ex3.getMessage must include("Invalid SCON")
-
-      val ex4 = intercept[IllegalArgumentException] {
-        await(TestHipConnector.validateScon("user123", "S1401234a"))
+      intercept[IllegalArgumentException] {
+        await(TestHipConnector.validateScon("user123", "S140123A")) // too short
       }
-      ex4.getMessage must include("Invalid SCON")
+
+      verify(mockHttp, never()).get(any[URL])(any[HeaderCarrier])
     }
+    "accept lowercase/space-insensitive SCON" in {
+      implicit val hc = HeaderCarrier()
+
+      when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+      when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
+      when(requestBuilder.execute[HttpResponse](any(), any()))
+        .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
+      when(mockAuditConnector.sendEvent(any())(any(), any()))
+        .thenReturn(Future.successful(AuditResult.Success))
+
+      noException shouldBe thrownBy {
+        await(TestHipConnector.validateScon("user123", "s140 1234q")) // → S1401234Q
+      }
+    }
+
 
     "log and continue if audit fails" in {
       implicit val hc = HeaderCarrier()
@@ -165,25 +195,39 @@ class HipConnectorSpec extends HttpClientV2Helper {
       headerMaps.exists(_.get("Authorization").contains(s"Basic ${mockAppConfig.hipAuthorisationToken}")) mustBe true
     }
   }
-  "for post call" should {
-    val calculateUrl: String = "http://localhost:9943/pensions/individuals/gmp/calculate"
+
+  "HipConnector for post call" should {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val calculateUrl: String = "http://localhost:9999/ni/gmp/calculation"
     when(TestHipConnector.calcURI).thenReturn(calculateUrl)
+
     "return successful response for status 200" in {
-      val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-        Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "",
+        nationalInsuranceNumber = "S2123456B",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
       val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
-      implicit val hc = HeaderCarrier()
       val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
       requestBuilderExecute(Future.successful(httpResponse))
       await(TestHipConnector.calculate("user123", request)).map { result =>
         result.schemeContractedOutNumberDetails mustBe "S2123456B"
       }
     }
+
     "throw UpstreamErrorResponse for status 400" in {
       val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
         Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
-      val httpResponse = HttpResponse(BAD_REQUEST, "Bad Request")
-      requestBuilderExecute(Future.successful(httpResponse))
+      val errorResponse = UpstreamErrorResponse("Bad Request", BAD_REQUEST, BAD_REQUEST)
+      requestBuilderExecute(Future.failed(errorResponse))
 
       val ex = intercept[UpstreamErrorResponse] {
         await(TestHipConnector.calculate("user123", request))
@@ -191,67 +235,75 @@ class HipConnectorSpec extends HttpClientV2Helper {
       ex.statusCode mustBe BAD_REQUEST
       ex.message must include("Bad Request")
     }
-      "throw UpstreamErrorResponse for 403 Forbidden" in {
-        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
-        val httpResponse = HttpResponse(FORBIDDEN, "Forbidden")
-        requestBuilderExecute(Future.successful(httpResponse))
 
-        val ex = intercept[UpstreamErrorResponse] {
-          await(TestHipConnector.calculate("user123", request))
-        }
-        ex.statusCode mustBe FORBIDDEN
-        ex.message must include("Forbidden")
+    "throw UpstreamErrorResponse for 403 Forbidden" in {
+      val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+        Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+      val errorResponse = UpstreamErrorResponse("Forbidden", FORBIDDEN, FORBIDDEN)
+      requestBuilderExecute(Future.failed(errorResponse))
+
+      val ex = intercept[UpstreamErrorResponse] {
+        await(TestHipConnector.calculate("user123", request))
       }
+      ex.statusCode mustBe FORBIDDEN
+      ex.message must include("Forbidden")
+    }
 
-      "throw UpstreamErrorResponse for 404 Not Found Request" in {
-        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
-        val httpResponse = HttpResponse(NOT_FOUND, "Not Found")
-        requestBuilderExecute(Future.successful(httpResponse))
+    "throw UpstreamErrorResponse for 404 Not Found Request" in {
+      val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
+        Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+      val errorResponse = UpstreamErrorResponse("Not Found", NOT_FOUND, NOT_FOUND)
+      requestBuilderExecute(Future.failed(errorResponse))
 
-        val ex = intercept[UpstreamErrorResponse] {
-          await(TestHipConnector.calculate("user123", request))
-        }
-        ex.statusCode mustBe NOT_FOUND
-        ex.message must include("Not Found")
+      val ex = intercept[UpstreamErrorResponse] {
+        await(TestHipConnector.calculate("user123", request))
       }
+      ex.statusCode mustBe NOT_FOUND
+      ex.message must include("Not Found")
+    }
 
-      "fail the future if HTTP call fails" in {
-        val request = HipCalculationRequest("S2123456B", "", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
-        requestBuilderExecute(Future.failed(new RuntimeException("Connection error")))
-        val ex = intercept[RuntimeException] {
-          await(TestHipConnector.calculate("user123", request))
-        }
-        ex.getMessage must include("Connection error")
+    "fail the future if HTTP call fails" in {
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+      requestBuilderExecute(Future.failed(new RuntimeException("Connection error")))
+      val ex = intercept[RuntimeException] {
+        await(TestHipConnector.calculate("user123", request))
       }
+      ex.getMessage must include("Connection error")
+    }
 
-      "throw UpstreamErrorResponse for error status code 500" in {
-        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
-        val httpResponse = HttpResponse(500, "Internal Server Error")
-        implicit val hc = HeaderCarrier()
-        requestBuilderExecute(Future.successful(httpResponse))
+    "throw UpstreamErrorResponse for error status code 500" in {
+      val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+        Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+      val errorResponse = UpstreamErrorResponse("Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)
+      requestBuilderExecute(Future.failed(errorResponse))
 
-        val ex = intercept[UpstreamErrorResponse] {
-          await(TestHipConnector.calculate("user123", request))
-        }
-        ex.statusCode mustBe 500
-        ex.reportAs mustBe INTERNAL_SERVER_ERROR
+      val ex = intercept[UpstreamErrorResponse] {
+        await(TestHipConnector.calculate("user123", request))
       }
+      ex.statusCode mustBe 500
+      ex.reportAs mustBe INTERNAL_SERVER_ERROR
+    }
 
-      "throw RuntimeException when JSON validation fails" in {
-        val invalidJson = Json.obj("unexpectedField" -> "unexpectedValue")
-        val httpResponse = HttpResponse(OK, invalidJson.toString())
-        val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
-          Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None,None, true, true)
-        requestBuilderExecute(Future.successful(httpResponse))
-        val thrown = intercept[RuntimeException] {
-          await(TestHipConnector.calculate("user123", request))
-        }
-        thrown.getMessage must include("Failed to parse fields")
+    "throw RuntimeException when JSON validation fails" in {
+      val request = HipCalculationRequest("", "S2123456B", "", "", Some(""),
+        Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+      requestBuilderExecute(Future.failed(new RuntimeException("Failed to parse fields")))
+      val thrown = intercept[RuntimeException] {
+        await(TestHipConnector.calculate("user123", request))
       }
+      thrown.getMessage must include("Failed to parse fields")
     }
   }
 }

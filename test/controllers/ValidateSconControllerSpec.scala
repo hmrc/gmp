@@ -20,19 +20,18 @@ import base.BaseSpec
 import config.AppConfig
 import connectors.{DesConnector, HipConnector}
 import controllers.auth.FakeAuthAction
-import models.{ValidateSconResponse, GmpValidateSconResponse, HipValidateSconResponse, ValidateSconRequest}
+import models.{GmpValidateSconResponse, HipValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.Json
-import play.api.test.Helpers._
-import play.api.test.{FakeRequest, StubControllerComponentsFactory}
+import play.api.libs.json.{JsBoolean, Json}
+import play.api.test.Helpers.*
+import play.api.test.{FakeHeaders, FakeRequest, StubControllerComponentsFactory}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

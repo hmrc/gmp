@@ -21,7 +21,7 @@ import config.AppConfig
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, HipConnector, IFConnector, IFGetHiddenRecordResponse, IFGetSuccessResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, HipConnector, IFConnector, IFGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse, HipCalculationResponse}
 import org.mockito.ArgumentMatchers.any
@@ -34,7 +34,6 @@ import repositories.CalculationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

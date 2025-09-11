@@ -18,7 +18,6 @@ package utils
 
 
 import base.BaseSpec
-import utils.HipErrorCodeMapper
 
 class HipErrorCodeMapperSpec extends BaseSpec {
 

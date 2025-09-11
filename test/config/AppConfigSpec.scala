@@ -25,7 +25,7 @@ import java.util.Base64
 
 class AppConfigSpec extends AnyWordSpec with Matchers {
 
-  implicit val config: Configuration = Configuration.from(
+  private val testConfig = Configuration.from(
     Map(
       "microservice.services.hip.host"              -> "localhost",
       "microservice.services.hip.port"              -> "8080",
@@ -39,10 +39,10 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     )
   )
 
-  implicit val servicesConfig = new ServicesConfig(config)
-  implicit val featureSwitches = new FeatureSwitches(config)
-
-  val appConfig = new AppConfig()
+  private val servicesConfig = new ServicesConfig(testConfig)
+  private val featureSwitches = new FeatureSwitches(testConfig)
+  
+  val appConfig = new AppConfig(servicesConfig, featureSwitches)
 
 
   "AppConfig" should {

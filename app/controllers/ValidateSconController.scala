@@ -27,7 +27,8 @@ import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.LoggingUtils._
+import utils.LoggingUtils
+import utils.LoggingUtils.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -72,18 +73,22 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
           validationFuture.recover {
             case e: IllegalArgumentException =>
               logger.warn(s"[ValidateSconController][validateScon] Invalid SCON format for SCON: $redactedScon")
+              logger.debug(s"[ValidateSconController][validateScon] Validation error: ${LoggingUtils.redactError(e.getMessage)}")
               BadRequest(Json.obj("error" -> "Invalid SCON format"))
 
             case e: UpstreamErrorResponse if e.statusCode == 400 =>
               logger.warn(s"[ValidateSconController][validateScon] Bad request for SCON: $redactedScon - ${e.statusCode}")
+              logger.debug(s"[ValidateSconController][validateScon] Bad request details: ${LoggingUtils.redactError(e.getMessage)}")
               BadRequest(Json.obj("error" -> "Invalid request", "details" -> "Bad request"))
 
             case e: UpstreamErrorResponse if e.statusCode == 500 =>
               logger.error(s"[ValidateSconController][validateScon] Service error for SCON: $redactedScon - ${e.statusCode}")
+              logger.debug(s"[ValidateSconController][validateScon] Service error details: ${LoggingUtils.redactError(e.getMessage)}")
               InternalServerError(Json.obj("error" -> "Service unavailable"))
 
             case e: Exception =>
               logger.error(s"[ValidateSconController][validateScon] Unexpected error for SCON: $redactedScon - ${e.getClass.getSimpleName}")
+              logger.debug(s"[ValidateSconController][validateScon] Unexpected error details: ${LoggingUtils.redactError(e.getMessage)}", e)
               InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
           }
       }
