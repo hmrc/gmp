@@ -18,21 +18,23 @@ package connectors
 
 import config.{AppConfig, Constants}
 import metrics.ApplicationMetrics
-import models.{HipValidateSconResponse, HipCalculationRequest, EnumRevaluationRate, EnumCalcRequestType}
-import models._
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import models.{EnumCalcRequestType, EnumRevaluationRate, HipCalculationRequest, HipValidateSconResponse}
+import models.*
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.*
 import org.scalacheck.Gen.const
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import play.api.libs.json.JsResultException
 
 import java.net.URL
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class HipConnectorSpec extends HttpClientV2Helper {
 
@@ -195,6 +197,232 @@ class HipConnectorSpec extends HttpClientV2Helper {
       headerMaps.exists(_.get("Authorization").contains(s"Basic ${mockAppConfig.hipAuthorisationToken}")) mustBe true
     }
   }
+
+
+  "return JsResultException when 200 but body is not HipValidateSconResponse" in {
+    implicit val hc = HeaderCarrier()
+    // 200 with an unexpected shape
+    requestBuilderExecute(Future.successful(HttpResponse(OK, """{"unexpected":"field"}""")))
+    intercept[JsResultException] {
+      await(TestHipConnector.validateScon("user123", "S1401234Q"))
+    }
+  }
+
+  "propagate transport failure (Future.failed) from http.get" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.failed(new RuntimeException("boom")))
+    val ex = intercept[RuntimeException] {
+      await(TestHipConnector.validateScon("user123", "S1401234Q"))
+    }
+    ex.getMessage must include("boom")
+  }
+
+  "map HTTP 400 response to UpstreamErrorResponse (reportAs=400)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(BAD_REQUEST, "Bad req body")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)))
+    }
+    ex.statusCode mustBe BAD_REQUEST
+    ex.reportAs mustBe BAD_REQUEST
+    ex.message must include("HIP connector calculate failed: Bad Request")
+  }
+
+  "map HTTP 403 response to UpstreamErrorResponse (reportAs=403)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(FORBIDDEN, "Forbidden body")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)))
+    }
+    ex.statusCode mustBe FORBIDDEN
+    ex.reportAs mustBe FORBIDDEN
+  }
+
+  "map HTTP 404 response to UpstreamErrorResponse (reportAs=404)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(NOT_FOUND, "not found")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)))
+    }
+    ex.statusCode mustBe NOT_FOUND
+    ex.reportAs mustBe NOT_FOUND
+  }
+
+  "map HTTP 500 response to UpstreamErrorResponse (reportAs=500)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "ise")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)))
+    }
+    ex.statusCode mustBe INTERNAL_SERVER_ERROR
+    ex.reportAs mustBe INTERNAL_SERVER_ERROR
+  }
+
+  "map unexpected HTTP 429 to UpstreamErrorResponse (reportAs=429)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(429, "Too Many Requests")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)))
+    }
+    ex.statusCode mustBe 429
+    ex.reportAs mustBe 429
+  }
+
+  "throw RuntimeException with detailed message when 200 but JSON cannot be parsed" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(OK, """{"unexpected":"value"}""")))
+    val ex = intercept[RuntimeException] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
+    }
+    ex.getMessage must include("HIP returned invalid JSON")
+    ex.getMessage must include("Failed to parse fields")
+  }
+  "complete successfully even if audit sendEvent fails" in {
+    implicit val hc = HeaderCarrier()
+    when(mockAuditConnector.sendEvent(any())(any(), any()))
+      .thenReturn(Future.failed(new RuntimeException("audit down")))
+    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
+
+    val result = await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
+    result.schemeContractedOutNumberDetails mustBe "S2123456B"
+  }
+  "set required headers on calculate (correlationId + auth + originator)" in {
+    implicit val hc = HeaderCarrier(requestId = Some(RequestId("rid")), sessionId = Some(SessionId("sid")))
+    val headerCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
+
+    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
+    await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
+
+    verify(requestBuilder, atLeastOnce()).setHeader(headerCaptor.capture(): _*)
+    val headerMaps = headerCaptor.getAllValues.asScala.map(_.toMap)
+
+    val corr = headerMaps.flatMap(_.get("correlationId")).headOption
+    corr must be(defined)
+    corr.get must fullyMatch regex "[0-9a-fA-F\\-]{36}"
+
+    headerMaps.exists(_.get(Constants.OriginatorIdKey).contains(mockAppConfig.originatorIdValue)) mustBe true
+    headerMaps.exists(_.get("Authorization").exists(_.startsWith("Basic "))) mustBe true
+    headerMaps.exists(_.contains("X-Originating-System")) mustBe true
+    headerMaps.exists(_.contains("X-Transmitting-System")) mustBe true
+    headerMaps.exists(_.contains("X-Receipt-Date")) mustBe true
+  }
+  "record metrics on success" in {
+    implicit val hc = HeaderCarrier()
+    val body = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    requestBuilderExecute(Future.successful(HttpResponse(OK, body)))
+
+    await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
+
+    verify(mockMetrics, atLeastOnce()).hipConnectorStatus(OK)
+    verify(mockMetrics, atLeastOnce())
+      .hipConnectorTimer(ArgumentMatchers.anyLong(), ArgumentMatchers.eq(TimeUnit.MILLISECONDS))
+  }
+
+  // ---------- calculate: 200 but NON-JSON body ----------
+  "return RuntimeException when 200 but non-JSON body" in {
+    implicit val hc = HeaderCarrier()
+    // Body is plain text, not JSON
+    requestBuilderExecute(Future.successful(HttpResponse(OK, "not-json at all")))
+    val ex = intercept[RuntimeException] {
+      await(
+        TestHipConnector.calculate(
+          "user123",
+          HipCalculationRequest("", "S2123456B", "s", "f", Some(""),
+            Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)
+        )
+      )
+    }
+    ex.getMessage must include("non-JSON body with 200")
+  }
+
+  // ---------- calculate: ensure headers are propagated in UpstreamErrorResponse ----------
+  "propagate response headers in error (calculate)" in {
+    implicit val hc = HeaderCarrier()
+    val hdrs = Map("correlationId" -> Seq("cid-123"))
+    requestBuilderExecute(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "ise", headers = hdrs)))
+
+    val ex = intercept[UpstreamErrorResponse] {
+      await(
+        TestHipConnector.calculate(
+          "user123",
+          HipCalculationRequest("", "S2123456B", "s", "f", Some(""),
+            Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        )
+      )
+    }
+    ex.statusCode mustBe INTERNAL_SERVER_ERROR
+    ex.headers.get("correlationId").flatMap(_.headOption) mustBe Some("cid-123")
+  }
+
+  // ---------- calculate: 429 should use “Client error (Status: 429)” message ----------
+  "map HTTP 429 to UpstreamErrorResponse with client-error message" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(429, "Too Many Requests")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(
+        TestHipConnector.calculate(
+          "user123",
+          HipCalculationRequest("", "S2123456B", "s", "f", Some(""),
+            Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.SPA), None, None, true, true)
+        )
+      )
+    }
+    ex.statusCode mustBe 429
+    ex.reportAs mustBe 429
+    ex.getMessage must include("HIP connector calculate failed: Client error (Status: 429)")
+  }
+
+  // ---------- validateScon: unexpected status (e.g., 418) uses “unexpected response” path ----------
+  "validateScon returns UpstreamErrorResponse for unexpected status (418)" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(418, "teapot")))
+    val ex = intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.validateScon("user123", "S1401234Q"))
+    }
+    ex.statusCode mustBe 418
+    ex.reportAs mustBe INTERNAL_SERVER_ERROR
+    ex.getMessage must include("unexpected response")
+  }
+
+  // ---------- validateScon: metrics recorded on non-200 ----------
+  "validateScon records metrics on HTTP error" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(NOT_FOUND, "nope")))
+    intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.validateScon("user123", "S1401234Q"))
+    }
+    verify(mockMetrics, atLeastOnce()).hipConnectorStatus(NOT_FOUND)
+  }
+
+
+  "record metrics on HTTP error" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "ise")))
+    intercept[UpstreamErrorResponse] {
+      await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
+    }
+    verify(mockMetrics, atLeastOnce()).hipConnectorStatus(INTERNAL_SERVER_ERROR)
+  }
+  "normalizeScon strips spaces and uppercases valid SCON" in {
+    implicit val hc = HeaderCarrier()
+    requestBuilderExecute(Future.successful(HttpResponse(OK, """{"schemeContractedOutNumberExists":true}""")))
+    noException shouldBe thrownBy {
+      await(TestHipConnector.validateScon("user123", "s140 1234q"))
+    }
+  }
+
+  "normalizeScon rejects disallowed final letters and patterns" in {
+    implicit val hc = HeaderCarrier()
+    intercept[IllegalArgumentException] {
+      await(TestHipConnector.validateScon("user123", "S1401234G")) // G not allowed by regex
+    }
+    intercept[IllegalArgumentException] {
+      await(TestHipConnector.validateScon("user123", "S3401234A")) // '3' not in allowed set
+    }
+  }
+
 
   "HipConnector for post call" should {
     implicit val hc: HeaderCarrier = HeaderCarrier()

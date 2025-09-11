@@ -93,60 +93,72 @@ class HipConnector @Inject()(
 
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
     logger.info(s"calculate url for HipConnector:$calcURI")
+
     val requestJson = Json.toJson(request).toString()
-    logger.info(s"[HipConnector][calculate] Request: ${LoggingUtils.redactCalculationData(requestJson)}")
-    doAudit("gmpCalculation", userId, request.schemeContractedOutNumber, Some(request.nationalInsuranceNumber),
-      Some(request.surname), Some(request.firstForename))
+
+    doAudit("gmpCalculation", userId, request.schemeContractedOutNumber,
+      Some(request.nationalInsuranceNumber), Some(request.surname), Some(request.firstForename))
+
     val startTime = System.currentTimeMillis()
-    val headers = buildHeadersV1
-    logger.info(s"[HipConnector] Headers being set: ${headers.mkString(", ")}")
+    val headers   = buildHeadersV1
+
 
     http.post(url"$calcURI")
       .setHeader(headers: _*)
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>
-        val responseBody = response.json.toString()
-        logger.info(s"[HipConnector][calculate] Response status: ${response.status}, correlationId: ${response.headers.get("correlationId")}")
-        logger.debug(s"[HipConnector][calculate] Response body: ${LoggingUtils.redactCalculationData(responseBody)}")
-        metrics.hipConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+        val took = System.currentTimeMillis() - startTime
+        metrics.hipConnectorTimer(took, TimeUnit.MILLISECONDS)
         metrics.hipConnectorStatus(response.status)
+
+        val cid = response.headers.get("correlationId").flatMap(_.headOption).getOrElse("n/a")
+        logger.debug(s"[HipConnector][calculate] Response status: ${response.status}, correlationId: $cid")
 
         response.status match {
           case OK =>
-            response.json.validate[HipCalculationResponse] match {
-              case JsSuccess(value, _) => value
-              case JsError(errors) =>
-                val errorFields = errors.map(_._1.toString()).mkString(", ")
-                val responseBody = response.body.take(1000)
-                val detailedMsg = s"HIP returned invalid JSON (status: ${response.status}). Failed to parse fields: $errorFields"
+            // Only now parse JSON; log redacted raw body safely
+            logger.debug(s"[HipConnector][calculate] Response body: ${LoggingUtils.redactCalculationData(response.body)}")
+
+            scala.util.Try(Json.parse(response.body)).toOption match {
+              case Some(js) =>
+                js.validate[HipCalculationResponse] match {
+                  case JsSuccess(value, _) => value
+                  case JsError(errors) =>
+                    val errorFields = errors.map(_._1.toString()).mkString(", ")
+                    val detailedMsg =
+                      s"HIP returned invalid JSON (status: ${response.status}). Failed to parse fields: $errorFields"
+                    logger.error(s"[HipConnector][calculate] $detailedMsg")
+                    throw new RuntimeException(detailedMsg)
+                }
+              case None =>
+                val detailedMsg = s"HIP returned non-JSON body with 200. Body: ${response.body.take(300)}"
                 logger.error(s"[HipConnector][calculate] $detailedMsg")
-                logger.debug(s"[HipConnector][calculate] Error response body: ${LoggingUtils.redactError(responseBody)}")
                 throw new RuntimeException(detailedMsg)
             }
+
           case status =>
-            val (logLevel, message, reportAs) = status match {
-              case BAD_REQUEST =>
-                (logger.warn(_: String), "Bad Request", BAD_REQUEST)
-              case FORBIDDEN =>
-                (logger.warn(_: String), "Forbidden", FORBIDDEN)
-              case NOT_FOUND =>
-                (logger.warn(_: String), "Not Found", NOT_FOUND)
+            val (log, message, reportAs) = status match {
+              case BAD_REQUEST => (logger.warn(_: String), "Bad Request", BAD_REQUEST)
+              case FORBIDDEN   => (logger.warn(_: String), "Forbidden",   FORBIDDEN)
+              case NOT_FOUND   => (logger.warn(_: String), "Not Found",   NOT_FOUND)
               case _ if status >= 500 =>
                 (logger.error(_: String), s"Unexpected error (Status: $status)", INTERNAL_SERVER_ERROR)
               case _ =>
                 (logger.warn(_: String), s"Client error (Status: $status)", status)
             }
 
-            logLevel(s"[HipConnector][calculate] : HIP returned $status ($message). Body: ${response.body}")
+
             throw UpstreamErrorResponse(
-              message = s"HIP connector calculate failed: $message",
+              message   = s"HIP connector calculate failed: $message",
               statusCode = status,
-              reportAs = reportAs
+              reportAs   = reportAs,
+              headers    = response.headers
             )
         }
       }
   }
+
 
   private def getCorrelationId: String = UUID.randomUUID().toString
 

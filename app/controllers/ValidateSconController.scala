@@ -47,12 +47,10 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
 
       repository.findByScon(validateSconRequest.scon).flatMap {
         case Some(cachedResponse) =>
-          logger.debug(s"[ValidateSconController][validateScon] Cache hit for SCON: $redactedScon")
           Future.successful(Ok(Json.toJson(cachedResponse)))
 
         case None =>
           val validationFuture = if (appConfig.isHipEnabled) {
-            logger.debug(s"[ValidateSconController][validateScon] Using HIP connector for SCON: $redactedScon")
             hipConnector.validateScon(userId, validateSconRequest.scon)
               .map { hipResponse =>
                 val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
@@ -61,10 +59,8 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
                 Ok(Json.toJson(transformedResult))
               }
           } else {
-            logger.debug(s"[ValidateSconController][validateScon] Using DES connector for SCON: $redactedScon")
             desConnector.validateScon(userId, validateSconRequest.scon).map { desResponse =>
               val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(desResponse)
-              logger.debug(s"[ValidateSconController][validateScon] DES validation successful for SCON: $redactedScon")
               repository.insertByScon(validateSconRequest.scon, transformedResult)
               Ok(Json.toJson(transformedResult))
             }
@@ -78,12 +74,10 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
 
             case e: UpstreamErrorResponse if e.statusCode == 400 =>
               logger.warn(s"[ValidateSconController][validateScon] Bad request for SCON: $redactedScon - ${e.statusCode}")
-              logger.debug(s"[ValidateSconController][validateScon] Bad request details: ${LoggingUtils.redactError(e.getMessage)}")
               BadRequest(Json.obj("error" -> "Invalid request", "details" -> "Bad request"))
 
             case e: UpstreamErrorResponse if e.statusCode == 500 =>
               logger.error(s"[ValidateSconController][validateScon] Service error for SCON: $redactedScon - ${e.statusCode}")
-              logger.debug(s"[ValidateSconController][validateScon] Service error details: ${LoggingUtils.redactError(e.getMessage)}")
               InternalServerError(Json.obj("error" -> "Service unavailable"))
 
             case e: Exception =>

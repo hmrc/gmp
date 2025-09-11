@@ -72,21 +72,34 @@ class CalculationControllerSpec extends BaseSpec {
     reset(mockDesConnector)
     reset(mockIfConnector)
     reset(mockHipConnector)
+    reset(mockAuditConnector)
+    
+    // Default mock configurations
     when(mockAppConfig.isIfsEnabled).thenReturn(true)
     when(mockAppConfig.isHipEnabled).thenReturn(true)
-    when(mockIfConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(IFGetSuccessResponse))
-    when(mockDesConnector.getPersonDetails(any())(any())).thenReturn(Future.successful(DesGetSuccessResponse))
+    
+    // Default repository behavior - return None for cache miss
+    when(mockRepo.findByRequest(any()))
+      .thenReturn(Future.successful(None))
+    when(mockRepo.insertByRequest(any(), any()))
+      .thenReturn(Future.successful(true))
+    
+    // Default connector behaviors
+    when(mockIfConnector.getPersonDetails(any())(any()))
+      .thenReturn(Future.successful(IFGetSuccessResponse))
+    when(mockDesConnector.getPersonDetails(any())(any()))
+      .thenReturn(Future.successful(DesGetSuccessResponse))
+    
+    // Default audit behavior
+    when(mockAuditConnector.sendEvent(any())(any(), any()))
+      .thenReturn(Future.successful(AuditResult.Success))
   }
 
   private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   "CalculationController" must {
-
     "when calculation is not in the cache" must {
-
-      "respond to a valid calculation request with OK using Des connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+      "must respond to a valid calculation request with OK using Des connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
