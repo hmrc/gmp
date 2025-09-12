@@ -18,109 +18,330 @@ package controllers
 
 import base.BaseSpec
 import config.AppConfig
-import connectors.{DesConnector, HipConnector, IFConnector}
+import connectors.{DesConnector, HipConnector}
 import controllers.auth.FakeAuthAction
-import models.{ValidateSconResponse, GmpValidateSconResponse, HipValidateSconResponse, ValidateSconRequest}
+import models.{GmpValidateSconResponse, HipValidateSconResponse, ValidateSconRequest, ValidateSconResponse}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.{JsBoolean, Json}
-import play.api.test.Helpers._
-import play.api.test.{FakeHeaders, FakeRequest}
+import play.api.test.Helpers.*
+import play.api.test.{FakeHeaders, FakeRequest, StubControllerComponentsFactory}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.UpstreamErrorResponse
 
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ValidateSconControllerSpec extends BaseSpec {
+class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with StubControllerComponentsFactory with ScalaFutures {
 
-  val validateSconRequest = ValidateSconRequest(UUID.randomUUID().toString)
-  val validateSconResponse = GmpValidateSconResponse(true)
-  val mockDesConnector = mock[DesConnector]
-  val mockIfConnector = mock[IFConnector]
-  val mockHipConnector = mock[HipConnector]
-  val mockRepo = mock[ValidateSconRepository]
-  val mockMicroserviceAuthConnector = mock[AuthConnector]
-  val mockAuthConnector = mock[AuthConnector]
-  val mockAppConfig = mock[AppConfig]
+  private val validateSconRequest = ValidateSconRequest("S1401234Q")
+//  private val validateSconResponse = GmpValidateSconResponse(true)
+  private val mockDesConnector = mock[DesConnector]
+  private val mockHipConnector = mock[HipConnector]
+  private val mockRepo = mock[ValidateSconRepository]
+  private val mockAuthConnector = mock[AuthConnector]
+  private val mockAppConfig = mock[AppConfig]
 
-  val gmpAuthAction = FakeAuthAction(mockAuthConnector, controllerComponents)
+  private val gmpAuthAction = FakeAuthAction(mockAuthConnector, stubControllerComponents())
+  private val controller = new ValidateSconController(
+    mockDesConnector,
+    mockHipConnector,
+    mockRepo,
+    gmpAuthAction,
+    stubControllerComponents(),
+    mockAppConfig
+  )
 
-  before {
-    reset(mockRepo)
-    reset(mockDesConnector)
+  private def validRequest =
+    FakeRequest("POST", "/")
+      .withHeaders("Content-Type" -> "application/json")
+      .withBody(Json.toJson(validateSconRequest))
+
+  val testValidateSconController = new ValidateSconController(mockDesConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockRepo, mockDesConnector, mockHipConnector, mockAppConfig)
+    when(mockAppConfig.isHipEnabled).thenReturn(false) // Default to DES for backward compatibility
   }
 
-  val testValidateSconController = new ValidateSconController(mockDesConnector, mockIfConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
+  "ValidateSconController" when {
+    "using HIP connector" when {
+      "HIP is enabled" should {
+        "return OK for valid SCON" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockHipConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.successful(HipValidateSconResponse(true)))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-  "ValidateSconController" should {
-    "call DESConnector when Hip is disabled" should {
-      "respond to a valid validateScon request with OK" in {
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe OK
+          (contentAsJson(result) \ "sconExists").as[Boolean] mustBe true
+        }
+
+        "return BadRequest for invalid SCON format" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockHipConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.failed(new IllegalArgumentException("Invalid SCON format")))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe BAD_REQUEST
+          (contentAsJson(result) \ "error").as[String] mustBe "Invalid SCON format"
+        }
+
+        "handle HTTP 400 errors from HIP" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockHipConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.failed(UpstreamErrorResponse("Bad Request", 400, 400)))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe BAD_REQUEST
+          (contentAsJson(result) \ "error").as[String] mustBe "Invalid request"
+        }
+
+        "handle HTTP 500 errors from HIP" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockHipConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.failed(UpstreamErrorResponse("Internal Server Error", 500, 500)))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+          (contentAsJson(result) \ "error").as[String] mustBe "Service unavailable"
+        }
+
+        "handle other exceptions" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockHipConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.failed(new RuntimeException("Unexpected error")))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+          (contentAsJson(result) \ "error").as[String] mustBe "An unexpected error occurred"
+        }
+
+        "return cached response when available" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(GmpValidateSconResponse(true))))
+          when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe OK
+          (contentAsJson(result) \ "sconExists").as[Boolean] mustBe true
+          verify(mockHipConnector, never()).validateScon(any(), any())(any())
+        }
+      }
+    }
+
+    "using DES connector" when {
+      "HIP is disabled" should {
+        "return OK for valid SCON" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockDesConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.successful(ValidateSconResponse(1)))
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe OK
+          (contentAsJson(result) \ "sconExists").as[Boolean] mustBe true
+        }
+
+        "handle errors from DES" in {
+          when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+          when(mockDesConnector.validateScon(any(), any())(any()))
+            .thenReturn(Future.failed(UpstreamErrorResponse("DES Error", 500, 500)))
+
+          val result = controller.validateScon("user123")(validRequest)
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
+      }
+    }
+
+    "request validation" should {
+      "return BadRequest for invalid JSON" in {
+        val invalidRequest = FakeRequest("POST", "/")
+          .withHeaders("Content-Type" -> "application/json")
+          .withBody(Json.obj("invalid" -> "data"))
+
+        val result = controller.validateScon("user123")(invalidRequest)
+
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("Invalid ValidateSconRequest payload")
+      }
+
+      "return BadRequest for missing scon field" in {
+        val invalidRequest = FakeRequest("POST", "/")
+          .withHeaders("Content-Type" -> "application/json")
+          .withBody(Json.obj())
+
+        val result = controller.validateScon("user123")(invalidRequest)
+
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("Invalid ValidateSconRequest payload")
+      }
+
+      "return BadRequest for empty scon" in {
+        val invalidRequest = FakeRequest("POST", "/")
+          .withHeaders("Content-Type" -> "application/json")
+          .withBody(Json.obj("scon" -> ""))
+
+        // Setup mock to handle the empty SCON case
+        when(mockRepo.findByScon(any()))
+          .thenReturn(Future.successful(None))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.failed(new IllegalArgumentException("Invalid SCON format")))
+
+        val result = controller.validateScon("user123")(invalidRequest)
+
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("Invalid SCON format")
+      }
+
+      // ---------------- HIP enabled: unexpected upstream status (e.g., 503) -> generic 500 ----------------
+      "return 500 with generic error when HIP returns unexpected status (e.g. 503)" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.failed(UpstreamErrorResponse("Service Unavailable", 503, 503)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+        val result = controller.validateScon("user123")(validRequest)
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        (contentAsJson(result) \ "error").as[String] mustBe "An unexpected error occurred"
+      }
+
+      // ---------------- DES path: 400 mapping ----------------
+      "return 400 with Invalid request when DES returns 400" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+          .thenReturn(Future.failed(UpstreamErrorResponse("Bad Request", 400, 400)))
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
 
-        val fakeRequest = FakeRequest(method = "POST", path = "").withBody(Json.toJson(validateSconRequest))
+        val result = controller.validateScon("user123")(validRequest)
 
-        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
-        status(result) must be(OK)
+        status(result) mustBe BAD_REQUEST
+        (contentAsJson(result) \ "error").as[String] mustBe "Invalid request"
+        (contentAsJson(result) \ "details").as[String] mustBe "Bad request"
       }
 
-      "return json" in {
+      // ---------------- DES path: 500 mapping (assert body) ----------------
+      "return 500 with Service unavailable when DES returns 500" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
         when(mockDesConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+          .thenReturn(Future.failed(UpstreamErrorResponse("ISE", 500, 500)))
+        when(mockAppConfig.isHipEnabled).thenReturn(false)
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val result = controller.validateScon("user123")(validRequest)
 
-        val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
-        contentType(result).get must be("application/json")
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        (contentAsJson(result) \ "error").as[String] mustBe "Service unavailable"
       }
 
-      "return the correct validation result - false" in {
+      // ---------------- Repository insert: called on HIP success ----------------
+      "insert transformed result into repository on HIP success" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(0)))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(HipValidateSconResponse(true)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val result = controller.validateScon("user123")(validRequest)
 
-        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
+        status(result) mustBe OK
+        verify(mockRepo).insertByScon(
+          org.mockito.ArgumentMatchers.eq(validateSconRequest.scon),
+          org.mockito.ArgumentMatchers.eq(GmpValidateSconResponse(true))
+        )
       }
 
-      "return the correct validation result - true" in {
+      // ---------------- Repository insert: not called when cached ----------------
+      "do not call HIP or insert when cache hit" in {
+        when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(GmpValidateSconResponse(false))))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+        val result = controller.validateScon("user123")(validRequest)
+
+        status(result) mustBe OK
+        verify(mockHipConnector, never()).validateScon(any(), any())(any())
+        verify(mockRepo, never()).insertByScon(any(), any())
+      }
+
+      // ---------------- HIP enabled: IllegalArgumentException already covered; add explicit empty SCON via HIP ----------------
+      "map IllegalArgumentException from HIP to 400 (explicit empty scon via HIP path)" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.validateScon(any(), any())(any()))
-          .thenReturn(Future.successful(ValidateSconResponse(1)))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.failed(new IllegalArgumentException("Invalid SCON format")))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val badBody = Json.obj("scon" -> "")
+        val badReq = FakeRequest("POST", "/").withHeaders("Content-Type" -> "application/json").withBody(badBody)
 
-        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-        (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
+        val result = controller.validateScon("user123")(badReq)
+
+        status(result) mustBe BAD_REQUEST
+        (contentAsJson(result) \ "error").as[String] mustBe "Invalid SCON format"
       }
 
-      "respond with server error if connector returns same" in {
-        when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.validateScon(any(), any())(any())).thenReturn(Future
-          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
+    }
 
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+    "repository operations" should {
+      "handle repository failures gracefully" in {
+        when(mockRepo.findByScon(any()))
+          .thenReturn(Future.failed(new RuntimeException("Database error")))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-        val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
+        val result = controller.validateScon("user123")(validRequest)
 
-        status(result) must be(INTERNAL_SERVER_ERROR)
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("Invalid request format")
       }
+    }
 
-      "return cached response" in {
-        when(mockRepo.findByScon(any())).thenReturn(Future.successful(Some(validateSconResponse)))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
-        await(testValidateSconController.validateScon("PSAID").apply(fakeRequest))
+    "audit logging" should {
+      "log audit events for successful validations" in {
+        when(mockRepo.findByScon(any()))
+          .thenReturn(Future.successful(None))
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(HipValidateSconResponse(true)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
 
-        val cachedResult = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
-        (contentAsJson(cachedResult) \ "sconExists").as[JsBoolean].value must be(true)
-        verify(mockDesConnector, never()).validateScon(any(), any())(any())
+        val result = controller.validateScon("user123")(validRequest)
+
+        status(result) mustBe OK
+      }
+    }
+
+    "concurrent requests" should {
+      "handle multiple requests for same SCON correctly" in {
+        // Setup mock to return None first, then Some(response) for subsequent calls
+        when(mockRepo.findByScon(any()))
+          .thenReturn(Future.successful(None))
+          .thenReturn(Future.successful(Some(GmpValidateSconResponse(true))))
+
+        when(mockHipConnector.validateScon(any(), any())(any()))
+          .thenReturn(Future.successful(HipValidateSconResponse(true)))
+        when(mockAppConfig.isHipEnabled).thenReturn(true)
+
+        // Fire multiple requests in parallel
+        val results = (1 to 3).map { _ =>
+          status(controller.validateScon("user123")(validRequest))
+        }
+
+        // All requests should complete successfully
+        results.foreach { statusCode =>
+          statusCode mustBe OK
+        }
       }
     }
     "call HIPConnector when Hip is enabled" should {

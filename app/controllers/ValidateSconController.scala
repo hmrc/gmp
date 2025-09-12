@@ -18,7 +18,7 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import config.AppConfig
-import connectors.{DesConnector, HipConnector, IFConnector}
+import connectors.{DesConnector, HipConnector}
 import controllers.auth.GmpAuthAction
 import models.{GmpValidateSconResponse, ValidateSconRequest}
 import play.api.Logging
@@ -27,49 +27,69 @@ import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.LoggingUtils
+import utils.LoggingUtils.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidateSconController @Inject()(desConnector: DesConnector,
-                                       ifConnector: IFConnector,
                                        hipConnector: HipConnector,
                                        val repository: ValidateSconRepository,
                                        authAction: GmpAuthAction,
                                        cc: ControllerComponents,
-                                       appConfig: AppConfig) (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
+                                       appConfig: AppConfig)(implicit val ec: ExecutionContext)
+  extends BackendController(cc) with Logging {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) { implicit request =>
     withJsonBody[ValidateSconRequest] { validateSconRequest =>
+      val redactedScon = redactSensitive(validateSconRequest.scon)
+
       repository.findByScon(validateSconRequest.scon).flatMap {
         case Some(cachedResponse) =>
           Future.successful(Ok(Json.toJson(cachedResponse)))
 
         case None =>
           val validationFuture = if (appConfig.isHipEnabled) {
-            hipConnector.validateScon(userId, validateSconRequest.scon).map { hipResponse =>
-              val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
-              logger.debug(s"[ValidateSconController][validateScon][transformed HIP Result]: $transformedResult")
-              repository.insertByScon(validateSconRequest.scon, transformedResult)
-              Ok(Json.toJson(transformedResult))
-            }
+            hipConnector.validateScon(userId, validateSconRequest.scon)
+              .map { hipResponse =>
+                val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
+                logger.debug(s"[ValidateSconController][validateScon] HIP validation successful for SCON: $redactedScon")
+                repository.insertByScon(validateSconRequest.scon, transformedResult)
+                Ok(Json.toJson(transformedResult))
+              }
           } else {
             desConnector.validateScon(userId, validateSconRequest.scon).map { desResponse =>
               val transformedResult = GmpValidateSconResponse.createFromValidateSconResponse(desResponse)
-              logger.debug(s"[ValidateSconController][validateScon][transformed DES Result]: $transformedResult")
               repository.insertByScon(validateSconRequest.scon, transformedResult)
               Ok(Json.toJson(transformedResult))
             }
           }
 
-          validationFuture.recoverWith {
-            case e: UpstreamErrorResponse if e.statusCode == 500 =>
-              logger.debug(s"[ValidateSconController][validateScon][ERROR:500]: ${e.getMessage}")
-              Future.successful(InternalServerError(e.getMessage))
-          }
+          validationFuture.recover {
+            case e: IllegalArgumentException =>
+              logger.warn(s"[ValidateSconController][validateScon] Invalid SCON format for SCON: $redactedScon")
+              logger.debug(s"[ValidateSconController][validateScon] Validation error: ${LoggingUtils.redactError(e.getMessage)}")
+              BadRequest(Json.obj("error" -> "Invalid SCON format"))
 
+            case e: UpstreamErrorResponse if e.statusCode == 400 =>
+              logger.warn(s"[ValidateSconController][validateScon] Bad request for SCON: $redactedScon - ${e.statusCode}")
+              BadRequest(Json.obj("error" -> "Invalid request", "details" -> "Bad request"))
+
+            case e: UpstreamErrorResponse if e.statusCode == 500 =>
+              logger.error(s"[ValidateSconController][validateScon] Service error for SCON: $redactedScon - ${e.statusCode}")
+              InternalServerError(Json.obj("error" -> "Service unavailable"))
+
+            case e: Exception =>
+              logger.error(s"[ValidateSconController][validateScon] Unexpected error for SCON: $redactedScon - ${e.getClass.getSimpleName}")
+              logger.debug(s"[ValidateSconController][validateScon] Unexpected error details: ${LoggingUtils.redactError(e.getMessage)}", e)
+              InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
+          }
       }
+    }.recover {
+      case e: Exception =>
+        logger.error(s"[ValidateSconController][validateScon] Request processing failed - ${e.getClass.getSimpleName}")
+        BadRequest(Json.obj("error" -> "Invalid request format"))
     }
   }
-
 }

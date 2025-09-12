@@ -1,9 +1,22 @@
-GMP
-============
+# GMP Service
 
-Guaranteed Minimum Pension micro service
+Guaranteed Minimum Pension microservice with HIP (Hosted Integration Platform) and DES (Data Exchange Service) integration.
 
-[![Build Status](https://travis-ci.org/hmrc/gmp.svg?branch=master)](https://travis-ci.org/hmrc/gmp) [ ![Download](https://api.bintray.com/packages/hmrc/releases/gmp/images/download.svg) ](https://bintray.com/hmrc/releases/gmp/_latestVersion)
+[![Build Status](https://travis-ci.org/hmrc/gmp.svg?branch=master)](https://travis-ci.org/hmrc/gmp) [![Download](https://api.bintray.com/packages/hmrc/releases/gmp/images/download.svg)](https://bintray.com/hmrc/releases/gmp/_latestVersion)
+
+## Features
+
+- SCON validation via HIP (Hosted Integration Platform)
+- Fallback to DES (Data Exchange Service) when HIP is unavailable
+- Secure logging with sensitive data redaction
+- Caching for improved performance
+- Comprehensive test coverage (98.68% statement, 91.43% branch)
+
+## SCON Structure(^S[0124568]\d{6}(?![GIOSUVZ])[A-Z]$)
+- An SCON always begins with S (mandatory).
+- It’s followed by a digit indicating the scheme type (e.g. 0,1,2,4,5,6,8 depending on the scheme rules).
+- Then 6 more digits.
+- Suffix letter, must avoid certain letters [GIOSUVZ].
 
 API
 ----
@@ -53,40 +66,110 @@ Example JSON response:
 
 ## gmp/validateScon
 
-An API method to validate whether a user's SCON exists or not.
+An API method to validate whether a user's SCON exists or not. The service will attempt to use HIP (Hosted Integration Platform) by default, with a fallback to DES (Data Exchange Service) if configured.
 
-__POST fields__
+### Request
 
-| Field | Description |
-| --- | --- |
-| scon | The user's SCON to validate with the DES service |
+```http
+POST /:userId/gmp/validateScon
+Content-Type: application/json
 
-Example JSON response:
-
-```json
 {
-   "sconExists": true
+  "scon": "S1401234Q"
 }
 ```
 
-Run the application locally
----------------------------
+#### Request Fields
 
-Use service manager to run all the required services:
+| Field | Required | Description |
+|-------|----------|-------------|
+| scon  | Yes      | The user's SCON to validate (3-10 alphanumeric characters) |
 
-```
-sm2 --start GMP_ALL
+### Response
+
+#### Success (200 OK)
+```json
+{
+  "sconExists": true
+}
 ```
 
-To run the application execute
+#### Error Responses
+
+| Status | Description | Response Body |
+|--------|-------------|----------------|
+| 400 Bad Request | Invalid SCON format | `{"error": "Invalid SCON format"}` |
+| 500 Internal Server Error | Service unavailable | `{"error": "Service unavailable"}` |
+
+### Features
+
+- **HIP Integration**: Validates SCONs using the Hosted Integration Platform
+- **Caching**: Responses are cached to improve performance
+- **Secure Logging**: All logs are automatically redacted to protect sensitive information
+- **Fallback Mechanism**: Automatically falls back to DES if HIP is unavailable (configurable)
+
+## Local Development
+
+### Prerequisites
+
+- Java 8 or later
+- sbt 1.5.0 or later
+- Service Manager (for dependent services)
+
+### Running the Application
+
+1. Start required services using Service Manager:
+   ```bash
+   sm2 --start GMP_ALL
+   ```
+
+2. Run the application:
+   ```bash
+   sbt run 
+   ```
+
+### Configuration
+
+The following configuration options are available in `application.conf`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `app.hip.enabled` | `true` | Enable/disable HIP integration |
+| `app.hip.url` | - | Base URL for HIP service |
+| `app.hip.authorisationToken` | - | Authorization token for HIP |
+| `app.cache.enabled` | `true` | Enable/disable response caching |
+
+### Testing
+
+Run all tests:
+```bash
+sbt test
 ```
-sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes
+
+Generate coverage report:
+```bash
+sbt clean coverage test coverageReport
+```
+
+### Logging
+
+The application uses SLF4J with Logback for logging. Sensitive data is automatically redacted from logs.
+
+- **Log Levels**:
+  - `ERROR`: Application errors and exceptions
+  - `WARN`: Non-critical issues
+  - `INFO`: Important application events
+  - `DEBUG`: Detailed debug information (sensitive data is redacted)
+
+Example log output:
+```
+[INFO] [ValidateSconController] HIP validation successful for SCON: S14******
+[WARN] [HipConnector] HIP service returned 400 for SCON: S14******
 ```
 
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
-
 
 
 

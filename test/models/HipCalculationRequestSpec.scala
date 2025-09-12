@@ -17,14 +17,9 @@
 package models
 
 import base.BaseSpec
+import play.api.libs.json.{JsString, JsSuccess, Json}
 
-import java.time.format.DateTimeFormatter
-import play.api.libs.json.{JsError, JsNumber, JsString, JsSuccess, Json}
-
-
-class HipCalculationRequestSpec extends BaseSpec{
-
-  private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+class HipCalculationRequestSpec extends BaseSpec {
 
   "HipCalculationRequest.from" should {
     "correctly transform CalculationRequest into HipCalculationRequest" in{
