@@ -21,7 +21,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.Base64
 
 @Singleton
-class AppConfig @Inject()(implicit
+class AppConfig @Inject()(
                           servicesConfig: ServicesConfig,
                           val featureSwitches: FeatureSwitches
                          ) {
@@ -45,5 +45,5 @@ class AppConfig @Inject()(implicit
   def transmittingSystem: String        = Constants.XTransmittingSystemHeader
 
   def isHipEnabled: Boolean = featureSwitches.hipIntegration.enabled
-  def isIfsEnabled: Boolean = featureSwitches.ifsMigration.enabled
+  def isIfsEnabled: Boolean = featureSwitches.ifsIntegration.enabled
 }

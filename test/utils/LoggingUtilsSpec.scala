@@ -18,6 +18,7 @@ package utils
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
+import play.api.libs.json._
 
 class LoggingUtilsSpec extends AnyWordSpec with Matchers {
   
@@ -72,6 +73,103 @@ class LoggingUtilsSpec extends AnyWordSpec with Matchers {
         val input = "Error 123 for user@example.com and 456 for another@test.com"
         val expected = "Error *** for [email] and *** for [email]"
         LoggingUtils.redactError(input) shouldBe expected
+      }
+    }
+    
+    "redactCalculationData" should {
+      "handle null input" in {
+        LoggingUtils.redactCalculationData(null) shouldBe ""
+      }
+      
+      "handle empty string input" in {
+        LoggingUtils.redactCalculationData("") shouldBe ""
+      }
+      
+      "handle invalid JSON input" in {
+        val invalidJson = "{invalid: json}"
+        // The method should return the input as-is for invalid JSON
+        LoggingUtils.redactCalculationData(invalidJson) shouldBe invalidJson
+      }
+      
+      "redact NINO in JSON object" in {
+        val json = """{"nino": "AB123456C", "otherField": "value"}"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("AB1******")
+        result should include("otherField")
+        result should include("value")
+      }
+      
+      "redact SCON in JSON object" in {
+        val json = """{"scon": "S1234567T", "details": "test"}"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("S12******")
+        result should include("details")
+      }
+      
+      "redact name fields in JSON object" in {
+        val json = """{"firstName": "John", "surname": "Doe", "fullName": "John Doe"}"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("J***")
+        result should include("***") // surname is fully redacted
+        result should include("J*******") // fullName redaction
+      }
+      
+      "handle nested JSON objects" in {
+        val json = """{"user": {"nino": "AB123456C", "name": "John"}, "other": "data"}"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("AB1******")
+        result should include("J***")
+        result should include("data")
+      }
+      
+      "handle JSON arrays" in {
+        val json = """[{"nino": "AB123456C"}, {"scon": "S1234567T"}]"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("AB1******")
+        result should include("S12******")
+      }
+      
+      "not modify non-sensitive fields" in {
+        val json = """{"id": 123, "active": true, "amount": 100.50}"""
+        val result = LoggingUtils.redactCalculationData(json)
+        result should include("\"id\" : 123")
+        result should include("\"active\" : true")
+        result should include("\"amount\" : 100.5")
+      }
+      
+      "handle complex nested structures" in {
+        val json = """
+          |{
+          |  "user": {
+          |    "personalDetails": {
+          |      "firstName": "John",
+          |      "lastName": "Doe",
+          |      "nino": "AB123456C"
+          |    },
+          |    "contacts": [
+          |      {"type": "email", "value": "john@example.com"},
+          |      {"type": "phone", "value": "1234567890"}
+          |    ]
+          |  },
+          |  "scon": "S1234567T",
+          |  "amount": 1000.50
+          |}
+        """.stripMargin
+        
+        val result = LoggingUtils.redactCalculationData(json)
+        
+        // Check redaction of sensitive fields
+        result should include("J***") // First name first character + ***
+        result should include("***")  // Last name fully redacted
+        result should include("AB1******") // NINO redaction
+        result should include("S12******") // SCON redaction
+        
+        // Check non-sensitive fields are present
+        result should include("personalDetails")
+        result should include("contacts")
+        result should include("\"type\" : \"email\"")
+        result should include("\"type\" : \"phone\"")
+        result should include("\"amount\" : 1000.5")
       }
     }
   }

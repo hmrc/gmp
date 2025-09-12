@@ -40,12 +40,12 @@ class FeatureSwitches @Inject()(config: Configuration) {
 
   /** Feature toggles **/
   val hipIntegration: FeatureSwitch = FeatureSwitch("hipIntegration", isEnabled("hipIntegration"))
-  val ifsMigration: FeatureSwitch   = FeatureSwitch("ifsMigration", isEnabled("ifsMigration"))
+  val ifsIntegration: FeatureSwitch = FeatureSwitch("ifsIntegration", isEnabled("ifsIntegration"))
 
   /**
    * All known switches for inspection or logging.
    */
-  val all: Seq[FeatureSwitch] = Seq(hipIntegration, ifsMigration)
+  val all: Seq[FeatureSwitch] = Seq(hipIntegration, ifsIntegration)
 
   /**
    * Look up a switch by name.
