@@ -112,7 +112,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
   private def mapHipToGmp(c: HipCalculationResponse, req: CalculationRequest): GmpCalculationResponse = {
     GmpCalculationResponse.createFromHipResponse(c)(
       s"${req.firstForename} ${req.surname}",
-      Some(req.revaluationRate.toString),
+      req.revaluationRate.map(_.toString),
       req.revaluationDate,
       req.dualCalc.contains(1),
       req.calctype.getOrElse(-1),
