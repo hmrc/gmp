@@ -62,20 +62,20 @@ object LoggingUtils {
 
     def redactField(js: JsValue, path: JsPath): JsValue = {
       js.transform(path.json.prune).getOrElse(js) match {
-        case JsObject(fields) => 
-          JsObject(fields.map { case (k, v) => 
+        case JsObject(fields) =>
+          JsObject(fields.map { case (k, v) =>
             k -> (v match {
-              case JsString(s) if k.toLowerCase.contains("nino") || k.equalsIgnoreCase("scon") => 
+              case JsString(s) if k.toLowerCase.contains("nino") || k.equalsIgnoreCase("scon") =>
                 JsString(redactSensitive(s))
-              case JsString(s) if k.toLowerCase.contains("name") || k.toLowerCase.contains("surname") => 
+              case JsString(s) if k.toLowerCase.contains("name") || k.toLowerCase.contains("surname") =>
                 JsString(if (s.length > 3) s.take(1) + "*" * (s.length - 1) else "*" * s.length)
               case o: JsObject => redactField(o, path)
-              case a: JsArray => 
+              case a: JsArray =>
                 JsArray(a.value.map(redactField(_, path)))
               case _ => v
             })
           })
-        case a: JsArray => 
+        case a: JsArray =>
           JsArray(a.value.map(redactField(_, path)))
         case other => other
       }
@@ -83,7 +83,7 @@ object LoggingUtils {
 
     try {
       Json.parse(json) match {
-        case obj: JsObject => 
+        case obj: JsObject =>
           val redacted = redactField(obj, __)
           Json.prettyPrint(redacted)
         case arr: JsArray =>
@@ -92,7 +92,7 @@ object LoggingUtils {
         case _ => json
       }
     } catch {
-      case _: Throwable => 
+      case _: Throwable =>
         // If JSON parsing fails, return a redacted version of the string
         redactError(json)
     }

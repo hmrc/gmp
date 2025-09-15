@@ -75,7 +75,7 @@ object HipCalculationRequest {
   private val RevaluationRateS148 = 1
   private val RevaluationRateFixed = 2
   private val RevaluationRateLimited = 3
-  
+
   // Constants for calculation type mapping
   private val CalculationTypeDOL = 0
   private val CalculationTypeRevaluation = 1
