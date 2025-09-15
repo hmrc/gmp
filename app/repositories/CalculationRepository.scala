@@ -58,7 +58,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("calculationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(CacheConfig.DefaultExpirySeconds, TimeUnit.SECONDS)
     ))
   ) with CalculationRepository with Logging {
 
@@ -91,7 +91,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
         logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${insertedData.getInsertedId} }")
         true
       }.recover {
-      case e => 
+      case e =>
         logger.error(s"[CalculationRepository][insertByRequest] Failed to insert calculation: ${LoggingUtils.redactError(e.getMessage)}")
         logger.debug("[CalculationRepository][insertByRequest] Error details:", e)
         false

@@ -91,7 +91,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     val result = http.get(url"$uri")
-      .setHeader(IFHeaders:_*)
+      .setHeader(ifHeaders: _*)
       .execute[HttpResponse]
       .map { response =>
       metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -146,7 +146,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     val startTime = System.currentTimeMillis()
 
     val result = http.get(url"$uri")
-      .setHeader(IFHeaders:_*)
+      .setHeader(ifHeaders: _*)
       .execute[HttpResponse]
       .map { response =>
       metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
@@ -161,7 +161,11 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
             None,
             None,
             None,
-            Scon(request.scon.substring(PrefixStart, PrefixEnd).toUpperCase, request.scon.substring(NumberStart, NumberEnd).toInt, request.scon.substring(SuffixStart, SuffixEnd).toUpperCase),
+            Scon(
+              contracted_out_prefix = request.scon.substring(PrefixStart, PrefixEnd).toUpperCase,
+              ascn_scon = request.scon.substring(NumberStart, NumberEnd).toInt,
+              modulus_19_suffix = request.scon.substring(SuffixStart, SuffixEnd).toUpperCase
+            ),
             Nil)
         }
         case errorStatus: Int => {
@@ -175,10 +179,12 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
 
   }
 
-  private def IFHeaders =
-    Seq("Authorization" -> s"Bearer $serviceKey",
+  private def ifHeaders: Seq[(String, String)] =
+    Seq(
+      "Authorization" -> s"Bearer $serviceKey",
       "Gov-Uk-Originator-Id" -> servicesConfig.getConfString("ifs.originator-id", ""),
-      "Environment" -> serviceEnvironment)
+      "Environment" -> serviceEnvironment
+    )
 
   private def buildEncodedQueryString(params: Map[String, Option[Any]]): String = {
     val encoded = for {
@@ -220,7 +226,7 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
     logger.debug(s"[IFConnector][getPersonDetails] Retrieving person details from $url")
 
     http.get(url"$url")
-      .setHeader(IFHeaders:_*)
+      .setHeader(ifHeaders: _*)
         .execute[HttpResponse]
         .map { response =>
       metrics.mciConnectionTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)

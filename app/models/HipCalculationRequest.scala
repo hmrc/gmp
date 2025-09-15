@@ -71,19 +71,31 @@ case class HipCalculationRequest(schemeContractedOutNumber: String,
 object HipCalculationRequest {
   implicit val formats: OFormat[HipCalculationRequest] = Json.format[HipCalculationRequest]
 
+  // Constants for revaluation rate mapping
+  private val RevaluationRateS148 = 1
+  private val RevaluationRateFixed = 2
+  private val RevaluationRateLimited = 3
+  
+  // Constants for calculation type mapping
+  private val CalculationTypeDOL = 0
+  private val CalculationTypeRevaluation = 1
+  private val CalculationTypePayableAge = 2
+  private val CalculationTypeSurvivor = 3
+  private val CalculationTypeSPA = 4
+
   def from(calcReq: CalculationRequest): HipCalculationRequest = {
     val revalEnum = calcReq.revaluationRate.map {
-      case 1 => EnumRevaluationRate.S148
-      case 2 => EnumRevaluationRate.FIXED
-      case 3 => EnumRevaluationRate.LIMITED
+      case RevaluationRateS148 => EnumRevaluationRate.S148
+      case RevaluationRateFixed => EnumRevaluationRate.FIXED
+      case RevaluationRateLimited => EnumRevaluationRate.LIMITED
       case _ => EnumRevaluationRate.NONE
     }
     val calcTypeEnum = calcReq.calctype.map {
-      case 0 => EnumCalcRequestType.DOL
-      case 1 => EnumCalcRequestType.Revaluation
-      case 2 => EnumCalcRequestType.PayableAge
-      case 3 => EnumCalcRequestType.Survivor
-      case 4 => EnumCalcRequestType.SPA
+      case CalculationTypeDOL => EnumCalcRequestType.DOL
+      case CalculationTypeRevaluation => EnumCalcRequestType.Revaluation
+      case CalculationTypePayableAge => EnumCalcRequestType.PayableAge
+      case CalculationTypeSurvivor => EnumCalcRequestType.Survivor
+      case CalculationTypeSPA => EnumCalcRequestType.SPA
     }
     HipCalculationRequest(
       schemeContractedOutNumber = calcReq.scon,

@@ -74,5 +74,4 @@ object HipErrorCodeMapper {
 
   def mapGmpErrorCode(gmpErrorCode: String): Int =
     Option(gmpErrorCode).filter(_.nonEmpty).flatMap(gmpErrorCodeMap.get).getOrElse(DefaultErrorCode)
-
 }

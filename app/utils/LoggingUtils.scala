@@ -18,7 +18,8 @@ package utils
 
 object LoggingUtils {
   private val RedactedValue = "[REDACTED]"
-  
+  private val MaxErrorLength = 100
+
   /**
    * Redacts sensitive information from strings before logging
    * @param value The value to be redacted
@@ -33,23 +34,24 @@ object LoggingUtils {
       value.take(3) + "*" * (value.length - 3)
     }
   }
-  
+
   /**
    * Redacts sensitive information from error messages
    * @param error The error message to be redacted
    * @return Redacted error message with sensitive information removed
    */
   def redactError(error: String): String = {
-    if (error == null) ""
-    else {
+    if (error == null) {
+      ""
+    } else {
       // Redact any potential sensitive information from error messages
       error
         .replaceAll("([0-9])", "*")
         .replaceAll("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[email]")
-        .take(100) // Limit error message length
+        .take(MaxErrorLength) // Limit error message length
     }
   }
-  
+
   /**
    * Redacts sensitive information from calculation requests and responses
    * @param json The JSON string containing calculation data
@@ -57,7 +59,7 @@ object LoggingUtils {
    */
   def redactCalculationData(json: String): String = {
     import play.api.libs.json._
-    
+
     def redactField(js: JsValue, path: JsPath): JsValue = {
       js.transform(path.json.prune).getOrElse(js) match {
         case JsObject(fields) => 
@@ -78,7 +80,7 @@ object LoggingUtils {
         case other => other
       }
     }
-    
+
     try {
       Json.parse(json) match {
         case obj: JsObject => 
@@ -95,5 +97,4 @@ object LoggingUtils {
         redactError(json)
     }
   }
-  
 }

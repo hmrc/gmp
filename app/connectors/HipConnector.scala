@@ -49,17 +49,18 @@ class HipConnector @Inject()(
 
   val hipBaseUrl: String = appConfig.hipUrl
   val calcURI = s"$hipBaseUrl/ni/gmp/calculation"
+  private val MaxBodyLengthForLogging = 300
   private val sconPattern = "^S[0124568]\\d{6}(?![GIOSUVZ])[A-Z]$".r
 
   def validateScon(userId: String, scon: String)(implicit hc: HeaderCarrier): Future[HipValidateSconResponse] = {
     // First validate the SCON format - this will throw IllegalArgumentException for invalid formats
     val formattedScon = normalizeScon(scon)
-    
+
     val url = s"$hipBaseUrl/ni/gmp/$formattedScon/validate"
     val headers = buildHeadersV1
-    
+
     doAudit("hipSconValidation", userId, formattedScon, None, None, None)
-    
+
     val startTime = System.currentTimeMillis()
 
     http.get(url"$url")
@@ -130,7 +131,7 @@ class HipConnector @Inject()(
                     throw new RuntimeException(detailedMsg)
                 }
               case None =>
-                val detailedMsg = s"HIP returned non-JSON body with 200. Body: ${response.body.take(300)}"
+                val detailedMsg = s"HIP returned non-JSON body with 200. Body: ${response.body.take(MaxBodyLengthForLogging)}"
                 logger.error(s"[HipConnector][calculate] $detailedMsg")
                 throw new RuntimeException(detailedMsg)
             }

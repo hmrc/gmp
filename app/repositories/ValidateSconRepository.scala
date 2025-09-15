@@ -55,7 +55,7 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val 
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("sconValidationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(CacheConfig.DefaultExpirySeconds, TimeUnit.SECONDS)
     ))
   ) with ValidateSconRepository with Logging {
 
