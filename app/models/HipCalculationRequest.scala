@@ -31,8 +31,8 @@ object EnumRevaluationRate extends Enumeration {
     def writes(enumRevalRate: EnumRevaluationRate.Value): JsValue = JsString(enumRevalRate.toString)
 
     def reads(json: JsValue): JsResult[EnumRevaluationRate.Value] = json match {
-      case JsString(str) => JsSuccess(EnumRevaluationRate.withName(str))
-      case _ => JsError("EnumRevaluationRate expected String")
+      case JsString(str) if EnumRevaluationRate.values.exists(_.toString == str) => JsSuccess(EnumRevaluationRate.withName(str))
+      case _ => JsError(s"Invalid EnumRevaluationRate:$json")
     }
   }
 }
@@ -49,8 +49,8 @@ object EnumCalcRequestType extends Enumeration {
     def writes(enumCalcReqType: EnumCalcRequestType.Value): JsValue = JsString(enumCalcReqType.toString)
 
     def reads(json: JsValue): JsResult[EnumCalcRequestType.Value] = json match {
-      case JsString(str) => JsSuccess(EnumCalcRequestType.withName(str))
-      case _ => JsError("EnumCalcRequestType expected String")
+      case JsString(str) if EnumCalcRequestType.values.exists(_.toString == str) => JsSuccess(EnumCalcRequestType.withName(str))
+      case _ => JsError(s"Invalid EnumCalcRequestType:$json")
     }
   }
 }
@@ -73,7 +73,6 @@ object HipCalculationRequest {
 
   def from(calcReq: CalculationRequest): HipCalculationRequest = {
     val revalEnum = calcReq.revaluationRate.map {
-      case 0 => EnumRevaluationRate.NONE
       case 1 => EnumRevaluationRate.S148
       case 2 => EnumRevaluationRate.FIXED
       case 3 => EnumRevaluationRate.LIMITED
