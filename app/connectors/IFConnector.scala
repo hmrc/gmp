@@ -94,8 +94,8 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       .setHeader(IFHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
-      metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      metrics.IFConnectorStatus(response.status)
+      metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.ifConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[ValidateSconResponse]
@@ -149,8 +149,8 @@ class IFConnector @Inject()(val runModeConfiguration: Configuration,
       .setHeader(IFHeaders:_*)
       .execute[HttpResponse]
       .map { response =>
-      metrics.IFConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
-      metrics.IFConnectorStatus(response.status)
+      metrics.ifConnectorTimer(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS)
+      metrics.ifConnectorStatus(response.status)
 
       response.status match {
         case OK | UNPROCESSABLE_ENTITY => response.json.as[CalculationResponse]
