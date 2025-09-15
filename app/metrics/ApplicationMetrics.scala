@@ -83,13 +83,13 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
   }
 
   // IF metrics
-  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
+  def ifConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
     recordMetric("if-connector-timer", {
       registry.timer("if-connector-timer").update(diff, unit)
     })
   }
 
-  def IFConnectorStatus(code: Int): Unit = {
+  def ifConnectorStatus(code: Int): Unit = {
     recordMetric(s"if-connector-status-$code", {
       registry.counter(s"if-connector-status-$code").inc()
     })

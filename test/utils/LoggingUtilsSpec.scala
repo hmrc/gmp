@@ -18,7 +18,6 @@ package utils
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json._
 
 class LoggingUtilsSpec extends AnyWordSpec with Matchers {
   

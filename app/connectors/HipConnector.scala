@@ -94,8 +94,6 @@ class HipConnector @Inject()(
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
     logger.info(s"calculate url for HipConnector:$calcURI")
 
-    val requestJson = Json.toJson(request).toString()
-
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber,
       Some(request.nationalInsuranceNumber), Some(request.surname), Some(request.firstForename))
 
@@ -138,7 +136,7 @@ class HipConnector @Inject()(
             }
 
           case status =>
-            val (log, message, reportAs) = status match {
+            val (_, message, reportAs) = status match {
               case BAD_REQUEST => (logger.warn(_: String), "Bad Request", BAD_REQUEST)
               case FORBIDDEN   => (logger.warn(_: String), "Forbidden",   FORBIDDEN)
               case NOT_FOUND   => (logger.warn(_: String), "Not Found",   NOT_FOUND)
