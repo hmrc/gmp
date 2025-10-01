@@ -69,7 +69,6 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
           validationFuture.recover {
             case e: IllegalArgumentException =>
               logger.warn(s"[ValidateSconController][validateScon] Invalid SCON format for SCON: $redactedScon")
-              logger.debug(s"[ValidateSconController][validateScon] Validation error: ${LoggingUtils.redactError(e.getMessage)}")
               BadRequest(Json.obj("error" -> "Invalid SCON format"))
 
             case e: UpstreamErrorResponse if e.statusCode == 400 =>
@@ -82,7 +81,6 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
 
             case e: Exception =>
               logger.error(s"[ValidateSconController][validateScon] Unexpected error for SCON: $redactedScon - ${e.getClass.getSimpleName}")
-              logger.debug(s"[ValidateSconController][validateScon] Unexpected error details: ${LoggingUtils.redactError(e.getMessage)}", e)
               InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
           }
       }

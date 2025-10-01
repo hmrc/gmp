@@ -93,7 +93,6 @@ class HipConnector @Inject()(
   }
 
   def calculate(userId: String, request: HipCalculationRequest)(implicit hc: HeaderCarrier): Future[HipCalculationResponse] = {
-    logger.info(s"calculate url for HipConnector:$calcURI")
 
     doAudit("gmpCalculation", userId, request.schemeContractedOutNumber,
       Some(request.nationalInsuranceNumber), Some(request.surname), Some(request.firstForename))
