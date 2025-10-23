@@ -21,22 +21,6 @@ object HipErrorCodeMapper {
 
   private final val DefaultErrorCode = 0
 
-  private final val rejectionReasonMap: Map[String, Int] = Map(
-    "No match for person details provided" -> 63119,
-    "GMP Calculation not possible" -> 63120,
-    "Date of birth not held" -> 56010,
-    "Payable Age Calculation request with Revaluation Date" -> 63146,
-   "Survivor calculation requested but no date of death" ->63147,
-   "Survivor calculation requested but revaluation date less than date of death" ->63148,
-   "Customer input termination is after FRY" -> 63149,
-   "Customer input termination date after date of death" -> 63151,
-   "SPA Calculation request with Revaluation Date" -> 63152,
-   "Date of death held" -> 63121,
-   "No recorded scheme memberships held" -> 56069,
-   "Transfer link error" -> 56012,
-   "Account is not a full live account" -> 48160,
-   "Customer input termination date is before 05/04/16" -> 63166
-  )
   private final val gmpErrorCodeMap: Map[String, Int] = Map(
    "Input revaluation date is before the termination date held on hmrc records" -> 63123,
    "Single period scheme membership does not correspond to details held" -> 56023,
@@ -68,9 +52,6 @@ object HipErrorCodeMapper {
    "Customer input revaluation rate was limited but scheme end date > 05/04/1997" -> 63167
 
   )
-
-  def mapRejectionReason(rejectionReason: String): Int =
-    Option(rejectionReason).filter(_.nonEmpty).flatMap(rejectionReasonMap.get).getOrElse(DefaultErrorCode)
 
   def mapGmpErrorCode(gmpErrorCode: String): Int =
     Option(gmpErrorCode).filter(_.nonEmpty).flatMap(gmpErrorCodeMap.get).getOrElse(DefaultErrorCode)

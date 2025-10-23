@@ -23,8 +23,8 @@ import models.*
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
-import org.scalacheck.Gen.const
 import play.api.libs.json.Json
+import HipCalcResult.{Failures, Success}
 import play.api.test.Helpers.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.*
@@ -52,12 +52,12 @@ class HipConnectorSpec extends HttpClientV2Helper {
     config
   }
   val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
-  
+
   when(mockAuditConnector.sendEvent(any())(any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
   // Use the mockHttp and requestBuilder from HttpClientV2Helper
-  
+
   object TestHipConnector extends HipConnector(
     appConfig = mockAppConfig,
     metrics = mockMetrics,
@@ -271,27 +271,30 @@ class HipConnectorSpec extends HttpClientV2Helper {
   "throw RuntimeException with detailed message when 200 but JSON cannot be parsed" in {
     implicit val hc = HeaderCarrier()
     requestBuilderExecute(Future.successful(HttpResponse(OK, """{"unexpected":"value"}""")))
-    val ex = intercept[RuntimeException] {
+    val ex = intercept[UpstreamErrorResponse] {
       await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
     }
     ex.getMessage must include("HIP returned invalid JSON")
-    ex.getMessage must include("Failed to parse fields")
+    ex.reportAs mustBe BAD_GATEWAY
   }
   "complete successfully even if audit sendEvent fails" in {
     implicit val hc = HeaderCarrier()
     when(mockAuditConnector.sendEvent(any())(any(), any()))
       .thenReturn(Future.failed(new RuntimeException("audit down")))
-    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)).toString()
     requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
 
     val result = await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
-    result.schemeContractedOutNumberDetails mustBe "S2123456B"
+    result match {
+      case Success(value) => value.schemeContractedOutNumberDetails mustBe "S2123456B"
+      case _ => fail("Expected Success")
+    }
   }
   "set required headers on calculate (correlationId + auth + originator)" in {
     implicit val hc = HeaderCarrier(requestId = Some(RequestId("rid")), sessionId = Some(SessionId("sid")))
     val headerCaptor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
 
-    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)).toString()
     requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
     await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
 
@@ -310,7 +313,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
   }
   "record metrics on success" in {
     implicit val hc = HeaderCarrier()
-    val body = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)).toString()
+    val body = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)).toString()
     requestBuilderExecute(Future.successful(HttpResponse(OK, body)))
 
     await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
@@ -325,7 +328,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     implicit val hc = HeaderCarrier()
     // Body is plain text, not JSON
     requestBuilderExecute(Future.successful(HttpResponse(OK, "not-json at all")))
-    val ex = intercept[RuntimeException] {
+    val ex = intercept[UpstreamErrorResponse] {
       await(
         TestHipConnector.calculate(
           "user123",
@@ -335,6 +338,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       )
     }
     ex.getMessage must include("non-JSON body with 200")
+    ex.reportAs mustBe BAD_GATEWAY
   }
 
   // ---------- calculate: ensure headers are propagated in UpstreamErrorResponse ----------
@@ -443,11 +447,13 @@ class HipConnectorSpec extends HttpClientV2Helper {
         includeContributionAndEarnings = true,
         includeDualCalculation = true
       )
-      val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), Some(""), List.empty)
+      val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)
       val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
       requestBuilderExecute(Future.successful(httpResponse))
-      await(TestHipConnector.calculate("user123", request)).map { result =>
-        result.schemeContractedOutNumberDetails mustBe "S2123456B"
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Success(value) => value.schemeContractedOutNumberDetails mustBe "S2123456B"
+        case _ => fail("Expected Success")
       }
     }
 
@@ -532,6 +538,114 @@ class HipConnectorSpec extends HttpClientV2Helper {
         await(TestHipConnector.calculate("user123", request))
       }
       thrown.getMessage must include("Failed to parse fields")
+    }
+
+    "return Failures(HipCalculationFailuresResponse) for status 422 with failures body" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "failures": [ { "reason": "No match for person details provided", "code": "63119" } ]
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value) =>
+          value.failures.head.reason mustBe "No match for person details provided"
+          value.failures.head.code mustBe 63119
+        case _ => fail("Expected Failures")
+      }
+    }
+
+    "return Left with code=0 when 422 has non-numeric code" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some("")
+        , revaluationRate = Some(EnumRevaluationRate.NONE)
+        , calculationRequestType = Some(EnumCalcRequestType.DOL)
+        , revaluationDate = None
+        , terminationDate = None
+        , includeContributionAndEarnings = true
+        , includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "failures": [ { "reason": "Some reason", "code": "ABC" } ]
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value) => value.failures.head.code mustBe 0
+        case _ => fail("Expected Failures")
+      }
+    }
+
+    "throw RuntimeException when 422 but non-JSON body" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+      requestBuilderExecute(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, "not-json")))
+      val ex = intercept[UpstreamErrorResponse] {
+        await(TestHipConnector.calculate("user123", request))
+      }
+      ex.getMessage must include("HIP returned non-JSON body with 422")
+      ex.reportAs mustBe BAD_GATEWAY
+    }
+
+    "throw RuntimeException when 422 body has unexpected shape" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+      requestBuilderExecute(Future.successful(HttpResponse(UNPROCESSABLE_ENTITY, """{"foo":"bar"}""")))
+      val ex = intercept[UpstreamErrorResponse] {
+        await(TestHipConnector.calculate("user123", request))
+      }
+      ex.getMessage must include("HIP 422 returned invalid JSON")
+      ex.reportAs mustBe BAD_GATEWAY
     }
   }
 }

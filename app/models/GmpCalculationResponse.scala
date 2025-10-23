@@ -178,10 +178,36 @@ object GmpCalculationResponse {
       revaluationRate = revaluationRate,
       revaluationDate = revaluationDate.map(LocalDate.parse(_)),
       calculationPeriods = HipCalculationResponse.GuaranteedMinimumPensionDetailsList.map(CalculationPeriod.createFromHipGmpDetails),
-      globalErrorCode = HipErrorCodeMapper.mapRejectionReason(HipCalculationResponse.rejectionReason.getOrElse("")),
+      globalErrorCode = 0,
       spaDate = HipCalculationResponse.statePensionAgeDate.map(LocalDate.parse),
       payableAgeDate = HipCalculationResponse.payableAgeDate.map(LocalDate.parse),
       dateOfDeath = HipCalculationResponse.dateOfDeath.map(LocalDate.parse),
+      dualCalc = dualCalc,
+      calcType = calcType
+    )
+  }
+
+  def createFromHipFailures(failures: HipCalculationFailuresResponse)(
+    nino: String,
+    scon: String,
+    name: String,
+    revaluationRate: Option[String],
+    revaluationDate: Option[String],
+    dualCalc: Boolean,
+    calcType: Int
+  ): GmpCalculationResponse = {
+    val codeValue: Int = failures.failures.headOption.map(_.code).getOrElse(0)
+    GmpCalculationResponse(
+      name = name,
+      nino = nino,
+      scon = scon,
+      revaluationRate = revaluationRate,
+      revaluationDate = revaluationDate.map(LocalDate.parse(_)),
+      calculationPeriods = List.empty,
+      globalErrorCode = codeValue,
+      spaDate = None,
+      payableAgeDate = None,
+      dateOfDeath = None,
       dualCalc = dualCalc,
       calcType = calcType
     )
