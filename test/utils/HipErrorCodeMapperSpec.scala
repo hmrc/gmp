@@ -21,33 +21,6 @@ import base.BaseSpec
 
 class HipErrorCodeMapperSpec extends BaseSpec {
 
-  "HipErrorCodeMapper.mapRejectionReason" should {
-    "return correct int for known rejection reason" in {
-      HipErrorCodeMapper.mapRejectionReason("No match for person details provided") mustBe 63119
-      HipErrorCodeMapper.mapRejectionReason("GMP Calculation not possible") mustBe 63120
-      HipErrorCodeMapper.mapRejectionReason("Date of birth not held") mustBe 56010
-      HipErrorCodeMapper.mapRejectionReason("Payable Age Calculation request with Revaluation Date") mustBe 63146
-      HipErrorCodeMapper.mapRejectionReason("Survivor calculation requested but no date of death") mustBe 63147
-      HipErrorCodeMapper.mapRejectionReason("Survivor calculation requested but revaluation date less than date of death") mustBe 63148
-      HipErrorCodeMapper.mapRejectionReason("Customer input termination is after FRY") mustBe 63149
-      HipErrorCodeMapper.mapRejectionReason("Customer input termination date after date of death") mustBe 63151
-      HipErrorCodeMapper.mapRejectionReason("SPA Calculation request with Revaluation Date") mustBe 63152
-      HipErrorCodeMapper.mapRejectionReason("Date of death held") mustBe 63121
-      HipErrorCodeMapper.mapRejectionReason("No recorded scheme memberships held") mustBe 56069
-      HipErrorCodeMapper.mapRejectionReason("Transfer link error") mustBe 56012
-      HipErrorCodeMapper.mapRejectionReason("Account is not a full live account") mustBe 48160
-      HipErrorCodeMapper.mapRejectionReason("Customer input termination date is before 05/04/16") mustBe 63166
-    }
-    "return 0 for unknown rejection reason" in {
-      HipErrorCodeMapper.mapRejectionReason("Invalid Person") mustBe 0
-    }
-    "return 0 for empty string" in {
-      HipErrorCodeMapper.mapRejectionReason("") mustBe 0
-    }
-    "return 0 for null" in {
-      HipErrorCodeMapper.mapRejectionReason(null) mustBe 0
-    }
-  }
   "HipErrorCodeMapper.mapGmpErrorCode" should {
     "return correct int for known GMP error code" in {
       HipErrorCodeMapper.mapGmpErrorCode("Input revaluation date is before the termination date held on hmrc records") mustBe 63123

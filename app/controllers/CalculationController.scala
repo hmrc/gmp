@@ -18,18 +18,20 @@ package controllers
 
 import com.google.inject.{Inject, Singleton}
 import config.AppConfig
-import connectors.{DesConnector, DesGetHiddenRecordResponse, HipConnector, IFConnector}
+import models.HipCalcResult.{Failures, Success}
+import connectors.*
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
-import models._
+import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse, HipCalcResult, HipCalculationRequest}
 import play.api.Logging
-import play.api.libs.json._
-import utils.LoggingUtils
+import play.api.libs.json.*
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
+import services.HipMappingService
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.LoggingUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,6 +42,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
                                       repository: CalculationRepository,
                                       authAction: GmpAuthAction,
                                       auditConnector: AuditConnector,
+                                      hipMappingService: HipMappingService,
                                       cc: ControllerComponents,
                                       appConfig: AppConfig)
                                      (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
@@ -94,7 +97,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
   }
 
   private def handleNewCalculation(userId: String, calculationRequest: CalculationRequest)(implicit hc: HeaderCarrier): Future[GmpCalculationResponse] = {
-    val connectorResult: Either[Future[HipCalculationResponse], Future[CalculationResponse]] =
+    val connectorResult: Either[Future[HipCalcResult], Future[CalculationResponse]] =
       (appConfig.isIfsEnabled, appConfig.isHipEnabled) match {
         case (true, false) => Right(ifConnector.calculate(userId, calculationRequest))
         case (_, true) => Left(hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)))
@@ -103,22 +106,13 @@ class CalculationController @Inject()(desConnector: DesConnector,
 
     connectorResult match {
       case Left(hipCalc) =>
-        hipCalc.map(mapHipToGmp(_, calculationRequest))
+        hipCalc.map {
+          case Success(success) => hipMappingService.mapSuccess(success, calculationRequest)
+          case Failures(failures) => hipMappingService.mapFailures(failures, calculationRequest)
+        }
       case Right(calc) =>
         calc.map(mapDesOrIfToGmp(_, calculationRequest))
     }
-  }
-
-  private def mapHipToGmp(c: HipCalculationResponse, req: CalculationRequest): GmpCalculationResponse = {
-    GmpCalculationResponse.createFromHipResponse(c)(
-      s"${req.firstForename} ${req.surname}",
-      req.revaluationRate.map(_.toString),
-      req.revaluationDate,
-      req.dualCalc.contains(1),
-      req.calctype.getOrElse(-1),
-      req.nino,
-      req.scon
-    )
   }
 
   private def mapDesOrIfToGmp(c: CalculationResponse, req: CalculationRequest): GmpCalculationResponse = {
@@ -133,7 +127,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
     )
   }
 
-  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
+  private def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
     val idType = userId.take(1) match {
       case x if x.matches("[A-Z]") => "psa"
       case x if x.matches("[0-9]") => "psp"

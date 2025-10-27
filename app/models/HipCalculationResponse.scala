@@ -49,7 +49,6 @@ object GuaranteedMinimumPensionDetails {
 case class HipCalculationResponse(
                                    nationalInsuranceNumber: String,
                                    schemeContractedOutNumberDetails: String,
-                                   rejectionReason: Option[String],
                                    payableAgeDate: Option[String],
                                    statePensionAgeDate: Option[String],
                                    dateOfDeath: Option[String],

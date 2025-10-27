@@ -64,6 +64,83 @@ Example JSON response:
 }
 ```
 
+### HIP 422 handling
+
+HIP returns 422 for validation failures with a body shaped as:
+
+```json
+{
+  "failures": [
+    { "reason": "No Match for person details provided", "code": "63119" }
+  ]
+}
+```
+
+This service converts that into a normal 200 OK response with:
+- `globalErrorCode` set to the numeric failure `code` (e.g. 63119),
+- `calculationPeriods` empty,
+
+Example mapped response:
+
+```json
+{
+  "name": "J Bloggs",
+  "nino": "AB123456C",
+  "scon": "S1401234Q",
+  "revaluationRate": null,
+  "revaluationDate": null,
+  "calculationPeriods": [],
+  "globalErrorCode": 63119,
+  "spaDate": null,
+  "payableAgeDate": null,
+  "dateOfDeath": null,
+  "dualCalc": false,
+  "calcType": 1
+}
+```
+
+### HIP 200 handling (success)
+
+On HIP success (HTTP 200), we return a 200 OK with a populated payload transformed from HIP’s response:
+- globalErrorCode: always 0 on HIP success.
+- calculationPeriods: derived from HIP’s GuaranteedMinimumPensionDetailsList with field mapping and value formatting.
+- revaluationRate (per period): mapped from HIP strings → ints (S148 → 1, FIXED → 2, LIMITED → 3, unknown → 0).
+- errorCode (per period): mapped from HIP’s gmpErrorCode string to service-specific codes.
+- Contributions and earnings are formatted consistently (e.g., integer grouping for >= 1987).
+
+Example mapped response (truncated):
+
+```json
+{
+  "name": "J Bloggs",
+  "nino": "AB123456C",
+  "scon": "S1401234Q",
+  "revaluationRate": "FIXED",
+  "revaluationDate": "2022-06-27",
+  "calculationPeriods": [
+    {
+      "startDate": "1978-04-06",
+      "endDate": "2006-04-05",
+      "gmpTotal": "10.56",
+      "post88GMPTotal": "1.23",
+      "revaluationRate": 2,
+      "errorCode": 0,
+      "revalued": 1,
+      "dualCalcPost90TrueTotal": "10.56",
+      "dualCalcPost90OppositeTotal": "10.56",
+      "inflationProofBeyondDod": 1,
+      "contsAndEarnings": []
+    }
+  ],
+  "globalErrorCode": 0,
+  "spaDate": "2022-06-27",
+  "payableAgeDate": "2022-06-27",
+  "dateOfDeath": null,
+  "dualCalc": false,
+  "calcType": 1
+}
+```
+
 ## gmp/validateScon
 
 An API method to validate whether a user's SCON exists or not. The service will attempt to use HIP (Hosted Integration Platform) by default, with a fallback to DES (Data Exchange Service) if configured.
@@ -106,7 +183,8 @@ Content-Type: application/json
 - **HIP Integration**: Validates SCONs using the Hosted Integration Platform
 - **Caching**: Responses are cached to improve performance
 - **Secure Logging**: All logs are automatically redacted to protect sensitive information
-- **Fallback Mechanism**: Automatically falls back to DES if HIP is unavailable (configurable)
+- **Fallback Mechanism**: Automatically falls back to DES/IF if HIP is unavailable (configurable)
+- **HIP 422 Mapping**: Upstream HIP 422 failures are returned as 200 responses with `globalErrorCode` set to the HIP failure `code`.
 
 ## Local Development
 
