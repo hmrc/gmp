@@ -23,7 +23,7 @@ import models.{HipCalcResult, HipCalculationFailuresResponse, HipCalculationRequ
 import models.HipCalcResult.{Failures, Success}
 import play.api.Logging
 import play.api.http.Status
-import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
+import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, FORBIDDEN, NOT_FOUND, INTERNAL_SERVER_ERROR, OK, SERVICE_UNAVAILABLE, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.*
@@ -73,14 +73,13 @@ class HipConnector @Inject()(
         metrics.hipConnectorTimer(duration, TimeUnit.MILLISECONDS)
         metrics.hipConnectorStatus(response.status)
         response.status match {
-          case Status.OK  =>
-            response.json.as[HipValidateSconResponse]
+          case OK  => response.json.as[HipValidateSconResponse]
 
-          case Status.BAD_REQUEST | Status.FORBIDDEN | Status.NOT_FOUND | Status.INTERNAL_SERVER_ERROR | Status.SERVICE_UNAVAILABLE =>
-            throw UpstreamErrorResponse(response.body, response.status, Status.INTERNAL_SERVER_ERROR)
+          case BAD_REQUEST | FORBIDDEN | NOT_FOUND | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+            throw UpstreamErrorResponse(response.body, response.status, INTERNAL_SERVER_ERROR)
 
           case other =>
-            throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, Status.INTERNAL_SERVER_ERROR)
+            throw UpstreamErrorResponse("HIP connector validateScon unexpected response", other, INTERNAL_SERVER_ERROR)
         }
       }
   }
@@ -123,8 +122,10 @@ class HipConnector @Inject()(
 
         response.status match {
           case OK => Success(parseHipCalculationSuccess(response))
-          case Status.UNPROCESSABLE_ENTITY => Failures(parseHipFailures(response))
-          case _ => throw toUpstreamError(response)
+          case UNPROCESSABLE_ENTITY | BAD_REQUEST | FORBIDDEN | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+            Failures(parseHipFailures(response), response.status)
+          case unexpectedStatus =>
+            throw upstreamErrorResponse(response, s"HIP connector calculate failed with status $unexpectedStatus")
         }
       }
   }
@@ -151,40 +152,32 @@ class HipConnector @Inject()(
   }
 
   private def parseHipFailures(response: HttpResponse): models.HipCalculationFailuresResponse = {
-    logger.debug(s"[HipConnector][calculate][422] Response body: ${LoggingUtils.redactCalculationData(response.body)}")
+    val status = response.status
+    logger.debug(s"[HipConnector][calculate][$status] Response body: ${LoggingUtils.redactCalculationData(response.body)}")
     scala.util.Try(Json.parse(response.body)).toOption match {
       case Some(js) =>
         js.validate[models.HipCalculationFailuresResponse] match {
           case JsSuccess(value, _) => value
           case JsError(errors) =>
             val errorFields = errors.map(_._1.toString()).mkString(", ")
-            val detailedMsg = s"HIP 422 returned invalid JSON. Failed to parse fields: $errorFields"
+            val detailedMsg = s"HIP $status returned invalid JSON. Failed to parse fields: $errorFields"
             logger.error(s"[HipConnector][calculate] $detailedMsg")
-            throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+            throw upstreamErrorResponse(response, detailedMsg)
         }
       case None =>
-        val detailedMsg = s"HIP returned non-JSON body with 422. Body: ${response.body.take(MaxBodyLengthForLogging)}"
+        val detailedMsg = s"HIP returned non-JSON body with $status. Body: ${response.body.take(MaxBodyLengthForLogging)}"
         logger.error(s"[HipConnector][calculate] $detailedMsg")
-        throw UpstreamErrorResponse(detailedMsg, BAD_GATEWAY, BAD_GATEWAY)
+        throw upstreamErrorResponse(response, detailedMsg)
     }
   }
 
-  private def toUpstreamError(response: HttpResponse): UpstreamErrorResponse = {
-    val status = response.status
-    val (message, reportAs) = status match {
-      case BAD_REQUEST => ("Bad Request", BAD_REQUEST)
-      case FORBIDDEN   => ("Forbidden",   FORBIDDEN)
-      case NOT_FOUND   => ("Not Found",   NOT_FOUND)
-      case s if s >= 500 => (s"Unexpected error (Status: $s)", INTERNAL_SERVER_ERROR)
-      case s => (s"Client error (Status: $s)", s)
+  private def upstreamErrorResponse(response: HttpResponse, detailedMsg: String): UpstreamErrorResponse = {
+    val reportAs = response.status match {
+      case UNPROCESSABLE_ENTITY => BAD_GATEWAY
+      case s if s >= 500 => INTERNAL_SERVER_ERROR
+      case s => s
     }
-
-    UpstreamErrorResponse(
-      message   = s"HIP connector calculate failed: $message",
-      statusCode = status,
-      reportAs   = reportAs,
-      headers    = response.headers
-    )
+    UpstreamErrorResponse(detailedMsg, response.status, reportAs, response.headers)
   }
 
 

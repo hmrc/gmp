@@ -734,8 +734,8 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        val failures = HipCalculationFailuresResponse(List(HipFailure("No match for person details provided", 63119)))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures)))
+        val failures = HipCalculationFailuresResponse(failures = List(HipFailure("No match for person details provided", Some("63119"), None)))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -748,8 +748,8 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        val failures = HipCalculationFailuresResponse(Nil)
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures)))
+        val failures = HipCalculationFailuresResponse(failures = Nil)
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -763,13 +763,33 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        val failures = HipCalculationFailuresResponse(List(HipFailure("Some reason", 63166), HipFailure("Another", 56010)))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures)))
+        val failures = HipCalculationFailuresResponse(failures = List(
+          HipFailure("Some reason", Some("63166"), None),
+          HipFailure("Another", Some("56010"), None)
+        ))
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
         status(result) must be(OK)
         (contentAsJson(result) \ "globalErrorCode").as[Int] mustBe 63166
+      }
+
+      "use HTTP status as globalErrorCode when HIP failure has only type" in {
+        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
+        when(mockAppConfig.isIfsEnabled).thenReturn(false)
+        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
+        val failures = HipCalculationFailuresResponse(
+          origin = Some("HIP"),
+          failures = List(HipFailure("Integration unavailable", None, Some("HIP-UNAVAILABLE")))
+        )
+        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, SERVICE_UNAVAILABLE)))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
+
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+        status(result) must be(OK)
+        (contentAsJson(result) \ "globalErrorCode").as[Int] mustBe SERVICE_UNAVAILABLE
       }
     }
 
