@@ -20,22 +20,23 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.Logging
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import utils.LoggingUtils
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-
 case class CachedCalculation(request: Int,
                              response: GmpCalculationResponse,
-                             createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
+                             createdAt: Instant = Instant.now())
 
 object CachedCalculation {
-
+  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val formats: OFormat[CachedCalculation] = Json.format[CachedCalculation]
 }
 
@@ -43,13 +44,12 @@ object CachedCalculation {
 trait CalculationRepository {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
-
   def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean]
 
 }
 
 @Singleton
-class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val executionContext: ExecutionContext)
+class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesConfig: ServicesConfig, implicit val executionContext: ExecutionContext)
   extends PlayMongoRepository[CachedCalculation](
     collectionName = "calculation",
     mongoComponent = mongo,
@@ -58,7 +58,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("calculationResponseExpiry")
-        .expireAfter(CacheConfig.DefaultExpirySeconds, TimeUnit.SECONDS)
+        .expireAfter(servicesConfig.getInt("calculationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
     ))
   ) with CalculationRepository with Logging {
 
