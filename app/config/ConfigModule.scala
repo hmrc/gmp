@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-package repositories
+package config
 
-/**
- * Shared cache configuration for repositories
- */
-private[repositories] object CacheConfig {
-  val DefaultExpirySeconds: Long = 600L // 10 minutes
+import com.google.inject.AbstractModule
+import play.api.{Configuration, Environment}
+import ttl.UpdateCacheTTLService
+
+import scala.annotation.unused
+
+class ConfigModule(@unused environment: Environment, @unused configuration: Configuration) extends AbstractModule {
+  override def configure(): Unit = {
+   
+    bind(classOf[UpdateCacheTTLService]).asEagerSingleton()
+  }
 }
