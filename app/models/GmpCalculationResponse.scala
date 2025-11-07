@@ -30,10 +30,9 @@ object ContributionsAndEarnings {
   def createFromNpsLcntearn(earnings: NpsLcntearn): ContributionsAndEarnings = {
     ContributionsAndEarnings(earnings.rattd_tax_year, earnings.rattd_tax_year match {
       case x if x < contributionsAndEarningsBefore1987 => f"${earnings.contributions_earnings}%1.2f"
-      case _ => {
+      case _ =>
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.format(earnings.contributions_earnings)
-      }
     })
   }
 
@@ -41,10 +40,9 @@ object ContributionsAndEarnings {
   def createFromHipDetails(details: ContributionsAndEarningsDetails): ContributionsAndEarnings = {
     ContributionsAndEarnings(details.taxYear, details.taxYear match {
       case x if x < contributionsAndEarningsBefore1987 => f"${details.contributionOrEarningsAmount}%1.2f"
-      case _ => {
+      case _ =>
         val formatter = java.text.NumberFormat.getIntegerInstance
         formatter.format(details.contributionOrEarningsAmount)
-      }
     })
   }
 }
@@ -77,7 +75,7 @@ object CalculationPeriod {
     )
   }
 
-  def mapRevaluationRate(rate: String): Int = rate match {
+  private def mapRevaluationRate(rate: String): Int = rate match {
     case "S148"   => 1
     case "FIXED"  => 2
     case "LIMITED"=> 3
@@ -120,17 +118,17 @@ case class GmpCalculationResponse(
   def hasErrors: Boolean = calculationPeriods.foldLeft(globalErrorCode){_ + _.errorCode} > 0
 
   def errorCodes: List[Int] = {
-    hasErrors match {
-      case false => List[Int]()
-      case true =>
-        var errors = calculationPeriods
-          .filter(_.errorCode > 0)
-          .map(_.errorCode)
-        if (globalErrorCode > 0) {
-          errors = errors :+ globalErrorCode
-        }
+    if (hasErrors) {
+      var errors = calculationPeriods
+        .filter(_.errorCode > 0)
+        .map(_.errorCode)
+      if (globalErrorCode > 0) {
+        errors = errors :+ globalErrorCode
+      }
 
-        errors
+      errors
+    } else {
+      List[Int]()
     }
   }
 
@@ -187,7 +185,7 @@ object GmpCalculationResponse {
     )
   }
 
-  def createFromHipFailures(failures: HipCalculationFailuresResponse)(
+  def createFromHipFailures(failures: HipCalculationFailuresResponse, status: Int)(
     nino: String,
     scon: String,
     name: String,
@@ -196,7 +194,11 @@ object GmpCalculationResponse {
     dualCalc: Boolean,
     calcType: Int
   ): GmpCalculationResponse = {
-    val codeValue: Int = failures.failures.headOption.map(_.code).getOrElse(0)
+    val primaryFailure = failures.failures.headOption
+    val codeValue: Int = primaryFailure
+      .flatMap(f => parseFailureCode(f.code))
+      .orElse(primaryFailure.map(_ => status))
+      .getOrElse(0)
     GmpCalculationResponse(
       name = name,
       nino = nino,
@@ -212,4 +214,15 @@ object GmpCalculationResponse {
       calcType = calcType
     )
   }
+
+  private def parseFailureCode(maybeCode: Option[String]): Option[Int] =
+    maybeCode.flatMap { code =>
+      if (code.isEmpty) {
+        None
+      }
+      else {
+        code.toIntOption
+          .orElse(code.split('.').headOption.flatMap(_.toIntOption))
+      }
+    }
 }

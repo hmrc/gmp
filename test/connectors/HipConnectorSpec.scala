@@ -90,6 +90,47 @@ class HipConnectorSpec extends HttpClientV2Helper {
       result mustBe HipValidateSconResponse(true)
     }
 
+    "return Failures(HipCalculationFailuresResponse) for status 500 when failures only contain type" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "origin": "HIP",
+           "response": {
+             "failures": [
+               { "type": "SomeFailureType", "reason": "Integration unavailable" }
+             ]
+           }
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value, status) =>
+          status mustBe INTERNAL_SERVER_ERROR
+          value.failures must have size 1
+          value.failures.head.code mustBe None
+          value.failures.head.failureType mustBe Some("SomeFailureType")
+          value.failures.head.reason mustBe "Integration unavailable"
+          value.origin mustBe Some("HIP")
+        case _ => fail("Expected Failures")
+      }
+    }
+
     "throw UpstreamErrorResponse for error status codes (400, 403, 404, 500, 503)" in {
       val errorCodes = Seq(400, 403, 404, 499, 500, 503)
 
@@ -225,7 +266,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     }
     ex.statusCode mustBe BAD_REQUEST
     ex.reportAs mustBe BAD_REQUEST
-    ex.message must include("HIP connector calculate failed: Bad Request")
+    ex.message must include("HIP returned non-JSON body with 400. Body: Bad req body")
   }
 
   "map HTTP 403 response to UpstreamErrorResponse (reportAs=403)" in {
@@ -375,7 +416,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     }
     ex.statusCode mustBe 429
     ex.reportAs mustBe 429
-    ex.getMessage must include("HIP connector calculate failed: Client error (Status: 429)")
+    ex.getMessage must include("HIP connector calculate failed with status 429")
   }
 
   // ---------- validateScon: unexpected status (e.g., 418) uses “unexpected response” path ----------
@@ -565,9 +606,131 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       val res = await(TestHipConnector.calculate("user123", request))
       res match {
-        case Failures(value) =>
+        case Failures(value, status) =>
+          status mustBe UNPROCESSABLE_ENTITY
           value.failures.head.reason mustBe "No match for person details provided"
-          value.failures.head.code mustBe 63119
+          value.failures.head.code mustBe Some("63119")
+          value.failures.head.failureType mustBe None
+          value.origin mustBe None
+        case _ => fail("Expected Failures")
+      }
+    }
+
+    "return Failures(HipCalculationFailuresResponse) for status 400 with nested failures body" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "origin": "HoD",
+           "response": {
+             "failures": [
+               { "reason": "HTTP message not readable", "code": "400.2" },
+               { "reason": "Constraint Violation - Invalid/Missing input parameter", "code": "400.1" }
+             ]
+           }
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value, status) =>
+          status mustBe SERVICE_UNAVAILABLE
+          value.failures.flatMap(_.code) mustBe List("400.2", "400.1")
+          value.failures.map(_.reason) must contain("HTTP message not readable")
+          value.failures.flatMap(_.failureType) mustBe empty
+          value.origin mustBe Some("HoD")
+        case _ => fail("Expected Failures")
+      }
+    }
+
+    "return Failures(HipCalculationFailuresResponse) for status 403 with single failure body" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "reason": "User Not Authorised",
+           "code": "403.1"
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(FORBIDDEN, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value, status) =>
+          status mustBe FORBIDDEN
+          value.failures must have size 1
+          value.failures.head.reason mustBe "User Not Authorised"
+          value.failures.head.code mustBe Some("403.1")
+          value.failures.head.failureType mustBe None
+          value.origin mustBe None
+        case _ => fail("Expected Failures")
+      }
+    }
+
+    "return Failures(HipCalculationFailuresResponse) when failures only contain type" in {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = None,
+        terminationDate = None,
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val failuresJson =
+        """{
+           "origin": "HIP",
+           "response": {
+             "failures": [
+               { "type": "SomeFailureType", "reason": "Integration unavailable" }
+             ]
+           }
+         }"""
+
+      requestBuilderExecute(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failuresJson)))
+
+      val res = await(TestHipConnector.calculate("user123", request))
+      res match {
+        case Failures(value, status) =>
+          status mustBe SERVICE_UNAVAILABLE
+          value.failures must have size 1
+          value.failures.head.code mustBe None
+          value.failures.head.failureType mustBe Some("SomeFailureType")
+          value.failures.head.reason mustBe "Integration unavailable"
+          value.origin mustBe Some("HIP")
         case _ => fail("Expected Failures")
       }
     }
@@ -597,7 +760,10 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
       val res = await(TestHipConnector.calculate("user123", request))
       res match {
-        case Failures(value) => value.failures.head.code mustBe 0
+        case Failures(value, status) =>
+          status mustBe UNPROCESSABLE_ENTITY
+          value.failures.head.code mustBe Some("0")
+          value.failures.head.failureType mustBe None
         case _ => fail("Expected Failures")
       }
     }

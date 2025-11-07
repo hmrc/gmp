@@ -108,7 +108,7 @@ class CalculationController @Inject()(desConnector: DesConnector,
       case Left(hipCalc) =>
         hipCalc.map {
           case Success(success) => hipMappingService.mapSuccess(success, calculationRequest)
-          case Failures(failures) => hipMappingService.mapFailures(failures, calculationRequest)
+          case Failures(failures, status) => hipMappingService.mapFailures(failures, status, calculationRequest)
         }
       case Right(calc) =>
         calc.map(mapDesOrIfToGmp(_, calculationRequest))

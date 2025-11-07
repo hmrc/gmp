@@ -81,14 +81,21 @@ class HipMappingServiceSpec extends BaseSpec {
 
   "HipMappingService.mapFailures" should {
     "map HIP failures (422) to GMP with error code and empty periods" in {
-      val failures = HipCalculationFailuresResponse(List(HipFailure("No match", 63119)))
-      val result = service.mapFailures(failures, request)
+      val failures = HipCalculationFailuresResponse(failures = List(HipFailure("No match", Some("63119"), None)))
+      val result = service.mapFailures(failures, 422, request)
 
       result.globalErrorCode mustBe 63119
       result.calculationPeriods mustBe empty
       result.scon mustBe request.scon
       result.nino mustBe request.nino
     }
+
+    "use HTTP status as global error code when HIP failure has no code but has a type" in {
+      val failures = HipCalculationFailuresResponse(failures = List(HipFailure("Integration unavailable", None, Some("HIP-UNAVAILABLE"))))
+      val result = service.mapFailures(failures, 503, request)
+
+      result.globalErrorCode mustBe 503
+      result.calculationPeriods mustBe empty
+    }
   }
 }
-

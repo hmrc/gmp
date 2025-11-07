@@ -19,25 +19,60 @@ package models
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-case class HipFailure(reason: String, code: Int)
+case class HipFailure(reason: String, code: Option[String], failureType: Option[String])
 
 object HipFailure {
-  private def parseCode(js: JsValue): Int = js match {
-    case JsNumber(n) => n.toInt
-    case JsString(s) => s.toIntOption.getOrElse(0)
-    case _           => 0
+  private def parseCode(raw: Option[JsValue]): Option[String] = raw.flatMap {
+    case JsNumber(n) => Some(n.toString())
+    case JsString(s) =>
+      val trimmed = s.trim
+      if (trimmed.matches("""\d+(\.\d+)?""")) Some(trimmed) else Some("0")
+    case _ => Some("0")
   }
+
+  private def parseType(raw: Option[String]): Option[String] =
+    raw.map(_.trim).filter(_.nonEmpty)
 
   implicit val reads: Reads[HipFailure] = (
     (JsPath \ "reason").read[String] and
-      (JsPath \ "code").read[JsValue].map(parseCode)
+      (JsPath \ "code").readNullable[JsValue].map(parseCode) and
+      (JsPath \ "type").readNullable[String].map(parseType)
     )(HipFailure.apply _)
 
-  implicit val writes: OWrites[HipFailure] = Json.writes[HipFailure]
+  implicit val writes: OWrites[HipFailure] = OWrites[HipFailure] { failure =>
+    val base = Json.obj("reason" -> failure.reason)
+    val withCode = failure.code.map(code => base + ("code" -> JsString(code))).getOrElse(base)
+    failure.failureType.map(t => withCode + ("type" -> JsString(t))).getOrElse(withCode)
+  }
 }
 
-case class HipCalculationFailuresResponse(failures: List[HipFailure])
+case class HipCalculationFailuresResponse(origin: Option[String] = None, failures: List[HipFailure])
 
 object HipCalculationFailuresResponse {
-  implicit val formats: OFormat[HipCalculationFailuresResponse] = Json.format[HipCalculationFailuresResponse]
+  private val directReads: Reads[HipCalculationFailuresResponse] =
+    (
+      (JsPath \ "origin").readNullable[String] and
+        (JsPath \ "failures").read[List[HipFailure]]
+      )(HipCalculationFailuresResponse.apply _)
+
+  private val nestedReads: Reads[HipCalculationFailuresResponse] =
+    (
+      (JsPath \ "origin").readNullable[String] and
+        (JsPath \ "response" \ "failures").read[List[HipFailure]]
+      )(HipCalculationFailuresResponse.apply _)
+
+  private val singleFailureReads: Reads[HipCalculationFailuresResponse] =
+    (
+      (JsPath \ "origin").readNullable[String] and
+        HipFailure.reads
+      )((origin, failure) => HipCalculationFailuresResponse(origin, List(failure)))
+
+  implicit val reads: Reads[HipCalculationFailuresResponse] =
+    directReads orElse nestedReads orElse singleFailureReads
+
+  implicit val writes: OWrites[HipCalculationFailuresResponse] =
+    OWrites[HipCalculationFailuresResponse] { value =>
+      val base = Json.obj("failures" -> value.failures)
+      value.origin.map(o => base + ("origin" -> JsString(o))).getOrElse(base)
+    }
 }

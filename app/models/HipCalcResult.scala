@@ -20,6 +20,5 @@ sealed trait HipCalcResult
 
 object HipCalcResult {
   final case class Success(value: HipCalculationResponse) extends HipCalcResult
-  final case class Failures(value: HipCalculationFailuresResponse) extends HipCalcResult
+  final case class Failures(value: HipCalculationFailuresResponse, status: Int) extends HipCalcResult
 }
-

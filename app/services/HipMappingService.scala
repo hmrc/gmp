@@ -34,8 +34,8 @@ class HipMappingService {
     )
   }
 
-  def mapFailures(f: HipCalculationFailuresResponse, req: CalculationRequest): GmpCalculationResponse = {
-    GmpCalculationResponse.createFromHipFailures(f)(
+  def mapFailures(f: HipCalculationFailuresResponse, status: Int, req: CalculationRequest): GmpCalculationResponse = {
+    GmpCalculationResponse.createFromHipFailures(f, status)(
       nino = req.nino,
       scon = req.scon,
       name = s"${req.firstForename} ${req.surname}",
