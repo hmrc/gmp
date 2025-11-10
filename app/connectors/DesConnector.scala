@@ -140,7 +140,6 @@ class DesConnector @Inject()(val runModeConfiguration: Configuration,
       }"""
 
     doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
-    logger.debug(s"[DesConnector][calculate] Contacting DES at $uri")
 
     val startTime = System.currentTimeMillis()
 

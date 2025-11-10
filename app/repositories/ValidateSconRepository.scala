@@ -23,6 +23,7 @@ import play.api.Logging
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import utils.LoggingUtils
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
@@ -54,7 +55,7 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val 
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("sconValidationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(CacheConfig.DefaultExpirySeconds, TimeUnit.SECONDS)
     ))
   ) with ValidateSconRepository with Logging {
 
@@ -79,7 +80,8 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val 
         response.headOption.map(_.response)
       }.recover {
       case e =>
-        logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, exception: ${e.getMessage} }")
+        logger.error(s"[ValidateSconMongoRepository][findByScon] Error finding SCON validation: ${LoggingUtils.redactError(e.getMessage)}")
+        logger.debug(s"[ValidateSconMongoRepository][findByScon] Error details for SCON: $scon", e)
         None
     }
 

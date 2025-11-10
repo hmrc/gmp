@@ -23,6 +23,7 @@ import play.api.Logging
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import utils.LoggingUtils
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
@@ -57,7 +58,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("calculationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(CacheConfig.DefaultExpirySeconds, TimeUnit.SECONDS)
     ))
   ) with CalculationRepository with Logging {
 
@@ -75,7 +76,8 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       }
       .recover {
         case e =>
-          logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, exception: ${e.getMessage} }")
+          logger.error(s"[CalculationMongoRepository][findByRequest] Error finding calculation: ${LoggingUtils.redactError(e.getMessage)}")
+        logger.debug(s"[CalculationMongoRepository][findByRequest] Error details for request: $request", e)
           None
       }
   }
@@ -89,7 +91,9 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
         logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${insertedData.getInsertedId} }")
         true
       }.recover {
-      case e => logger.error("Failed to insert  By request", e)
+      case e =>
+        logger.error(s"[CalculationRepository][insertByRequest] Failed to insert calculation: ${LoggingUtils.redactError(e.getMessage)}")
+        logger.debug("[CalculationRepository][insertByRequest] Error details:", e)
         false
     }
   }

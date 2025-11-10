@@ -17,29 +17,34 @@
 package controllers
 
 import com.google.inject.{Inject, Singleton}
-import connectors.{DesConnector, DesGetHiddenRecordResponse, IFConnector}
+import config.AppConfig
+import models.HipCalcResult.{Failures, Success}
+import connectors.*
 import controllers.auth.GmpAuthAction
 import events.ResultsEvent
-import models.{CalculationRequest, GmpCalculationResponse}
+import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse, HipCalcResult, HipCalculationRequest}
 import play.api.Logging
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, ControllerComponents}
 import repositories.CalculationRepository
+import services.HipMappingService
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import utils.LoggingUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationController @Inject()(desConnector: DesConnector,
                                       ifConnector: IFConnector,
+                                      hipConnector: HipConnector,
                                       repository: CalculationRepository,
                                       authAction: GmpAuthAction,
-                                      auditConnector : AuditConnector,
+                                      auditConnector: AuditConnector,
+                                      hipMappingService: HipMappingService,
                                       cc: ControllerComponents,
-                                      val servicesConfig: ServicesConfig)
+                                      appConfig: AppConfig)
                                      (implicit val ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) {
@@ -71,47 +76,58 @@ class CalculationController @Inject()(desConnector: DesConnector,
                 )
                 Future.successful(Ok(Json.toJson(response)))
               case _ =>
-                val ifSwitch: Boolean = servicesConfig.getBoolean("ifs.enabled")
-                val result = if(ifSwitch) {
-                  ifConnector.calculate(userId, calculationRequest)
-                } else {
-                  desConnector.calculate(userId, calculationRequest)
-                }
-                result.map {
-                  calculation => {
-                    logger.debug(s"[CalculationController][requestCalculation] : $calculation")
-
-                    val transformedResult = GmpCalculationResponse.createFromCalculationResponse(calculation)(
-                      calculationRequest.nino, calculationRequest.scon, calculationRequest.firstForename + " " + calculationRequest.surname,
-                      calculationRequest.revaluationRate,
-                      calculationRequest.revaluationDate,
-                      calculationRequest.dualCalc.fold(false)(_ == 1),
-                      calculationRequest.calctype.get
-                    )
-
-                    logger.debug(s"[CalculationController][transformedResult] : $transformedResult")
-                    repository.insertByRequest(calculationRequest, transformedResult)
-                    sendResultsEvent(transformedResult, cached = false, userId)
-
-                    Ok(Json.toJson(transformedResult))
-                  }
+                handleNewCalculation(userId, calculationRequest).flatMap { response =>
+                  for {
+                    _ <- repository.insertByRequest(calculationRequest, response)
+                    _ = sendResultsEvent(response, cached = false, userId)
+                  } yield Ok(Json.toJson(response))
                 }.recover {
-                  case e: UpstreamErrorResponse if e.statusCode == 500 => {
-                    logger.error(s"[CalculateController][requestCalculation][transformedResult][ERROR:500] : ${e.getMessage}")
+                  case e: UpstreamErrorResponse if e.statusCode == 500 =>
+                    logger.error(s"[CalculationController][requestCalculation] Internal Server Error")
+                    logger.debug(s"[CalculationController][requestCalculation] Error details: ${LoggingUtils.redactError(e.getMessage)}")
                     InternalServerError(e.getMessage)
-                  }
                 }
             }
         }
-
-        result.map{res =>
-          res
+        result.map {
+          res => res
         }
       }
     }
   }
 
-  def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
+  private def handleNewCalculation(userId: String, calculationRequest: CalculationRequest)(implicit hc: HeaderCarrier): Future[GmpCalculationResponse] = {
+    val connectorResult: Either[Future[HipCalcResult], Future[CalculationResponse]] =
+      (appConfig.isIfsEnabled, appConfig.isHipEnabled) match {
+        case (true, false) => Right(ifConnector.calculate(userId, calculationRequest))
+        case (_, true) => Left(hipConnector.calculate(userId, HipCalculationRequest.from(calculationRequest)))
+        case _ => Right(desConnector.calculate(userId, calculationRequest))
+      }
+
+    connectorResult match {
+      case Left(hipCalc) =>
+        hipCalc.map {
+          case Success(success) => hipMappingService.mapSuccess(success, calculationRequest)
+          case Failures(failures, status) => hipMappingService.mapFailures(failures, status, calculationRequest)
+        }
+      case Right(calc) =>
+        calc.map(mapDesOrIfToGmp(_, calculationRequest))
+    }
+  }
+
+  private def mapDesOrIfToGmp(c: CalculationResponse, req: CalculationRequest): GmpCalculationResponse = {
+    GmpCalculationResponse.createFromCalculationResponse(c)(
+      req.nino,
+      req.scon,
+      s"${req.firstForename} ${req.surname}",
+      req.revaluationRate,
+      req.revaluationDate,
+      req.dualCalc.contains(1),
+      req.calctype.getOrElse(-1)
+    )
+  }
+
+  private def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
     val idType = userId.take(1) match {
       case x if x.matches("[A-Z]") => "psa"
       case x if x.matches("[0-9]") => "psp"

@@ -62,7 +62,7 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
       registry.timer("nps-connector-timer").update(diff, unit)
     })
   }
-  
+
   def desConnectorStatus(code: Int): Unit = {
     recordMetric(s"nps-connector-status-$code", {
       registry.counter(s"nps-connector-status-$code").inc()
@@ -75,7 +75,7 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
       registry.timer("hip-connector-timer").update(diff, unit)
     })
   }
-  
+
   def hipConnectorStatus(code: Int): Unit = {
     recordMetric(s"hip-connector-status-$code", {
       registry.counter(s"hip-connector-status-$code").inc()
@@ -83,13 +83,13 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
   }
 
   // IF metrics
-  def IFConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
+  def ifConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
     recordMetric("if-connector-timer", {
       registry.timer("if-connector-timer").update(diff, unit)
     })
   }
-  
-  def IFConnectorStatus(code: Int): Unit = {
+
+  def ifConnectorStatus(code: Int): Unit = {
     recordMetric(s"if-connector-status-$code", {
       registry.counter(s"if-connector-status-$code").inc()
     })
@@ -101,13 +101,13 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
       registry.timer("mci-connection-timer").update(diff, unit)
     })
   }
-  
+
   def mciLockCount(): Unit = {
     recordMetric("mci-lock-result-count", {
       registry.counter("mci-lock-result-count").inc()
     })
   }
-  
+
   def mciErrorCount(): Unit = {
     recordMetric("mci-error-count", {
       registry.counter("mci-error-count").inc()
