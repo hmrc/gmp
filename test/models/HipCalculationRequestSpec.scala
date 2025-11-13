@@ -18,6 +18,7 @@ package models
 
 import base.BaseSpec
 import play.api.libs.json.{JsString, JsSuccess, Json}
+import java.time.LocalDate
 
 class HipCalculationRequestSpec extends BaseSpec {
 
@@ -44,8 +45,8 @@ class HipCalculationRequestSpec extends BaseSpec {
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType must be (None)
-      hipRequest.revaluationDate must be (Some("2022-06-01"))
-      hipRequest.terminationDate must be (Some("2022-06-30"))
+      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
       hipRequest.includeContributionAndEarnings must be (true)
       hipRequest.includeDualCalculation must be (true)
     }
@@ -72,8 +73,8 @@ class HipCalculationRequestSpec extends BaseSpec {
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate must be (None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
-      hipRequest.revaluationDate must be (Some("2022-06-01"))
-      hipRequest.terminationDate must be (Some("2022-06-30"))
+      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
       hipRequest.includeContributionAndEarnings must be (true)
       hipRequest.includeDualCalculation must be (true)
     }
@@ -100,8 +101,8 @@ class HipCalculationRequestSpec extends BaseSpec {
       hipRequest.secondForename must be (None)
       hipRequest.revaluationRate mustBe Some(EnumRevaluationRate.NONE)
       hipRequest.calculationRequestType must be (None)
-      hipRequest.revaluationDate must be (Some("2022-06-01"))
-      hipRequest.terminationDate must be (Some("2022-06-30"))
+      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
       hipRequest.includeContributionAndEarnings must be (true)
       hipRequest.includeDualCalculation must be (true)
     }

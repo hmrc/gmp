@@ -23,13 +23,12 @@ import models.*
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
-import play.api.libs.json.Json
+import play.api.libs.json.{JsResultException, JsString, Json}
 import HipCalcResult.{Failures, Success}
 import play.api.test.Helpers.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import play.api.libs.json.JsResultException
 
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -496,6 +495,38 @@ class HipConnectorSpec extends HttpClientV2Helper {
         case Success(value) => value.schemeContractedOutNumberDetails mustBe "S2123456B"
         case _ => fail("Expected Success")
       }
+    }
+
+    "serialize LocalDate fields as yyyy-MM-dd in request body" in {
+      val revaluationDateStr = "2022-06-01"
+      val terminationDateStr = "2022-06-01"
+
+      val request = HipCalculationRequest(
+        schemeContractedOutNumber = "S2123456B",
+        nationalInsuranceNumber = "AA000001A",
+        surname = "TestSurname",
+        firstForename = "TestForename",
+        secondForename = Some(""),
+        revaluationRate = Some(EnumRevaluationRate.NONE),
+        calculationRequestType = Some(EnumCalcRequestType.DOL),
+        revaluationDate = Some(java.time.LocalDate.parse(revaluationDateStr)),
+        terminationDate = Some(java.time.LocalDate.parse(terminationDateStr)),
+        includeContributionAndEarnings = true,
+        includeDualCalculation = true
+      )
+
+      val successResponse = HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)
+      val httpResponse = HttpResponse(OK, Json.toJson(successResponse).toString())
+      requestBuilderExecute(Future.successful(httpResponse))
+
+      await(TestHipConnector.calculate("user123", request))
+
+      val bodyCaptor = org.mockito.ArgumentCaptor.forClass(classOf[play.api.libs.json.JsValue])
+      verify(requestBuilder, atLeastOnce()).withBody(bodyCaptor.capture())(any(), any(), any())
+      val sentJson = bodyCaptor.getValue
+
+      (sentJson \ "revaluationDate").as[JsString].value mustBe revaluationDateStr
+      (sentJson \ "terminationDate").as[JsString].value mustBe terminationDateStr
     }
 
     "throw UpstreamErrorResponse for status 400" in {
