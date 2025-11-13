@@ -19,6 +19,7 @@ package models
 import play.api.libs.json._
 
 import java.net.URLEncoder
+import java.time.LocalDate
 
 object EnumRevaluationRate extends Enumeration {
   type EnumRevaluationRate = Value
@@ -62,13 +63,16 @@ case class HipCalculationRequest(schemeContractedOutNumber: String,
                                  secondForename: Option[String],
                                  revaluationRate: Option[EnumRevaluationRate.Value],
                                  calculationRequestType: Option[EnumCalcRequestType.Value],
-                                 revaluationDate: Option[String],
-                                 terminationDate: Option[String],
+                                 revaluationDate: Option[LocalDate],
+                                 terminationDate: Option[LocalDate],
                                  includeContributionAndEarnings: Boolean,
                                  includeDualCalculation: Boolean)
 
 
 object HipCalculationRequest {
+  implicit val localDateFormat: Format[LocalDate] =
+    Format[LocalDate](Reads.localDateReads("yyyy-MM-dd"), Writes.temporalWrites[LocalDate, String]("yyyy-MM-dd"))
+
   implicit val formats: OFormat[HipCalculationRequest] = Json.format[HipCalculationRequest]
 
   // Constants for revaluation rate mapping
@@ -105,8 +109,8 @@ object HipCalculationRequest {
       secondForename = None,
       revaluationRate = revalEnum,
       calculationRequestType = calcTypeEnum,
-      revaluationDate = calcReq.revaluationDate,
-      terminationDate = calcReq.terminationDate,
+      revaluationDate = calcReq.revaluationDate.map(LocalDate.parse),
+      terminationDate = calcReq.terminationDate.map(LocalDate.parse),
       includeContributionAndEarnings = calcReq.requestEarnings.contains(1),
       includeDualCalculation = calcReq.dualCalc.contains(1)
     )
