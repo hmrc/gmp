@@ -40,7 +40,7 @@ class GmpAuthAction @Inject()(override val authConnector: AuthConnector, control
     authorised(ConfidenceLevel.L50) {
       block(request)
     }recover {
-      case ex: NoActiveSession =>
+      case _: NoActiveSession =>
         Status(UNAUTHORIZED)
     }
   }

@@ -26,7 +26,6 @@ import org.mockito.Mockito.*
 import play.api.libs.json.{JsResultException, JsString, Json}
 import HipCalcResult.{Failures, Success}
 import play.api.test.Helpers.*
-import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
@@ -52,7 +51,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
   }
   val mockMetrics: ApplicationMetrics = mock[ApplicationMetrics]
 
-  when(mockAuditConnector.sendEvent(any())(any(), any()))
+  when(mockAuditConnector.sendEvent(any())(using any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
   // Use the mockHttp and requestBuilder from HttpClientV2Helper
@@ -72,10 +71,10 @@ class HipConnectorSpec extends HttpClientV2Helper {
 
   before {
     reset(mockHttp, requestBuilder)
-    when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
-    when(mockHttp.post(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+    when(mockHttp.get(any[URL])(using any[HeaderCarrier])).thenReturn(requestBuilder)
+    when(mockHttp.post(any[URL])(using any[HeaderCarrier])).thenReturn(requestBuilder)
     when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
-    when(requestBuilder.withBody(any())(any(), any(), any())).thenReturn(requestBuilder)
+    when(requestBuilder.withBody(any())(using any(), any(), any())).thenReturn(requestBuilder)
     when(requestBuilder.transform(any())).thenReturn(requestBuilder)
   }
 
@@ -152,12 +151,12 @@ class HipConnectorSpec extends HttpClientV2Helper {
       reset(mockHttp, requestBuilder, mockAuditConnector)
 
       // Re-stub after reset (safe even if not used)
-      when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+      when(mockHttp.get(any[URL])(using any[HeaderCarrier])).thenReturn(requestBuilder)
       when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
-      when(requestBuilder.execute[HttpResponse](any(), any()))
+      when(requestBuilder.execute[HttpResponse](using any(), any()))
         .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
 
-      when(mockAuditConnector.sendEvent(any())(any(), any()))
+      when(mockAuditConnector.sendEvent(any())(using any(), any()))
         .thenReturn(Future.successful(AuditResult.Success))
 
       // Truly invalid formats
@@ -174,16 +173,16 @@ class HipConnectorSpec extends HttpClientV2Helper {
         await(TestHipConnector.validateScon("user123", "S140123A")) // too short
       }
 
-      verify(mockHttp, never()).get(any[URL])(any[HeaderCarrier])
+      verify(mockHttp, never()).get(any[URL])(using any[HeaderCarrier])
     }
     "accept lowercase/space-insensitive SCON" in {
       implicit val hc = HeaderCarrier()
 
-      when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+      when(mockHttp.get(any[URL])(using any[HeaderCarrier])).thenReturn(requestBuilder)
       when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
-      when(requestBuilder.execute[HttpResponse](any(), any()))
+      when(requestBuilder.execute[HttpResponse](using any(), any()))
         .thenReturn(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
-      when(mockAuditConnector.sendEvent(any())(any(), any()))
+      when(mockAuditConnector.sendEvent(any())(using any(), any()))
         .thenReturn(Future.successful(AuditResult.Success))
 
       noException shouldBe thrownBy {
@@ -195,7 +194,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     "log and continue if audit fails" in {
       implicit val hc = HeaderCarrier()
 
-      when(mockAuditConnector.sendEvent(any())(any(), any()))
+      when(mockAuditConnector.sendEvent(any())(using any(), any()))
         .thenReturn(Future.failed(new RuntimeException("Audit failure")))
 
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
@@ -217,7 +216,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       requestBuilderExecute(Future.successful(HttpResponse(200, validateSconResponseJson.toString())))
       await(TestHipConnector.validateScon("user123", "S1401234Q"))
 
-      verify(requestBuilder, atLeastOnce()).setHeader(headersCaptor.capture(): _*)
+      verify(requestBuilder, atLeastOnce()).setHeader(headersCaptor.capture() *)
       val captured = headersCaptor.getAllValues.asScala
       val headerMaps = captured.map(_.toMap)
 
@@ -319,7 +318,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
   }
   "complete successfully even if audit sendEvent fails" in {
     implicit val hc = HeaderCarrier()
-    when(mockAuditConnector.sendEvent(any())(any(), any()))
+    when(mockAuditConnector.sendEvent(any())(using any(), any()))
       .thenReturn(Future.failed(new RuntimeException("audit down")))
     val successBody = Json.toJson(HipCalculationResponse("", "S2123456B", Some(""), Some(""), Some(""), List.empty)).toString()
     requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
@@ -338,7 +337,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
     requestBuilderExecute(Future.successful(HttpResponse(OK, successBody)))
     await(TestHipConnector.calculate("user123", HipCalculationRequest("", "S2123456B", "s", "f", Some(""), Some(EnumRevaluationRate.NONE), Some(EnumCalcRequestType.DOL), None, None, true, true)))
 
-    verify(requestBuilder, atLeastOnce()).setHeader(headerCaptor.capture(): _*)
+    verify(requestBuilder, atLeastOnce()).setHeader(headerCaptor.capture() *)
     val headerMaps = headerCaptor.getAllValues.asScala.map(_.toMap)
 
     val corr = headerMaps.flatMap(_.get("correlationId")).headOption
@@ -522,7 +521,7 @@ class HipConnectorSpec extends HttpClientV2Helper {
       await(TestHipConnector.calculate("user123", request))
 
       val bodyCaptor = org.mockito.ArgumentCaptor.forClass(classOf[play.api.libs.json.JsValue])
-      verify(requestBuilder, atLeastOnce()).withBody(bodyCaptor.capture())(any(), any(), any())
+      verify(requestBuilder, atLeastOnce()).withBody(bodyCaptor.capture())(using any(), any(), any())
       val sentJson = bodyCaptor.getValue
 
       (sentJson \ "revaluationDate").as[JsString].value mustBe revaluationDateStr

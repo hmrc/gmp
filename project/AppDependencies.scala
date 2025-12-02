@@ -5,13 +5,13 @@ object AppDependencies {
 
   private val playVersion = "play-30"
   private val bootstrapVersion = "10.4.0"
-  private val hmrcMongoVersion = "2.10.0"
+  private val hmrcMongoVersion = "2.11.0"
 
   val compile = Seq(
     ws,
     "uk.gov.hmrc"            %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-$playVersion"        % hmrcMongoVersion,
-    "uk.gov.hmrc"            %% "tax-year"                        % "5.0.0"
+    "uk.gov.hmrc"            %% "tax-year"                        % "6.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(

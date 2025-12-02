@@ -43,7 +43,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
   val mockServicesConfig: ServicesConfig = app.injector.instanceOf[ServicesConfig]
   val config: Configuration = app.injector.instanceOf[Configuration]
 
-  when(mockAuditConnector.sendEvent(any())(any(), any()))
+  when(mockAuditConnector.sendEvent(any())(using any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
   object TestIfConnector extends IFConnector(config,
@@ -88,7 +88,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
   before {
     reset(mockHttp)
-    when(mockHttp.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
+    when(mockHttp.get(any[URL])(using any[HeaderCarrier])).thenReturn(requestBuilder)
   }
 
   "The IF Connector" must {
@@ -148,7 +148,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must endWith("/scon/S/1401234/Q/nino/CB433298A/surname/SMI/firstname/B/calculation/?calctype=0")
       }
@@ -167,7 +167,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must endWith("/?calctype=0")
       }
@@ -177,7 +177,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("/surname/SMI/")
       }
@@ -187,7 +187,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("surname/FR/")
       }
@@ -197,7 +197,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("surname/LE/")
 
@@ -209,7 +209,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("/surname/O'S/")
       }
@@ -220,7 +220,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("CB433298A")
       }
@@ -231,7 +231,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("S/1401234/Q")
       }
@@ -242,7 +242,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("revalrate")
       }
@@ -253,7 +253,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
 
-        verify(mockHttp).get(urlCaptor.capture())(any[HeaderCarrier])
+        verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("request_earnings")
       }
@@ -266,7 +266,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
           mockAuditConnector,
           mockServicesConfig)
 
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
         //TODO: Assert something here?
@@ -305,7 +305,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
           mockAuditConnector,
           mockServicesConfig)
 
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         TestIfConnector.validateScon("PSAID", "S1401234Q")

@@ -27,7 +27,6 @@ import play.api.mvc.{Action, ControllerComponents}
 import repositories.ValidateSconRepository
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.LoggingUtils
 import utils.LoggingUtils.*
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -67,7 +66,7 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
           }
 
           validationFuture.recover {
-            case e: IllegalArgumentException =>
+            case _: IllegalArgumentException =>
               logger.warn(s"[ValidateSconController][validateScon] Invalid SCON format for SCON: $redactedScon")
               BadRequest(Json.obj("error" -> "Invalid SCON format"))
 

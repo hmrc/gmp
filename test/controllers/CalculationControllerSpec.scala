@@ -88,13 +88,13 @@ class CalculationControllerSpec extends BaseSpec {
       .thenReturn(Future.successful(true))
     
     // Default connector behaviors
-    when(mockIfConnector.getPersonDetails(any())(any()))
+    when(mockIfConnector.getPersonDetails(any())(using any()))
       .thenReturn(Future.successful(IFGetSuccessResponse))
-    when(mockDesConnector.getPersonDetails(any())(any()))
+    when(mockDesConnector.getPersonDetails(any())(using any()))
       .thenReturn(Future.successful(DesGetSuccessResponse))
     
     // Default audit behavior
-    when(mockAuditConnector.sendEvent(any())(any(), any()))
+    when(mockAuditConnector.sendEvent(any())(using any(), any()))
       .thenReturn(Future.successful(AuditResult.Success))
   }
 
@@ -106,7 +106,7 @@ class CalculationControllerSpec extends BaseSpec {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any()))
+        when(mockDesConnector.calculate(any(), any())(using any()))
           .thenReturn(Future
             .successful(Json.parse(
               """{
@@ -139,11 +139,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "respond to a valid calculation request with OK using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockIfConnector.calculate(any(), any())(any()))
+        when(mockIfConnector.calculate(any(), any())(using any()))
           .thenReturn(Future
             .successful(Json.parse(
               """{
@@ -175,11 +175,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "respond to a valid calculation request with OK using HIP connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockHipConnector.calculate(any(), any())(any()))
+        when(mockHipConnector.calculate(any(), any())(using any()))
           .thenReturn(Future
             .successful(Success(Json.parse(
               """{
@@ -213,12 +213,12 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return json using Des connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(Json.parse(
             """{
               "nino": "AB123456C",
@@ -247,11 +247,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return json using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(Json.parse(
             """{
               "nino": "AB123456C",
@@ -280,11 +280,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return json using HIP connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(Success(Json.parse(
             """{
                 "nationalInsuranceNumber": "AA000001A",
@@ -318,10 +318,10 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with the correct SCON with Des Connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -366,11 +366,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return a Calculation Response with the correct SCON using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -419,9 +419,9 @@ class CalculationControllerSpec extends BaseSpec {
       "respond with server error if des connector returns same" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -432,10 +432,10 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "respond with server error if IF connector returns same" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -446,10 +446,10 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "respond with server error if HIP connector returns same" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future
           .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -462,10 +462,10 @@ class CalculationControllerSpec extends BaseSpec {
       "contain revalued amounts when revaluation requested using Des connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
             Json.parse(
               """{
@@ -502,11 +502,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "contain revalued amounts when revaluation requested using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
             Json.parse(
               """{
@@ -547,10 +547,10 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with no revalued amounts when not revalued using Des connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -585,10 +585,10 @@ class CalculationControllerSpec extends BaseSpec {
       "return a Calculation Response with no revalued amounts when not revalued using DES connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -621,11 +621,11 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return a Calculation Response with no revalued amounts when not revalued using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future
           .successful(
 
             Json.parse(
@@ -662,7 +662,7 @@ class CalculationControllerSpec extends BaseSpec {
       "return an OK when http status code 422 with DES connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
@@ -688,7 +688,7 @@ class CalculationControllerSpec extends BaseSpec {
               }"""
         ).as[CalculationResponse]
 
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(npsResponse))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -696,7 +696,7 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return an OK when http status code 422 with IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
@@ -722,7 +722,7 @@ class CalculationControllerSpec extends BaseSpec {
               }"""
         ).as[CalculationResponse]
 
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(npsResponse))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -730,12 +730,12 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return an OK when http status code 422 with HIP connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val failures = HipCalculationFailuresResponse(failures = List(HipFailure("No match for person details provided", Some("63119"), None)))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -744,12 +744,12 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return an OK when 422 with HIP connector and empty failures" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
         val failures = HipCalculationFailuresResponse(failures = Nil)
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -759,7 +759,7 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "return an OK when 422 with HIP connector and multiple failures (use first)" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
@@ -767,7 +767,7 @@ class CalculationControllerSpec extends BaseSpec {
           HipFailure("Some reason", Some("63166"), None),
           HipFailure("Another", Some("56010"), None)
         ))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(Failures(failures, UNPROCESSABLE_ENTITY)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -776,7 +776,7 @@ class CalculationControllerSpec extends BaseSpec {
       }
 
       "use HTTP status as globalErrorCode when HIP failure has only type" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
@@ -784,7 +784,7 @@ class CalculationControllerSpec extends BaseSpec {
           origin = Some("HIP"),
           failures = List(HipFailure("Integration unavailable", None, Some("HIP-UNAVAILABLE")))
         )
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Failures(failures, SERVICE_UNAVAILABLE)))
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(Failures(failures, SERVICE_UNAVAILABLE)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
@@ -796,7 +796,7 @@ class CalculationControllerSpec extends BaseSpec {
     "when calculation in the cache" must {
 
       "return OK" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
@@ -808,40 +808,40 @@ class CalculationControllerSpec extends BaseSpec {
 
       "not call NPS using DES connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        verify(mockDesConnector, never()).calculate(any(), any())(any())
+        verify(mockDesConnector, never()).calculate(any(), any())(using any())
       }
 
       "not call NPS using IF connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        verify(mockIfConnector, never()).calculate(any(), any())(any())
+        verify(mockIfConnector, never()).calculate(any(), any())(using any())
       }
 
       "not call NPS using HIP connector" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
 
         testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        verify(mockHipConnector, never()).calculate(any(), any())(any())
+        verify(mockHipConnector, never()).calculate(any(), any())(using any())
       }
     }
 
     "when dual calculation" must {
       "return false" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(dualCalcCalculationResponse)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
@@ -878,9 +878,9 @@ class CalculationControllerSpec extends BaseSpec {
         ).as[CalculationResponse]
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
         when(mockAppConfig.isHipEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockDesConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(npsResponse))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
@@ -915,10 +915,10 @@ class CalculationControllerSpec extends BaseSpec {
               }"""
         ).as[CalculationResponse]
 
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockAppConfig.isHipEnabled).thenReturn(false)
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockIfConnector.calculate(any(), any())(any())).thenReturn(Future.successful(npsResponse))
+        when(mockIfConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(npsResponse))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
@@ -956,9 +956,9 @@ class CalculationControllerSpec extends BaseSpec {
                 }"""
         ).as[HipCalculationResponse]
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockHipConnector.calculate(any(), any())(any())).thenReturn(Future.successful(Success(hipCalculationResponse)))
+        when(mockHipConnector.calculate(any(), any())(using any())).thenReturn(Future.successful(Success(hipCalculationResponse)))
         when(mockRepo.insertByRequest(any(), any())).thenReturn(Future.successful(true))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
           body = Json.toJson(dualCalcCalculationRequest.copy(dualCalc = None)))
@@ -972,7 +972,7 @@ class CalculationControllerSpec extends BaseSpec {
     "when date of death returned" must {
       "do this" in {
         val inputDate = LocalDate.parse("2016-01-01", fullDateFormatter)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse.copy(dateOfDeath = Some(inputDate)))))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
@@ -986,7 +986,7 @@ class CalculationControllerSpec extends BaseSpec {
 
     "when date of death not returned" must {
       "do this" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
@@ -1000,7 +1000,7 @@ class CalculationControllerSpec extends BaseSpec {
 
     "when response audit causes exception" must {
       "log exception and return normally" in {
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.failed(new Exception()))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(Some(calculationResponse)))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")),
@@ -1015,9 +1015,9 @@ class CalculationControllerSpec extends BaseSpec {
     "when citizens details return 423" must {
       "return a global error using DES connector" in {
         when(mockAppConfig.isIfsEnabled).thenReturn(false)
-        when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(org.mockito.ArgumentMatchers.eq("AB123456C"))(any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
+        when(mockDesConnector.getPersonDetails(org.mockito.ArgumentMatchers.eq("AB123456C"))(using any[HeaderCarrier])).thenReturn(Future.successful(DesGetHiddenRecordResponse))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(calculationRequest))
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)

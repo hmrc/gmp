@@ -22,7 +22,6 @@ import metrics.ApplicationMetrics
 import models.{HipCalcResult, HipCalculationFailuresResponse, HipCalculationRequest, HipCalculationResponse, HipValidateSconResponse}
 import models.HipCalcResult.{Failures, Success}
 import play.api.Logging
-import play.api.http.Status
 import play.api.http.Status.{BAD_GATEWAY, BAD_REQUEST, FORBIDDEN, NOT_FOUND, INTERNAL_SERVER_ERROR, OK, SERVICE_UNAVAILABLE, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -66,7 +65,7 @@ class HipConnector @Inject()(
     val startTime = System.currentTimeMillis()
 
     http.get(url"$url")
-      .setHeader(headers: _*)
+      .setHeader(headers *)
       .execute[HttpResponse]
       .map { response =>
         val duration = System.currentTimeMillis() - startTime
@@ -109,7 +108,7 @@ class HipConnector @Inject()(
 
     http
       .post(url"$calcURI")
-      .setHeader(headers: _*)
+      .setHeader(headers *)
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .map { response =>

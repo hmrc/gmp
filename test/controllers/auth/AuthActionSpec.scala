@@ -35,7 +35,7 @@ class AuthActionSpec extends BaseSpec {
   private val cComponents = controllerComponents
 
   class Harness(authAction: GmpAuthAction) extends BaseController {
-    def onPageLoad(): Action[AnyContent] = authAction { request => Ok }
+    def onPageLoad(): Action[AnyContent] = authAction { _ => Ok }
 
     override def controllerComponents: ControllerComponents = cComponents
   }
@@ -48,7 +48,7 @@ class AuthActionSpec extends BaseSpec {
     "the user is not logged in" must {
       "must return unauthorised" in {
 
-        when(mockMicroserviceAuthConnector.authorise(any(),any())(any(), any()))
+        when(mockMicroserviceAuthConnector.authorise(any(),any())(using any(), any()))
           .thenReturn(Future.failed(new MissingBearerToken))
 
         val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)
@@ -62,7 +62,7 @@ class AuthActionSpec extends BaseSpec {
     "the user is logged in" must {
       "must return the request" in {
 
-        when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(any(), any()))
+        when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(using any(), any()))
           .thenReturn(Future.successful(()))
 
         val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)
