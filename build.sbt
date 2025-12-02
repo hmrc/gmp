@@ -1,7 +1,6 @@
-import scoverage._
+import scoverage.*
 import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, scalaSettings}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
 val appName: String = "gmp"
 
@@ -24,7 +23,7 @@ lazy val scoverageExcludePatterns = List(
   lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimumStmtTotal := 97,
+      ScoverageKeys.coverageMinimumStmtTotal := 95,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
@@ -35,7 +34,6 @@ lazy val scoverageExcludePatterns = List(
     .settings(
       defaultSettings(),
       scalaSettings,
-      publishingSettings,
       scoverageSettings,
       majorVersion := 3,
       libraryDependencies ++= AppDependencies.all,

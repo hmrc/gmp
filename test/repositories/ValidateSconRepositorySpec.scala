@@ -22,6 +22,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
+import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
@@ -31,7 +33,9 @@ class ValidateSconRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterAll
   with ScalaFutures {
-  override val repository: ValidateSconMongoRepository = new ValidateSconMongoRepository(mongoComponent, ExecutionContext.global)
+  private val config = Configuration("sconValidationExpiryTimeInSeconds" -> 600)
+  private val servicesConfig = new ServicesConfig(config)
+  override val repository: ValidateSconMongoRepository = new ValidateSconMongoRepository(mongoComponent,servicesConfig,ExecutionContext.global)
 
   override protected def beforeAll(): Unit =  {
     dropDatabase()
