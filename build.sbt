@@ -31,11 +31,10 @@ lazy val scoverageExcludePatterns = List(
   }
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(plugins: _*)
+    .enablePlugins(plugins *)
     .settings(
       defaultSettings(),
       scalaSettings,
-      publishingSettings,
       scoverageSettings,
       majorVersion := 3,
       libraryDependencies ++= AppDependencies.all,
@@ -55,5 +54,5 @@ lazy val scoverageExcludePatterns = List(
       ),
       scalacOptions := scalacOptions.value.distinct
     ).disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-    .settings(scalaVersion := "3.3.6")
+    .settings(scalaVersion := "3.7.1")
 
