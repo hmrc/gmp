@@ -104,8 +104,8 @@ object HipCalculationRequest {
     HipCalculationRequest(
       schemeContractedOutNumber = calcReq.scon,
       nationalInsuranceNumber = calcReq.nino.toUpperCase.trim,
-      surname = URLEncoder.encode(calcReq.surname.take(3).toUpperCase.trim, "UTF-8"),
-      firstForename = URLEncoder.encode(calcReq.firstForename.charAt(0).toUpper.toString, "UTF-8"),
+      surname = calcReq.surname.take(3).toUpperCase.trim,
+      firstForename = calcReq.firstForename.trim.charAt(0).toUpper.toString,
       secondForename = None,
       revaluationRate = revalEnum,
       calculationRequestType = calcTypeEnum,

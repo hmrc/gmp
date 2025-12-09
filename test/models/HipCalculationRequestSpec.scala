@@ -136,6 +136,48 @@ class HipCalculationRequestSpec extends BaseSpec {
       hipRequest.includeDualCalculation must be (true)
     }
 
+    "normalise surname, firstForename and NINO with spaces and special characters" in {
+      val calcReq = CalculationRequest(
+        scon = "S1234567T",
+        nino = "aa123456a",
+        surname = " o'neill",
+        firstForename = " ann-marie",
+        revaluationRate = None,
+        calctype = None,
+        revaluationDate = None,
+        terminationDate = None,
+        requestEarnings = Some(1),
+        dualCalc = Some(1)
+      )
+
+      val hipRequest = HipCalculationRequest.from(calcReq)
+
+      hipRequest.nationalInsuranceNumber must be ("AA123456A")
+      hipRequest.surname must be ("O'")
+      hipRequest.firstForename must be ("A")
+    }
+
+    "normalise surname and firstForename without spaces" in {
+      val calcReq = CalculationRequest(
+        scon = "S1234567T",
+        nino = "aa123456a",
+        surname = "O'Neill",
+        firstForename = "Ann-Marie",
+        revaluationRate = None,
+        calctype = None,
+        revaluationDate = None,
+        terminationDate = None,
+        requestEarnings = Some(1),
+        dualCalc = Some(1)
+      )
+
+      val hipRequest = HipCalculationRequest.from(calcReq)
+
+      hipRequest.nationalInsuranceNumber must be ("AA123456A")
+      hipRequest.surname must be ("O'N")
+      hipRequest.firstForename must be ("A")
+    }
+
   }
 
   "EnumCalcRequestType" should {
