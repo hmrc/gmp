@@ -37,7 +37,7 @@ object HipFailure {
     (JsPath \ "reason").read[String] and
       (JsPath \ "code").readNullable[JsValue].map(parseCode) and
       (JsPath \ "type").readNullable[String].map(parseType)
-    )(HipFailure.apply _)
+    )(HipFailure.apply)
 
   implicit val writes: OWrites[HipFailure] = OWrites[HipFailure] { failure =>
     val base = Json.obj("reason" -> failure.reason)
@@ -53,13 +53,13 @@ object HipCalculationFailuresResponse {
     (
       (JsPath \ "origin").readNullable[String] and
         (JsPath \ "failures").read[List[HipFailure]]
-      )(HipCalculationFailuresResponse.apply _)
+      )(HipCalculationFailuresResponse.apply)
 
   private val nestedReads: Reads[HipCalculationFailuresResponse] =
     (
       (JsPath \ "origin").readNullable[String] and
         (JsPath \ "response" \ "failures").read[List[HipFailure]]
-      )(HipCalculationFailuresResponse.apply _)
+      )(HipCalculationFailuresResponse.apply)
 
   private val singleFailureReads: Reads[HipCalculationFailuresResponse] =
     (
