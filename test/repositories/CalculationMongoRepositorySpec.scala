@@ -23,7 +23,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
 import org.mongodb.scala.SingleObservableFuture
+import play.api.Configuration
+import play.api.libs.json.Json
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
@@ -32,7 +36,9 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with ScalaFutures {
-  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
+  private val config         = Configuration("calculationExpiryTimeInSeconds" -> 600)
+  private val servicesConfig = new ServicesConfig(config)
+  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, servicesConfig, ExecutionContext.global)
 
   val calculationRequest: CalculationRequest =  CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
 
@@ -123,6 +129,71 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
             val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
             gmpCalcResposne.isDefined shouldBe false
           }
+        }
+
+        "deserialize createdAt as Mongo Extended JSON with $date.$numberLong (UTC millis)" in {
+          val expectedTime = Instant.parse("2025-11-03T10:00:00Z")
+          val dt = expectedTime.toEpochMilli
+          
+          val json = Json.parse(
+            s"""
+              |{
+              |"request": 69942156,
+              |  "response": {
+              |    "name": "CLIFF RICHARD-SMITH",
+              |    "nino": "WA106701A",
+              |    "scon": "S2730000B",
+              |    "calculationPeriods": [
+              |      {
+              |        "startDate": "1996-04-06",
+              |        "endDate": "2016-04-05",
+              |        "gmpTotal": "0.71",
+              |        "post88GMPTotal": "0.71",
+              |        "revaluationRate": 1,
+              |        "errorCode": 0,
+              |        "revalued": 0,
+              |        "dualCalcPost90TrueTotal": "0.00",
+              |        "dualCalcPost90OppositeTotal": "0.00",
+              |        "inflationProofBeyondDod": 0,
+              |        "contsAndEarnings": [
+              |          {
+              |            "taxYear": 1996,
+              |            "contEarnings": "4,785"
+              |          }
+              |        ]
+              |      }
+              |    ],
+              |    "globalErrorCode": 0,
+              |    "payableAgeDate": "2028-03-02",
+              |    "dualCalc": false,
+              |    "calcType": 0
+              |  },
+              |  "createdAt": { "$$date": { "$$numberLong": "$dt" } }
+              |}
+           """.stripMargin)
+
+          val details = json.as[CachedCalculation]
+
+          details.createdAt  shouldBe Instant.parse("2025-11-03T10:00:00Z")
+
+        }
+
+        "serialize createdAt from Mongo Extended JSON structure" in {
+          val localDateTime = LocalDateTime.of(2024, 6, 30, 12, 34, 56, 789000000)
+          val millisTime = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
+          val instant = Instant.ofEpochMilli(millisTime)
+
+          val json = Json.obj(
+            "request" -> testHashCode,
+            "response" -> response,
+            "createdAt" -> Json.obj(
+              "$date" -> Json.obj("$numberLong" -> millisTime.toString)
+            )
+          )
+
+          val parsed = json.validate[CachedCalculation]
+          parsed.isSuccess shouldBe true
+          parsed.get shouldBe CachedCalculation(testHashCode, response, instant)
         }
     }
   }
