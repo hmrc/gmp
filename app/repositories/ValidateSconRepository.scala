@@ -59,7 +59,8 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesC
       IndexOptions()
         .name("sconValidationResponseExpiry")
         .expireAfter(servicesConfig.getInt("sconValidationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
-    ))
+    )),
+    replaceIndexes = true
   ) with ValidateSconRepository with Logging {
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
