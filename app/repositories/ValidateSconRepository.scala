@@ -54,12 +54,18 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesC
     collectionName = "validate_scon",
     mongoComponent = mongo,
     domainFormat = ValidateSconMongoModel.formats,
-    indexes = Seq(IndexModel(
-      Indexes.ascending("createdAt"),
-      IndexOptions()
-        .name("sconValidationResponseExpiry")
-        .expireAfter(servicesConfig.getInt("sconValidationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
-    )),
+    indexes = Seq(
+      IndexModel(
+        Indexes.ascending("createdAt"),
+        IndexOptions()
+          .name("sconValidationResponseExpiry")
+          .expireAfter(servicesConfig.getInt("sconValidationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
+      ),
+      IndexModel(
+        Indexes.ascending("scon"),
+        IndexOptions().name("validateSconSconIdx")
+      )
+    ),
     replaceIndexes = true
   ) with ValidateSconRepository with Logging {
 
