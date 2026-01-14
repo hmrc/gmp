@@ -54,12 +54,18 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesCo
     collectionName = "calculation",
     mongoComponent = mongo,
     domainFormat = CachedCalculation.formats,
-    indexes = Seq(IndexModel(
-      Indexes.ascending("createdAt"),
-      IndexOptions()
-        .name("calculationResponseExpiry")
-        .expireAfter(servicesConfig.getInt("calculationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
-    ))
+    indexes = Seq(
+      IndexModel(
+        Indexes.ascending("createdAt"),
+        IndexOptions()
+          .name("calculationResponseExpiry")
+          .expireAfter(servicesConfig.getInt("calculationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
+      ),
+      IndexModel(
+        Indexes.ascending("request"),
+        IndexOptions().name("calculationRequestIdx")
+      )
+    )
   ) with CalculationRepository with Logging {
 
 
