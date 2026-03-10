@@ -1,18 +1,18 @@
-import play.sbt.PlayImport._
-import sbt._
+import play.sbt.PlayImport.*
+import sbt.*
 
 object AppDependencies {
 
   private val playVersion = "play-30"
-  private val bootstrapVersion = "10.5.0"
-  private val hmrcMongoVersion = "2.11.0"
+  private val bootstrapVersion = "10.7.0"
+  private val hmrcMongoVersion = "2.12.0"
   private val pekkoVersion = "1.2.1"
 
-  val compile = Seq(
+  val compile: Seq[ModuleID] = Seq(
     ws,
-    "uk.gov.hmrc"            %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
-    "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-$playVersion"        % hmrcMongoVersion,
-    "uk.gov.hmrc"            %% "tax-year"                        % "6.0.0"
+    "uk.gov.hmrc" %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
+    "uk.gov.hmrc.mongo" %% s"hmrc-mongo-$playVersion" % hmrcMongoVersion,
+    "uk.gov.hmrc" %% "tax-year" % "6.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(
