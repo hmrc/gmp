@@ -18,13 +18,10 @@ package config
 
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment}
-import ttl.UpdateCacheTTLService
 
 import scala.annotation.unused
 
 class ConfigModule(@unused environment: Environment, @unused configuration: Configuration) extends AbstractModule {
   override def configure(): Unit = {
-   
-    bind(classOf[UpdateCacheTTLService]).asEagerSingleton()
   }
 }
