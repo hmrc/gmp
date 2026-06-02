@@ -31,45 +31,47 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-case class CachedCalculation(request: Int,
-                             response: GmpCalculationResponse,
-                             createdAt: Instant = Instant.now())
+case class CachedCalculation(request: Int, response: GmpCalculationResponse, createdAt: Instant = Instant.now())
 
 object CachedCalculation {
-  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-  implicit val formats: OFormat[CachedCalculation] = Json.format[CachedCalculation]
+  implicit val instantFormat: Format[Instant]            = MongoJavatimeFormats.instantFormat
+  implicit val formats:       OFormat[CachedCalculation] = Json.format[CachedCalculation]
 }
 
 @ImplementedBy(classOf[CalculationMongoRepository])
 trait CalculationRepository {
 
-  def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
+  def findByRequest(request:   CalculationRequest):                                   Future[Option[GmpCalculationResponse]]
   def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean]
 
 }
 
 @Singleton
-class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesConfig: ServicesConfig, implicit val executionContext: ExecutionContext)
-  extends PlayMongoRepository[CachedCalculation](
-    collectionName = "calculation",
-    mongoComponent = mongo,
-    domainFormat = CachedCalculation.formats,
-    indexes = Seq(
-      IndexModel(
-        Indexes.ascending("createdAt"),
-        IndexOptions()
-          .name("calculationResponseExpiry")
-          .expireAfter(servicesConfig.getInt("calculationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
-      ),
-      IndexModel(
-        Indexes.ascending("request"),
-        IndexOptions().name("calculationRequestIdx")
+class CalculationMongoRepository @Inject() (
+  mongo:                         MongoComponent,
+  val servicesConfig:            ServicesConfig,
+  implicit val executionContext: ExecutionContext
+) extends PlayMongoRepository[CachedCalculation](
+      collectionName = "calculation",
+      mongoComponent = mongo,
+      domainFormat = CachedCalculation.formats,
+      indexes = Seq(
+        IndexModel(
+          Indexes.ascending("createdAt"),
+          IndexOptions()
+            .name("calculationResponseExpiry")
+            .expireAfter(servicesConfig.getInt("calculationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
+        ),
+        IndexModel(
+          Indexes.ascending("request"),
+          IndexOptions().name("calculationRequestIdx")
+        )
       )
     )
-  ) with CalculationRepository with Logging {
+    with CalculationRepository
+    with Logging {
 
-
-  override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] = {
+  override def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]] =
     collection
       .find(Filters.equal("request", request.hashCode))
       .collect()
@@ -78,15 +80,13 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesCo
         logger.debug(s"[CalculationMongoRepository][findByRequest] : { request : $request, result: $calculations }")
         calculations
           .map(_.response)
-          .collectFirst{case response if responseMatchesRequest(request, response) => response}
+          .collectFirst { case response if responseMatchesRequest(request, response) => response }
       }
-      .recover {
-        case e =>
-          logger.error(s"[CalculationMongoRepository][findByRequest] Error finding calculation: ${LoggingUtils.redactError(e.getMessage)}")
+      .recover { case e =>
+        logger.error(s"[CalculationMongoRepository][findByRequest] Error finding calculation: ${LoggingUtils.redactError(e.getMessage)}")
         logger.debug(s"[CalculationMongoRepository][findByRequest] Error details for request: $request", e)
-          None
+        None
       }
-  }
 
   override def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean] = {
     val dataToInsert = CachedCalculation(request.hashCode, response)
@@ -94,17 +94,18 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesCo
       .insertOne(dataToInsert)
       .toFuture()
       .map { insertedData =>
-        logger.debug(s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${insertedData.getInsertedId} }")
+        logger.debug(
+          s"[CalculationMongoRepository][insertByRequest] : { request : $request, response: $response, result: ${insertedData.getInsertedId} }"
+        )
         true
-      }.recover {
-      case e =>
+      }
+      .recover { case e =>
         logger.error(s"[CalculationRepository][insertByRequest] Failed to insert calculation: ${LoggingUtils.redactError(e.getMessage)}")
         logger.debug("[CalculationRepository][insertByRequest] Error details:", e)
         false
-    }
+      }
   }
 
-  private def responseMatchesRequest(request: CalculationRequest, response: GmpCalculationResponse): Boolean = {
+  private def responseMatchesRequest(request: CalculationRequest, response: GmpCalculationResponse): Boolean =
     request.scon.equalsIgnoreCase(response.scon) && request.nino.equalsIgnoreCase(response.nino)
-  }
 }

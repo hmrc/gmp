@@ -32,13 +32,16 @@ import utils.LoggingUtils.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ValidateSconController @Inject()(desConnector: DesConnector,
-                                       hipConnector: HipConnector,
-                                       val repository: ValidateSconRepository,
-                                       authAction: GmpAuthAction,
-                                       cc: ControllerComponents,
-                                       appConfig: AppConfig)(implicit val ec: ExecutionContext)
-  extends BackendController(cc) with Logging {
+class ValidateSconController @Inject() (
+  desConnector:   DesConnector,
+  hipConnector:   HipConnector,
+  val repository: ValidateSconRepository,
+  authAction:     GmpAuthAction,
+  cc:             ControllerComponents,
+  appConfig:      AppConfig
+)(implicit val ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
   def validateScon(userId: String): Action[JsValue] = authAction.async(parse.json) { implicit request =>
     withJsonBody[ValidateSconRequest] { validateSconRequest =>
@@ -49,8 +52,9 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
           Future.successful(Ok(Json.toJson(cachedResponse)))
 
         case None =>
-          val validationFuture = if (appConfig.isHipEnabled) {
-            hipConnector.validateScon(userId, validateSconRequest.scon)
+          val validationFuture = if appConfig.isHipEnabled then {
+            hipConnector
+              .validateScon(userId, validateSconRequest.scon)
               .map { hipResponse =>
                 val transformedResult = GmpValidateSconResponse.createFromHipValidateSconResponse(hipResponse)
                 logger.debug(s"[ValidateSconController][validateScon] HIP validation successful for SCON: $redactedScon")
@@ -83,10 +87,9 @@ class ValidateSconController @Inject()(desConnector: DesConnector,
               InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
           }
       }
-    }.recover {
-      case e: Exception =>
-        logger.error(s"[ValidateSconController][validateScon] Request processing failed - ${e.getClass.getSimpleName}")
-        BadRequest(Json.obj("error" -> "Invalid request format"))
+    }.recover { case e: Exception =>
+      logger.error(s"[ValidateSconController][validateScon] Request processing failed - ${e.getClass.getSimpleName}")
+      BadRequest(Json.obj("error" -> "Invalid request format"))
     }
   }
 }

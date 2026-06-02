@@ -31,16 +31,17 @@ import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
-class CalculationMongoRepositorySpec extends AnyWordSpec
-  with PlayMongoRepositorySupport[CachedCalculation]
-  with Matchers
-  with BeforeAndAfterEach
-  with ScalaFutures {
+class CalculationMongoRepositorySpec
+    extends AnyWordSpec
+    with PlayMongoRepositorySupport[CachedCalculation]
+    with Matchers
+    with BeforeAndAfterEach
+    with ScalaFutures {
   private val config         = Configuration("calculationExpiryTimeInSeconds" -> 600)
   private val servicesConfig = new ServicesConfig(config)
   override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, servicesConfig, ExecutionContext.global)
 
-  val calculationRequest: CalculationRequest =  CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
+  val calculationRequest: CalculationRequest = CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
 
   val response: GmpCalculationResponse = GmpCalculationResponse(
     name = "MARCUS BILLING",
@@ -54,89 +55,88 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
     payableAgeDate = None,
     dateOfDeath = None,
     dualCalc = false,
-    calcType = 0)
+    calcType = 0
+  )
 
-  val responseDiffNino = response.copy(nino = "AA000005B")
-  val responseDiffScon = response.copy(scon = "S2730000C")
+  val responseDiffNino        = response.copy(nino = "AA000005B")
+  val responseDiffScon        = response.copy(scon = "S2730000C")
   val responseDiffNinoAndScon = responseDiffNino.copy(scon = "S2730000C")
-  val testHashCode = calculationRequest.hashCode()
+  val testHashCode            = calculationRequest.hashCode()
 
-  override protected def beforeEach(): Unit =  {
+  override protected def beforeEach(): Unit =
     dropDatabase()
-  }
 
   "Find By request" when {
-      "there is only one record in the database with the hashCode" that {
-        "matches that has the same scon and nino as the request" should {
-          "return the response" in {
-            Await.result(repository.insertByRequest(calculationRequest, response), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe true
-            gmpCalcResposne.get shouldBe response
-          }
+    "there is only one record in the database with the hashCode" that {
+      "matches that has the same scon and nino as the request" should {
+        "return the response" in {
+          Await.result(repository.insertByRequest(calculationRequest, response), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe true
+          gmpCalcResposne.get       shouldBe response
         }
-        "has a different scon" should {
-          "return None" in {
-            val cachedCalculation = CachedCalculation(testHashCode, responseDiffScon)
-            Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe false
-          }
+      }
+      "has a different scon" should {
+        "return None" in {
+          val cachedCalculation = CachedCalculation(testHashCode, responseDiffScon)
+          Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe false
         }
-        "has a different nino" should {
-          "return None" in {
-            val cachedCalculation = CachedCalculation(testHashCode, responseDiffNino)
-            Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe false
-          }
-        }
-
-        "has a different nino and scon" should {
-          "return None" in {
-            val cachedCalculation = CachedCalculation(testHashCode, responseDiffNinoAndScon)
-            Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe false
-          }
+      }
+      "has a different nino" should {
+        "return None" in {
+          val cachedCalculation = CachedCalculation(testHashCode, responseDiffNino)
+          Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe false
         }
       }
 
-      "there is multiple records in the database" that {
-        "includes one that matches the requests scon and nino" should {
-          "return the correct response" in {
-            val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
-            val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
-            val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
-            val cachedCalculationMatching = CachedCalculation(testHashCode, response)
-            val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3, cachedCalculationMatching)
+      "has a different nino and scon" should {
+        "return None" in {
+          val cachedCalculation = CachedCalculation(testHashCode, responseDiffNinoAndScon)
+          Await.result(repository.collection.insertOne(cachedCalculation).toFuture(), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe false
+        }
+      }
+    }
 
-            Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe true
-            gmpCalcResposne.get shouldBe response
+    "there is multiple records in the database" that {
+      "includes one that matches the requests scon and nino" should {
+        "return the correct response" in {
+          val cachedCalculation1        = CachedCalculation(testHashCode, responseDiffScon)
+          val cachedCalculation2        = CachedCalculation(testHashCode, responseDiffNino)
+          val cachedCalculation3        = CachedCalculation(testHashCode, responseDiffNinoAndScon)
+          val cachedCalculationMatching = CachedCalculation(testHashCode, response)
+          val dataToInsert              = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3, cachedCalculationMatching)
+
+          Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe true
+          gmpCalcResposne.get       shouldBe response
         }
       }
 
-        "does not include one that matches the requests scon and nino" should {
-          "return None" in {
-            val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
-            val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
-            val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
-            val dataToInsert = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
+      "does not include one that matches the requests scon and nino" should {
+        "return None" in {
+          val cachedCalculation1 = CachedCalculation(testHashCode, responseDiffScon)
+          val cachedCalculation2 = CachedCalculation(testHashCode, responseDiffNino)
+          val cachedCalculation3 = CachedCalculation(testHashCode, responseDiffNinoAndScon)
+          val dataToInsert       = Seq(cachedCalculation1, cachedCalculation2, cachedCalculation3)
 
-            Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
-            val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
-            gmpCalcResposne.isDefined shouldBe false
-          }
+          Await.result(repository.collection.insertMany(dataToInsert).toFuture(), 1.seconds)
+          val gmpCalcResposne = Await.result(repository.findByRequest(calculationRequest), 10.seconds)
+          gmpCalcResposne.isDefined shouldBe false
         }
+      }
 
-        "deserialize createdAt as Mongo Extended JSON with $date.$numberLong (UTC millis)" in {
-          val expectedTime = Instant.parse("2025-11-03T10:00:00Z")
-          val dt = expectedTime.toEpochMilli
-          
-          val json = Json.parse(
-            s"""
+      "deserialize createdAt as Mongo Extended JSON with $date.$numberLong (UTC millis)" in {
+        val expectedTime = Instant.parse("2025-11-03T10:00:00Z")
+        val dt           = expectedTime.toEpochMilli
+
+        val json = Json.parse(s"""
               |{
               |"request": 69942156,
               |  "response": {
@@ -172,29 +172,29 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
               |}
            """.stripMargin)
 
-          val details = json.as[CachedCalculation]
+        val details = json.as[CachedCalculation]
 
-          details.createdAt  shouldBe Instant.parse("2025-11-03T10:00:00Z")
+        details.createdAt shouldBe Instant.parse("2025-11-03T10:00:00Z")
 
-        }
+      }
 
-        "serialize createdAt from Mongo Extended JSON structure" in {
-          val localDateTime = LocalDateTime.of(2024, 6, 30, 12, 34, 56, 789000000)
-          val millisTime = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
-          val instant = Instant.ofEpochMilli(millisTime)
+      "serialize createdAt from Mongo Extended JSON structure" in {
+        val localDateTime = LocalDateTime.of(2024, 6, 30, 12, 34, 56, 789000000)
+        val millisTime    = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
+        val instant       = Instant.ofEpochMilli(millisTime)
 
-          val json = Json.obj(
-            "request" -> testHashCode,
-            "response" -> response,
-            "createdAt" -> Json.obj(
-              "$date" -> Json.obj("$numberLong" -> millisTime.toString)
-            )
+        val json = Json.obj(
+          "request"   -> testHashCode,
+          "response"  -> response,
+          "createdAt" -> Json.obj(
+            "$date" -> Json.obj("$numberLong" -> millisTime.toString)
           )
+        )
 
-          val parsed = json.validate[CachedCalculation]
-          parsed.isSuccess shouldBe true
-          parsed.get shouldBe CachedCalculation(testHashCode, response, instant)
-        }
+        val parsed = json.validate[CachedCalculation]
+        parsed.isSuccess shouldBe true
+        parsed.get       shouldBe CachedCalculation(testHashCode, response, instant)
+      }
     }
   }
 }

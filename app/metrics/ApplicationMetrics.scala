@@ -23,10 +23,10 @@ import play.api.Logging
 
 import scala.util.Try
 
-class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
+class ApplicationMetrics @Inject() (registry: MetricRegistry) extends Logging {
 
-  private val timer = (name: String) => Try{registry.timer(name)}
-  private val counter = (name: String) => Try{registry.counter(name)}
+  private val timer   = (name: String) => Try(registry.timer(name))
+  private val counter = (name: String) => Try(registry.counter(name))
 
   logger.info("[Metrics][constructor] Preloading metrics keys")
 
@@ -50,67 +50,39 @@ class ApplicationMetrics @Inject()(registry: MetricRegistry) extends Logging {
     ("mci-error-count", counter)
   ) foreach { t => t._2(t._1) }
 
-  private def recordMetric(metricName: String, action: => Unit): Unit = {
+  private def recordMetric(metricName: String, action: => Unit): Unit =
     Try(action).failed.foreach { ex =>
       logger.warn(s"$metricName failed: ${ex.getMessage}")
     }
-  }
 
   // NPS (DES) metrics
-  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
-    recordMetric("nps-connector-timer", {
-      registry.timer("nps-connector-timer").update(diff, unit)
-    })
-  }
+  def desConnectorTimer(diff: Long, unit: TimeUnit): Unit =
+    recordMetric("nps-connector-timer", registry.timer("nps-connector-timer").update(diff, unit))
 
-  def desConnectorStatus(code: Int): Unit = {
-    recordMetric(s"nps-connector-status-$code", {
-      registry.counter(s"nps-connector-status-$code").inc()
-    })
-  }
+  def desConnectorStatus(code: Int): Unit =
+    recordMetric(s"nps-connector-status-$code", registry.counter(s"nps-connector-status-$code").inc())
 
   // HIP metrics
-  def hipConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
-    recordMetric("hip-connector-timer", {
-      registry.timer("hip-connector-timer").update(diff, unit)
-    })
-  }
+  def hipConnectorTimer(diff: Long, unit: TimeUnit): Unit =
+    recordMetric("hip-connector-timer", registry.timer("hip-connector-timer").update(diff, unit))
 
-  def hipConnectorStatus(code: Int): Unit = {
-    recordMetric(s"hip-connector-status-$code", {
-      registry.counter(s"hip-connector-status-$code").inc()
-    })
-  }
+  def hipConnectorStatus(code: Int): Unit =
+    recordMetric(s"hip-connector-status-$code", registry.counter(s"hip-connector-status-$code").inc())
 
   // IF metrics
-  def ifConnectorTimer(diff: Long, unit: TimeUnit): Unit = {
-    recordMetric("if-connector-timer", {
-      registry.timer("if-connector-timer").update(diff, unit)
-    })
-  }
+  def ifConnectorTimer(diff: Long, unit: TimeUnit): Unit =
+    recordMetric("if-connector-timer", registry.timer("if-connector-timer").update(diff, unit))
 
-  def ifConnectorStatus(code: Int): Unit = {
-    recordMetric(s"if-connector-status-$code", {
-      registry.counter(s"if-connector-status-$code").inc()
-    })
-  }
+  def ifConnectorStatus(code: Int): Unit =
+    recordMetric(s"if-connector-status-$code", registry.counter(s"if-connector-status-$code").inc())
 
   // MCI metrics
-  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit = {
-    recordMetric("mci-connection-timer", {
-      registry.timer("mci-connection-timer").update(diff, unit)
-    })
-  }
+  def mciConnectionTimer(diff: Long, unit: TimeUnit): Unit =
+    recordMetric("mci-connection-timer", registry.timer("mci-connection-timer").update(diff, unit))
 
-  def mciLockCount(): Unit = {
-    recordMetric("mci-lock-result-count", {
-      registry.counter("mci-lock-result-count").inc()
-    })
-  }
+  def mciLockCount(): Unit =
+    recordMetric("mci-lock-result-count", registry.counter("mci-lock-result-count").inc())
 
-  def mciErrorCount(): Unit = {
-    recordMetric("mci-error-count", {
-      registry.counter("mci-error-count").inc()
-    })
-  }
+  def mciErrorCount(): Unit =
+    recordMetric("mci-error-count", registry.counter("mci-error-count").inc())
 }

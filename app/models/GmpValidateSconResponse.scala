@@ -23,13 +23,11 @@ case class GmpValidateSconResponse(sconExists: Boolean)
 object GmpValidateSconResponse {
   implicit val formats: OFormat[GmpValidateSconResponse] = Json.format[GmpValidateSconResponse]
 
-  def createFromValidateSconResponse(validateSconResponse: ValidateSconResponse): GmpValidateSconResponse = {
+  def createFromValidateSconResponse(validateSconResponse: ValidateSconResponse): GmpValidateSconResponse =
     validateSconResponse.scon_exists match {
       case 0 => GmpValidateSconResponse(false)
       case 1 => GmpValidateSconResponse(true)
     }
-  }
-  def createFromHipValidateSconResponse(hipValidateSconResponse: HipValidateSconResponse): GmpValidateSconResponse = {
-     GmpValidateSconResponse(hipValidateSconResponse.schemeContractedOutNumberExists)
-  }
+  def createFromHipValidateSconResponse(hipValidateSconResponse: HipValidateSconResponse): GmpValidateSconResponse =
+    GmpValidateSconResponse(hipValidateSconResponse.schemeContractedOutNumberExists)
 }

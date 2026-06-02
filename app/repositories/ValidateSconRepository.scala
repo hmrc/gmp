@@ -31,14 +31,11 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-
-case class ValidateSconMongoModel(scon: String,
-                                  response: GmpValidateSconResponse,
-                                  createdAt: Instant = Instant.now())
+case class ValidateSconMongoModel(scon: String, response: GmpValidateSconResponse, createdAt: Instant = Instant.now())
 
 object ValidateSconMongoModel {
-  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-  implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
+  implicit val instantFormat: Format[Instant]                 = MongoJavatimeFormats.instantFormat
+  implicit val formats:       OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
 
 @ImplementedBy(classOf[ValidateSconMongoRepository])
@@ -49,25 +46,30 @@ trait ValidateSconRepository {
 }
 
 @Singleton
-class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesConfig: ServicesConfig, implicit val executionContext: ExecutionContext)
-  extends PlayMongoRepository[ValidateSconMongoModel](
-    collectionName = "validate_scon",
-    mongoComponent = mongo,
-    domainFormat = ValidateSconMongoModel.formats,
-    indexes = Seq(
-      IndexModel(
-        Indexes.ascending("createdAt"),
-        IndexOptions()
-          .name("sconValidationResponseExpiry")
-          .expireAfter(servicesConfig.getInt("sconValidationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
+class ValidateSconMongoRepository @Inject() (
+  mongo:                         MongoComponent,
+  val servicesConfig:            ServicesConfig,
+  implicit val executionContext: ExecutionContext
+) extends PlayMongoRepository[ValidateSconMongoModel](
+      collectionName = "validate_scon",
+      mongoComponent = mongo,
+      domainFormat = ValidateSconMongoModel.formats,
+      indexes = Seq(
+        IndexModel(
+          Indexes.ascending("createdAt"),
+          IndexOptions()
+            .name("sconValidationResponseExpiry")
+            .expireAfter(servicesConfig.getInt("sconValidationExpiryTimeInSeconds").toLong, TimeUnit.SECONDS)
+        ),
+        IndexModel(
+          Indexes.ascending("scon"),
+          IndexOptions().name("validateSconSconIdx")
+        )
       ),
-      IndexModel(
-        Indexes.ascending("scon"),
-        IndexOptions().name("validateSconSconIdx")
-      )
-    ),
-    replaceIndexes = true
-  ) with ValidateSconRepository with Logging {
+      replaceIndexes = true
+    )
+    with ValidateSconRepository
+    with Logging {
 
   override def insertByScon(scon: String, validateSconResponse: GmpValidateSconResponse): Future[Boolean] = {
     val model = ValidateSconMongoModel(scon, validateSconResponse)
@@ -75,12 +77,12 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesC
       .insertOne(model)
       .toFuture()
       .map { insertResult =>
-      logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${insertResult.getInsertedId} }")
-      insertResult.wasAcknowledged()
-    }
+        logger.debug(s"[ValidateSconMongoRepository][insertByScon] : { scon : $scon, result: ${insertResult.getInsertedId} }")
+        insertResult.wasAcknowledged()
+      }
   }
 
-  override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] = {
+  override def findByScon(scon: String): Future[Option[GmpValidateSconResponse]] =
     collection
       .find(Filters.equal("scon", scon))
       .collect()
@@ -88,12 +90,11 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesC
       .map { response =>
         logger.debug(s"[ValidateSconMongoRepository][findByScon] : { scon : $scon, result: $response }")
         response.headOption.map(_.response)
-      }.recover {
-      case e =>
+      }
+      .recover { case e =>
         logger.error(s"[ValidateSconMongoRepository][findByScon] Error finding SCON validation: ${LoggingUtils.redactError(e.getMessage)}")
         logger.debug(s"[ValidateSconMongoRepository][findByScon] Error details for SCON: $scon", e)
         None
-    }
+      }
 
-  }
 }

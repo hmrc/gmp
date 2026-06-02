@@ -16,8 +16,8 @@
 
 package models
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 case class HipFailure(reason: String, code: Option[String], failureType: Option[String])
 
@@ -26,7 +26,7 @@ object HipFailure {
     case JsNumber(n) => Some(n.toString())
     case JsString(s) =>
       val trimmed = s.trim
-      if (trimmed.matches("""\d+(\.\d+)?""")) Some(trimmed) else Some("0")
+      if trimmed.matches("""\d+(\.\d+)?""") then Some(trimmed) else Some("0")
     case _ => Some("0")
   }
 
@@ -37,10 +37,10 @@ object HipFailure {
     (JsPath \ "reason").read[String] and
       (JsPath \ "code").readNullable[JsValue].map(parseCode) and
       (JsPath \ "type").readNullable[String].map(parseType)
-    )(HipFailure.apply)
+  )(HipFailure.apply)
 
   implicit val writes: OWrites[HipFailure] = OWrites[HipFailure] { failure =>
-    val base = Json.obj("reason" -> failure.reason)
+    val base     = Json.obj("reason" -> failure.reason)
     val withCode = failure.code.map(code => base + ("code" -> JsString(code))).getOrElse(base)
     failure.failureType.map(t => withCode + ("type" -> JsString(t))).getOrElse(withCode)
   }
@@ -53,19 +53,19 @@ object HipCalculationFailuresResponse {
     (
       (JsPath \ "origin").readNullable[String] and
         (JsPath \ "failures").read[List[HipFailure]]
-      )(HipCalculationFailuresResponse.apply)
+    )(HipCalculationFailuresResponse.apply)
 
   private val nestedReads: Reads[HipCalculationFailuresResponse] =
     (
       (JsPath \ "origin").readNullable[String] and
         (JsPath \ "response" \ "failures").read[List[HipFailure]]
-      )(HipCalculationFailuresResponse.apply)
+    )(HipCalculationFailuresResponse.apply)
 
   private val singleFailureReads: Reads[HipCalculationFailuresResponse] =
     (
       (JsPath \ "origin").readNullable[String] and
         HipFailure.reads
-      )((origin, failure) => HipCalculationFailuresResponse(origin, List(failure)))
+    )((origin, failure) => HipCalculationFailuresResponse(origin, List(failure)))
 
   implicit val reads: Reads[HipCalculationFailuresResponse] =
     directReads orElse nestedReads orElse singleFailureReads

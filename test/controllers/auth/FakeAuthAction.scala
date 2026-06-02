@@ -37,10 +37,10 @@ import uk.gov.hmrc.auth.core.AuthConnector
 
 import scala.concurrent.Future
 
-case class FakeAuthAction(override val authConnector: AuthConnector, controllerComponents: ControllerComponents) extends GmpAuthAction(authConnector, controllerComponents) {
+case class FakeAuthAction(override val authConnector: AuthConnector, controllerComponents: ControllerComponents)
+    extends GmpAuthAction(authConnector, controllerComponents) {
 
-  override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
+  override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] =
 
     block(request)
-  }
 }

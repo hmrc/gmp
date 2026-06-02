@@ -16,7 +16,6 @@
 
 package utils
 
-
 import base.BaseSpec
 
 class HipErrorCodeMapperSpec extends BaseSpec {
@@ -40,7 +39,9 @@ class HipErrorCodeMapperSpec extends BaseSpec {
       HipErrorCodeMapper.mapGmpErrorCode("More than one scheme with the same ECON - no control earnings") mustBe 56021
       HipErrorCodeMapper.mapGmpErrorCode("Benefit Scheme details not provided") mustBe 56070
       HipErrorCodeMapper.mapGmpErrorCode("Scheme membership start date invalid") mustBe 48095
-      HipErrorCodeMapper.mapGmpErrorCode("End date of the input scheme membership does not correspond to the end date of the matched scheme membership") mustBe 58108
+      HipErrorCodeMapper.mapGmpErrorCode(
+        "End date of the input scheme membership does not correspond to the end date of the matched scheme membership"
+      ) mustBe 58108
       HipErrorCodeMapper.mapGmpErrorCode("Invalid MOP selected for the schemes rights") mustBe 58047
       HipErrorCodeMapper.mapGmpErrorCode("Earnings recorded for pre-switch internal transfer invalid") mustBe 58161
       HipErrorCodeMapper.mapGmpErrorCode("Total earnings for Tax Year negative") mustBe 56007

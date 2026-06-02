@@ -19,11 +19,11 @@ package connectors
 import metrics.ApplicationMetrics
 import models.CalculationRequest
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.*
 import play.api.Configuration
-import play.api.libs.json._
-import play.api.test.Helpers._
+import play.api.libs.json.*
+import play.api.test.Helpers.*
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, SessionId, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -41,19 +41,14 @@ class IFConnectorSpec extends HttpClientV2Helper {
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   val mockServicesConfig: ServicesConfig = app.injector.instanceOf[ServicesConfig]
-  val config: Configuration = app.injector.instanceOf[Configuration]
+  val config:             Configuration  = app.injector.instanceOf[Configuration]
 
   when(mockAuditConnector.sendEvent(any())(using any(), any()))
     .thenReturn(Future.successful(AuditResult.Success))
 
-  object TestIfConnector extends IFConnector(config,
-    mock[ApplicationMetrics],
-    mockHttp,
-    mockAuditConnector,
-    mockServicesConfig)
+  object TestIfConnector extends IFConnector(config, mock[ApplicationMetrics], mockHttp, mockAuditConnector, mockServicesConfig)
 
-  val calcResponseJson: JsValue = Json.parse(
-    """{
+  val calcResponseJson: JsValue = Json.parse("""{
            "nino":"AB123456C",
            "rejection_reason":0,
            "npsScon":{
@@ -80,8 +75,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
       }"""
   )
 
-  val citizenDetailsJson: JsValue = Json.parse(
-    """{
+  val citizenDetailsJson: JsValue = Json.parse("""{
                   "etag" : "115"
                 }
             """.stripMargin)
@@ -101,7 +95,8 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
 
-        val result = TestIfConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
+        val result =
+          TestIfConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
         val calcResponse = await(result)
 
         calcResponse.npsLgmpcalc.length must be(1)
@@ -114,7 +109,8 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(500, calcResponseJson, returnHeaders)))
 
-        val result = TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
+        val result =
+          TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
         intercept[UpstreamErrorResponse] {
           await(result)
         }
@@ -126,7 +122,8 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
-        val result = TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+        val result =
+          TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(0)
@@ -137,7 +134,8 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(400, "400")))
 
-        val result = TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+        val result =
+          TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(400)
@@ -154,11 +152,9 @@ class IFConnectorSpec extends HttpClientV2Helper {
       }
 
       "use the IF url" in {
-        new IFConnector(app.configuration,
-          mock[ApplicationMetrics],
-          mockHttp,
-          mock[AuditConnector],
-          mockServicesConfig).baseURI must be("pensions/individuals/gmp")
+        new IFConnector(app.configuration, mock[ApplicationMetrics], mockHttp, mock[AuditConnector], mockServicesConfig).baseURI must be(
+          "pensions/individuals/gmp"
+        )
       }
 
       "generate correct url when no revaluation" in {
@@ -260,16 +256,12 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
       "catch calculate audit failure and continue" in {
 
-        object TestIfConnector extends IFConnector(app.configuration,
-          mock[ApplicationMetrics],
-          mockHttp,
-          mockAuditConnector,
-          mockServicesConfig)
+        object TestIfConnector extends IFConnector(app.configuration, mock[ApplicationMetrics], mockHttp, mockAuditConnector, mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
         TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
-        //TODO: Assert something here?
+        // TODO: Assert something here?
       }
     }
 
@@ -280,7 +272,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
-        val result = TestIfConnector.validateScon("PSAID", "S1401234Q")
+        val result               = TestIfConnector.validateScon("PSAID", "S1401234Q")
         val validateSconResponse = await(result)
         validateSconResponse.scon_exists must be(1)
       }
@@ -299,17 +291,13 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
       "catch validateScon audit failure and continue" in {
 
-        object TestIfConnector extends IFConnector(app.configuration,
-          mock[ApplicationMetrics],
-          mockHttp,
-          mockAuditConnector,
-          mockServicesConfig)
+        object TestIfConnector extends IFConnector(app.configuration, mock[ApplicationMetrics], mockHttp, mockAuditConnector, mockServicesConfig)
 
         when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, validateSconResponseJson, returnHeaders)))
 
         TestIfConnector.validateScon("PSAID", "S1401234Q")
-        //TODO: Assert something here?
+        // TODO: Assert something here?
       }
     }
 
@@ -362,7 +350,7 @@ class IFConnectorSpec extends HttpClientV2Helper {
       }
 
       "return a success response if the MCI flag does not appear in the response" in {
-        val json = Json.parse("{}")
+        val json     = Json.parse("{}")
         val response = HttpResponse(200, json, returnHeaders)
 
         requestBuilderExecute[HttpResponse] {

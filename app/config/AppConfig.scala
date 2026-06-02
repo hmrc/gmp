@@ -21,16 +21,16 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.Base64
 
 @Singleton
-class AppConfig @Inject()(
-                          servicesConfig: ServicesConfig,
-                          val featureSwitches: FeatureSwitches
-                         ) {
+class AppConfig @Inject() (
+  servicesConfig:      ServicesConfig,
+  val featureSwitches: FeatureSwitches
+) {
 
-  import servicesConfig._
+  import servicesConfig.*
 
-  def hipUrl: String = servicesConfig.baseUrl("hip")
+  def hipUrl:           String = servicesConfig.baseUrl("hip")
   private val clientId: String = getString("microservice.services.hip.client-id")
-  private val secret: String   = getString("microservice.services.hip.client-secret")
+  private val secret:   String = getString("microservice.services.hip.client-secret")
 
   def hipAuthorisationToken: String =
     Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))
@@ -39,10 +39,10 @@ class AppConfig @Inject()(
     "Environment" -> getString("microservice.services.hip.environment")
 
   // These are now constants
-  def originatorIdKey: String           = Constants.OriginatorIdKey
-  def originatorIdValue: String         = getString("microservice.services.hip.originator-id-value")
-  def originatingSystem: String         = Constants.XOriginatingSystemHeader
-  def transmittingSystem: String        = Constants.XTransmittingSystemHeader
+  def originatorIdKey:    String = Constants.OriginatorIdKey
+  def originatorIdValue:  String = getString("microservice.services.hip.originator-id-value")
+  def originatingSystem:  String = Constants.XOriginatingSystemHeader
+  def transmittingSystem: String = Constants.XTransmittingSystemHeader
 
   def isHipEnabled: Boolean = featureSwitches.hipIntegration.enabled
   def isIfsEnabled: Boolean = featureSwitches.ifsIntegration.enabled

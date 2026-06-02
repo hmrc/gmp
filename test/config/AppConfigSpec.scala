@@ -27,23 +27,22 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
   private val testConfig = Configuration.from(
     Map(
-      "microservice.services.hip.host"              -> "localhost",
-      "microservice.services.hip.port"              -> "8080",
-      "microservice.services.hip.client-id"         -> "test-client-id",
-      "microservice.services.hip.client-secret"     -> "test-secret",
-      "microservice.services.hip.originatoridkey"  -> "gov-uk-originator-id",
-      "microservice.services.hip.originator-id-value"-> "HMRC-GMP",
-      "microservice.services.hip.environment"      -> "test-env",
-      "feature.hipIntegration"                     -> true,
-      "feature.ifsMigration"                       -> false
+      "microservice.services.hip.host"                -> "localhost",
+      "microservice.services.hip.port"                -> "8080",
+      "microservice.services.hip.client-id"           -> "test-client-id",
+      "microservice.services.hip.client-secret"       -> "test-secret",
+      "microservice.services.hip.originatoridkey"     -> "gov-uk-originator-id",
+      "microservice.services.hip.originator-id-value" -> "HMRC-GMP",
+      "microservice.services.hip.environment"         -> "test-env",
+      "feature.hipIntegration"                        -> true,
+      "feature.ifsMigration"                          -> false
     )
   )
 
-  private val servicesConfig = new ServicesConfig(testConfig)
+  private val servicesConfig  = new ServicesConfig(testConfig)
   private val featureSwitches = new FeatureSwitches(testConfig)
-  
-  val appConfig = new AppConfig(servicesConfig, featureSwitches)
 
+  val appConfig = new AppConfig(servicesConfig, featureSwitches)
 
   "AppConfig" should {
 
@@ -62,7 +61,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
     "expose constant header values from Constants object" in {
       appConfig.originatorIdKey mustBe Constants.OriginatorIdKey
-      appConfig.originatorIdValue mustBe  "HMRC-GMP"
+      appConfig.originatorIdValue mustBe "HMRC-GMP"
       appConfig.originatingSystem mustBe Constants.XOriginatingSystemHeader
       appConfig.transmittingSystem mustBe Constants.XTransmittingSystemHeader
     }
