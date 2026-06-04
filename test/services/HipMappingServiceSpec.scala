@@ -17,7 +17,7 @@
 package services
 
 import base.BaseSpec
-import models._
+import models.*
 import play.api.libs.json.Json
 
 class HipMappingServiceSpec extends BaseSpec {
@@ -37,8 +37,9 @@ class HipMappingServiceSpec extends BaseSpec {
 
   "HipMappingService.mapSuccess" should {
     "map HIP success response to GMP correctly" in {
-      val hipJson = Json.parse(
-        """{
+      val hipJson = Json
+        .parse(
+          """{
           "nationalInsuranceNumber": "AA000001A",
           "schemeContractedOutNumberDetails": "S2123456B",
           "payableAgeDate": "2022-06-27",
@@ -60,7 +61,8 @@ class HipMappingServiceSpec extends BaseSpec {
             }
           ]
         }"""
-      ).as[HipCalculationResponse]
+        )
+        .as[HipCalculationResponse]
 
       val result = service.mapSuccess(hipJson, request)
 
@@ -82,7 +84,7 @@ class HipMappingServiceSpec extends BaseSpec {
   "HipMappingService.mapFailures" should {
     "map HIP failures (422) to GMP with error code and empty periods" in {
       val failures = HipCalculationFailuresResponse(failures = List(HipFailure("No match", Some("63119"), None)))
-      val result = service.mapFailures(failures, 422, request)
+      val result   = service.mapFailures(failures, 422, request)
 
       result.globalErrorCode mustBe 63119
       result.calculationPeriods mustBe empty
@@ -92,7 +94,7 @@ class HipMappingServiceSpec extends BaseSpec {
 
     "use HTTP status as global error code when HIP failure has no code but has a type" in {
       val failures = HipCalculationFailuresResponse(failures = List(HipFailure("Integration unavailable", None, Some("HIP-UNAVAILABLE"))))
-      val result = service.mapFailures(failures, 503, request)
+      val result   = service.mapFailures(failures, 503, request)
 
       result.globalErrorCode mustBe 503
       result.calculationPeriods mustBe empty

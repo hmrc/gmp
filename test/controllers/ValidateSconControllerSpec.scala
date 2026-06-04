@@ -39,14 +39,14 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
 
   private val validateSconRequest = ValidateSconRequest("S1401234Q")
 //  private val validateSconResponse = GmpValidateSconResponse(true)
-  private val mockDesConnector = mock[DesConnector]
-  private val mockHipConnector = mock[HipConnector]
-  private val mockRepo = mock[ValidateSconRepository]
+  private val mockDesConnector  = mock[DesConnector]
+  private val mockHipConnector  = mock[HipConnector]
+  private val mockRepo          = mock[ValidateSconRepository]
   private val mockAuthConnector = mock[AuthConnector]
-  private val mockAppConfig = mock[AppConfig]
+  private val mockAppConfig     = mock[AppConfig]
 
   private val gmpAuthAction = FakeAuthAction(mockAuthConnector, stubControllerComponents())
-  private val controller = new ValidateSconController(
+  private val controller    = new ValidateSconController(
     mockDesConnector,
     mockHipConnector,
     mockRepo,
@@ -60,7 +60,8 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
       .withHeaders("Content-Type" -> "application/json")
       .withBody(Json.toJson(validateSconRequest))
 
-  val testValidateSconController = new ValidateSconController(mockDesConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
+  val testValidateSconController =
+    new ValidateSconController(mockDesConnector, mockHipConnector, mockRepo, gmpAuthAction, controllerComponents, mockAppConfig)
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockRepo, mockDesConnector, mockHipConnector, mockAppConfig)
@@ -285,7 +286,7 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
         when(mockAppConfig.isHipEnabled).thenReturn(true)
 
         val badBody = Json.obj("scon" -> "")
-        val badReq = FakeRequest("POST", "/").withHeaders("Content-Type" -> "application/json").withBody(badBody)
+        val badReq  = FakeRequest("POST", "/").withHeaders("Content-Type" -> "application/json").withBody(badBody)
 
         val result = controller.validateScon("user123")(badReq)
 
@@ -361,7 +362,12 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
         when(mockHipConnector.validateScon(any(), any())(using any()))
           .thenReturn(Future.successful(HipValidateSconResponse(false)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val fakeRequest = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(validateSconRequest)
+        )
 
         val result = testValidateSconController.validateScon("PSAID")(fakeRequest)
         contentType(result).get must be("application/json")
@@ -372,7 +378,12 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
         when(mockHipConnector.validateScon(any(), any())(using any()))
           .thenReturn(Future.successful(HipValidateSconResponse(false)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val fakeRequest = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(validateSconRequest)
+        )
 
         val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
         (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(false)
@@ -383,7 +394,12 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
         when(mockHipConnector.validateScon(any(), any())(using any()))
           .thenReturn(Future.successful(HipValidateSconResponse(true)))
         when(mockAppConfig.isHipEnabled).thenReturn(true)
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val fakeRequest = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(validateSconRequest)
+        )
 
         val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
         (contentAsJson(result) \ "sconExists").as[JsBoolean].value must be(true)
@@ -391,10 +407,17 @@ class ValidateSconControllerSpec extends BaseSpec with BeforeAndAfterEach with S
 
       "respond with server error if connector returns same" in {
         when(mockRepo.findByScon(any())).thenReturn(Future.successful(None))
-        when(mockHipConnector.validateScon(any(), any())(using any())).thenReturn(Future
-          .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500)))
+        when(mockHipConnector.validateScon(any(), any())(using any())).thenReturn(
+          Future
+            .failed(UpstreamErrorResponse("Only DOL Requests are supported", 500, 500))
+        )
         when(mockAppConfig.isHipEnabled).thenReturn(true)
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(validateSconRequest))
+        val fakeRequest = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(validateSconRequest)
+        )
 
         val result = testValidateSconController.validateScon("PSAID").apply(fakeRequest)
 

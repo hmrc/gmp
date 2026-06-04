@@ -19,7 +19,7 @@ package controllers.auth
 import org.apache.pekko.util.Timeout
 import base.BaseSpec
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import play.api.test.FakeRequest
@@ -28,14 +28,14 @@ import uk.gov.hmrc.auth.core.{AuthConnector, MissingBearerToken}
 
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class AuthActionSpec extends BaseSpec {
 
   private val cComponents = controllerComponents
 
   class Harness(authAction: GmpAuthAction) extends BaseController {
-    def onPageLoad(): Action[AnyContent] = authAction { _ => Ok }
+    def onPageLoad(): Action[AnyContent] = authAction(_ => Ok)
 
     override def controllerComponents: ControllerComponents = cComponents
   }
@@ -48,12 +48,12 @@ class AuthActionSpec extends BaseSpec {
     "the user is not logged in" must {
       "must return unauthorised" in {
 
-        when(mockMicroserviceAuthConnector.authorise(any(),any())(using any(), any()))
+        when(mockMicroserviceAuthConnector.authorise(any(), any())(using any(), any()))
           .thenReturn(Future.failed(new MissingBearerToken))
 
         val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)
         val controller = new Harness(authAction)
-        val result = controller.onPageLoad()(FakeRequest("", ""))
+        val result     = controller.onPageLoad()(FakeRequest("", ""))
         status(result) mustBe UNAUTHORIZED
 
       }
@@ -62,7 +62,7 @@ class AuthActionSpec extends BaseSpec {
     "the user is logged in" must {
       "must return the request" in {
 
-        when(mockMicroserviceAuthConnector.authorise[Unit](any(),any())(using any(), any()))
+        when(mockMicroserviceAuthConnector.authorise[Unit](any(), any())(using any(), any()))
           .thenReturn(Future.successful(()))
 
         val authAction = new GmpAuthAction(mockMicroserviceAuthConnector, controllerComponents)

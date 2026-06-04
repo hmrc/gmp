@@ -22,6 +22,5 @@ import play.api.{Configuration, Environment}
 import scala.annotation.unused
 
 class ConfigModule(@unused environment: Environment, @unused configuration: Configuration) extends AbstractModule {
-  override def configure(): Unit = {
-  }
+  override def configure(): Unit = {}
 }

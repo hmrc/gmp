@@ -22,7 +22,7 @@ import models.{CalculationRequest, GmpCalculationResponse, HipCalculationFailure
 @Singleton
 class HipMappingService {
 
-  def mapSuccess(c: HipCalculationResponse, req: CalculationRequest): GmpCalculationResponse = {
+  def mapSuccess(c: HipCalculationResponse, req: CalculationRequest): GmpCalculationResponse =
     GmpCalculationResponse.createFromHipResponse(c)(
       name = s"${req.firstForename} ${req.surname}",
       revaluationRate = req.revaluationRate.map(_.toString),
@@ -32,9 +32,8 @@ class HipMappingService {
       nino = req.nino,
       scon = req.scon
     )
-  }
 
-  def mapFailures(f: HipCalculationFailuresResponse, status: Int, req: CalculationRequest): GmpCalculationResponse = {
+  def mapFailures(f: HipCalculationFailuresResponse, status: Int, req: CalculationRequest): GmpCalculationResponse =
     GmpCalculationResponse.createFromHipFailures(f, status)(
       nino = req.nino,
       scon = req.scon,
@@ -44,5 +43,4 @@ class HipMappingService {
       dualCalc = req.dualCalc.contains(1),
       calcType = req.calctype.getOrElse(-1)
     )
-  }
 }

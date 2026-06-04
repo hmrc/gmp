@@ -18,20 +18,17 @@ package events
 
 import uk.gov.hmrc.http.HeaderCarrier
 
-class ResultsEvent(successful:Boolean,
-                   errorCodes:List[Int],
-                   calcType: Int,
-                   dualCalc: Boolean,
-                   scon: String,
-                   cached: Boolean,
-                   idType: String)(implicit hc: HeaderCarrier)
-  extends GmpBusinessEvent("GMP-Results",
-    Map(
-      "successful" -> successful.toString,
-      "errorCodes" -> errorCodes.mkString(";"),
-      "calcType" -> calcType.toString,
-      "dualCalc" -> dualCalc.toString,
-      "scon" -> scon,
-      "cached" -> cached.toString,
-      "idType" -> idType
-    ))
+class ResultsEvent(successful: Boolean, errorCodes: List[Int], calcType: Int, dualCalc: Boolean, scon: String, cached: Boolean, idType: String)(
+  implicit hc: HeaderCarrier
+) extends GmpBusinessEvent(
+      "GMP-Results",
+      Map(
+        "successful" -> successful.toString,
+        "errorCodes" -> errorCodes.mkString(";"),
+        "calcType"   -> calcType.toString,
+        "dualCalc"   -> dualCalc.toString,
+        "scon"       -> scon,
+        "cached"     -> cached.toString,
+        "idType"     -> idType
+      )
+    )

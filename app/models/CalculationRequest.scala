@@ -18,14 +18,18 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class CalculationRequest(scon: String, nino: String, surname: String, firstForename: String,
-                              calctype: Option[Int],
-                              revaluationDate: Option[String] = None,
-                              revaluationRate: Option[Int] = None,
-                              requestEarnings: Option[Int] = None,
-                              dualCalc: Option[Int] = None,
-                              terminationDate: Option[String] = None ){
-}
+case class CalculationRequest(
+  scon:            String,
+  nino:            String,
+  surname:         String,
+  firstForename:   String,
+  calctype:        Option[Int],
+  revaluationDate: Option[String] = None,
+  revaluationRate: Option[Int] = None,
+  requestEarnings: Option[Int] = None,
+  dualCalc:        Option[Int] = None,
+  terminationDate: Option[String] = None
+) {}
 
 object CalculationRequest {
   implicit val formats: OFormat[CalculationRequest] = Json.format[CalculationRequest]

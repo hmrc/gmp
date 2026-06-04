@@ -23,7 +23,7 @@ import java.time.LocalDate
 class HipCalculationRequestSpec extends BaseSpec {
 
   "HipCalculationRequest.from" should {
-    "correctly transform CalculationRequest into HipCalculationRequest" in{
+    "correctly transform CalculationRequest into HipCalculationRequest" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
         nino = "AA123456A",
@@ -38,20 +38,20 @@ class HipCalculationRequestSpec extends BaseSpec {
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
-      hipRequest.calculationRequestType must be (None)
-      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
-      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
+      hipRequest.schemeContractedOutNumber      must be("S1234567T")
+      hipRequest.nationalInsuranceNumber        must be("AA123456A")
+      hipRequest.surname                        must be("LEW")
+      hipRequest.firstForename                  must be("S")
+      hipRequest.secondForename                 must be(None)
+      hipRequest.revaluationRate                must be(None)
+      hipRequest.calculationRequestType         must be(None)
+      hipRequest.revaluationDate                must be(Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate                must be(Some(LocalDate.parse("2022-06-30")))
+      hipRequest.includeContributionAndEarnings must be(true)
+      hipRequest.includeDualCalculation         must be(true)
     }
 
-    "correctly transform CalculationRequest int values into HipCalculationRequest String" in{
+    "correctly transform CalculationRequest int values into HipCalculationRequest String" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
         nino = "AA123456A",
@@ -66,20 +66,20 @@ class HipCalculationRequestSpec extends BaseSpec {
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
+      hipRequest.schemeContractedOutNumber must be("S1234567T")
+      hipRequest.nationalInsuranceNumber   must be("AA123456A")
+      hipRequest.surname                   must be("LEW")
+      hipRequest.firstForename             must be("S")
+      hipRequest.secondForename            must be(None)
+      hipRequest.revaluationRate           must be(None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
-      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
-      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
+      hipRequest.revaluationDate                must be(Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate                must be(Some(LocalDate.parse("2022-06-30")))
+      hipRequest.includeContributionAndEarnings must be(true)
+      hipRequest.includeDualCalculation         must be(true)
     }
 
-    "correctly transform CalculationRequest HMRC as revaluationRate into HipCalculationRequest None value" in{
+    "correctly transform CalculationRequest HMRC as revaluationRate into HipCalculationRequest None value" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
         nino = "AA123456A",
@@ -94,21 +94,20 @@ class HipCalculationRequestSpec extends BaseSpec {
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
+      hipRequest.schemeContractedOutNumber must be("S1234567T")
+      hipRequest.nationalInsuranceNumber   must be("AA123456A")
+      hipRequest.surname                   must be("LEW")
+      hipRequest.firstForename             must be("S")
+      hipRequest.secondForename            must be(None)
       hipRequest.revaluationRate mustBe Some(EnumRevaluationRate.NONE)
-      hipRequest.calculationRequestType must be (None)
-      hipRequest.revaluationDate must be (Some(LocalDate.parse("2022-06-01")))
-      hipRequest.terminationDate must be (Some(LocalDate.parse("2022-06-30")))
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
+      hipRequest.calculationRequestType         must be(None)
+      hipRequest.revaluationDate                must be(Some(LocalDate.parse("2022-06-01")))
+      hipRequest.terminationDate                must be(Some(LocalDate.parse("2022-06-30")))
+      hipRequest.includeContributionAndEarnings must be(true)
+      hipRequest.includeDualCalculation         must be(true)
     }
 
-
-    "correctly transform CalculationRequest missing dates to HipCalculationRequest correctly" in{
+    "correctly transform CalculationRequest missing dates to HipCalculationRequest correctly" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
         nino = "AA123456A",
@@ -119,21 +118,21 @@ class HipCalculationRequestSpec extends BaseSpec {
         revaluationDate = None,
         terminationDate = None,
         requestEarnings = Some(1), // Maps to true
-        dualCalc = Some(1)// Maps to true
+        dualCalc = Some(1) // Maps to true
       )
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.schemeContractedOutNumber must be ("S1234567T")
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("LEW")
-      hipRequest.firstForename must be ("S")
-      hipRequest.secondForename must be (None)
-      hipRequest.revaluationRate must be (None)
+      hipRequest.schemeContractedOutNumber must be("S1234567T")
+      hipRequest.nationalInsuranceNumber   must be("AA123456A")
+      hipRequest.surname                   must be("LEW")
+      hipRequest.firstForename             must be("S")
+      hipRequest.secondForename            must be(None)
+      hipRequest.revaluationRate           must be(None)
       hipRequest.calculationRequestType mustBe Some(EnumCalcRequestType.DOL)
-      hipRequest.revaluationDate must be (None)
-      hipRequest.terminationDate must be (None)
-      hipRequest.includeContributionAndEarnings must be (true)
-      hipRequest.includeDualCalculation must be (true)
+      hipRequest.revaluationDate                must be(None)
+      hipRequest.terminationDate                must be(None)
+      hipRequest.includeContributionAndEarnings must be(true)
+      hipRequest.includeDualCalculation         must be(true)
     }
 
     "normalise surname, firstForename and NINO with spaces and special characters" in {
@@ -152,9 +151,9 @@ class HipCalculationRequestSpec extends BaseSpec {
 
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("O'")
-      hipRequest.firstForename must be ("A")
+      hipRequest.nationalInsuranceNumber must be("AA123456A")
+      hipRequest.surname                 must be("O'")
+      hipRequest.firstForename           must be("A")
     }
 
     "normalise surname and firstForename without spaces" in {
@@ -173,9 +172,9 @@ class HipCalculationRequestSpec extends BaseSpec {
 
       val hipRequest = HipCalculationRequest.from(calcReq)
 
-      hipRequest.nationalInsuranceNumber must be ("AA123456A")
-      hipRequest.surname must be ("O'N")
-      hipRequest.firstForename must be ("A")
+      hipRequest.nationalInsuranceNumber must be("AA123456A")
+      hipRequest.surname                 must be("O'N")
+      hipRequest.firstForename           must be("A")
     }
 
   }

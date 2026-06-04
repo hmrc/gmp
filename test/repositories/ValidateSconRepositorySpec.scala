@@ -28,33 +28,31 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
-class ValidateSconRepositorySpec extends AnyWordSpec
-  with PlayMongoRepositorySupport[ValidateSconMongoModel]
-  with Matchers
-  with BeforeAndAfterAll
-  with ScalaFutures {
-  private val config = Configuration("sconValidationExpiryTimeInSeconds" -> 600)
+class ValidateSconRepositorySpec
+    extends AnyWordSpec
+    with PlayMongoRepositorySupport[ValidateSconMongoModel]
+    with Matchers
+    with BeforeAndAfterAll
+    with ScalaFutures {
+  private val config         = Configuration("sconValidationExpiryTimeInSeconds" -> 600)
   private val servicesConfig = new ServicesConfig(config)
-  override val repository: ValidateSconMongoRepository = new ValidateSconMongoRepository(mongoComponent,servicesConfig,ExecutionContext.global)
+  override val repository: ValidateSconMongoRepository = new ValidateSconMongoRepository(mongoComponent, servicesConfig, ExecutionContext.global)
 
-  override protected def beforeAll(): Unit =  {
+  override protected def beforeAll(): Unit =
     dropDatabase()
-  }
 
-  private val scon1 = "S2730000B"
+  private val scon1     = "S2730000B"
   private val response1 = GmpValidateSconResponse(true)
 
-  private val scon2 = "S2730000B"
+  private val scon2     = "S2730000B"
   private val response2 = GmpValidateSconResponse(false)
-
 
   "Find By scon" in {
     Await.result(repository.insertByScon(scon2, response2), 1.seconds)
     Await.result(repository.insertByScon(scon1, response1), 1.seconds)
     val result = Await.result(repository.findByScon(scon1), 2.seconds)
     result.isDefined shouldBe true
-    result.get shouldBe response2
+    result.get       shouldBe response2
   }
-
 
 }

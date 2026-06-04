@@ -18,7 +18,7 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ValidateSconRequest (scon: String)
+case class ValidateSconRequest(scon: String)
 
 object ValidateSconRequest {
   implicit val formats: OFormat[ValidateSconRequest] = Json.format[ValidateSconRequest]
