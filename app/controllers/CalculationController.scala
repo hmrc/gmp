@@ -74,7 +74,7 @@ class CalculationController @Inject() (
                 calculationRequest.calctype.getOrElse(-1)
               )
               Future.successful(Ok(Json.toJson(response)))
-            case _ =>
+            case DesGetSuccessResponse =>
               handleNewCalculation(userId, calculationRequest)
                 .flatMap { response =>
                   for {
@@ -88,6 +88,9 @@ class CalculationController @Inject() (
                     logger.debug(s"[CalculationController][requestCalculation] Error details: ${LoggingUtils.redactError(e.getMessage)}")
                     InternalServerError(e.getMessage)
                 }
+            case unexpected =>
+              logger.warn(s"[CalculationController][requestCalculation] Citizen details check did not return success: $unexpected")
+              Future.successful(Ok(Json.toJson(errorResponse(calculationRequest, INTERNAL_SERVER_ERROR))))
           }
       }
       result.map { res =>
@@ -126,6 +129,22 @@ class CalculationController @Inject() (
       req.revaluationDate,
       req.dualCalc.contains(1),
       req.calctype.getOrElse(-1)
+    )
+
+  private def errorResponse(calculationRequest: CalculationRequest, globalErrorCode: Int): GmpCalculationResponse =
+    GmpCalculationResponse(
+      calculationRequest.firstForename + " " + calculationRequest.surname,
+      calculationRequest.nino,
+      calculationRequest.scon,
+      None,
+      None,
+      List(),
+      globalErrorCode,
+      None,
+      None,
+      None,
+      dualCalc = false,
+      calculationRequest.calctype.getOrElse(-1)
     )
 
   private def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
