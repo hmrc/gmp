@@ -1276,7 +1276,7 @@ class CalculationControllerSpec extends BaseSpec {
         )
         val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
-        status(result) must be(BAD_REQUEST)
+        status(result)          must be(BAD_REQUEST)
         contentAsString(result) must include("NINO must be uppercase")
         verify(mockRepo, never()).findByRequest(any())
         verify(mockDesConnector, never()).getPersonDetails(any())(using any[HeaderCarrier])
