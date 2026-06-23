@@ -21,7 +21,7 @@ import config.AppConfig
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, DesGetUnexpectedResponse, HipConnector, IFConnector, IFGetSuccessResponse}
+import connectors.{DesConnector, DesGetHiddenRecordResponse, DesGetSuccessResponse, HipConnector, IFConnector, IFGetSuccessResponse}
 import controllers.auth.FakeAuthAction
 import models.{CalculationRequest, CalculationResponse, GmpCalculationResponse, HipCalcResult, HipCalculationFailuresResponse, HipCalculationResponse, HipFailure}
 import HipCalcResult.{Failures, Success}
@@ -1264,23 +1264,22 @@ class CalculationControllerSpec extends BaseSpec {
       }
     }
 
-    "when citizens details does not return success or 423" must {
-      "return an error and not call HIP" in {
-        when(mockAppConfig.isHipEnabled).thenReturn(true)
-        when(mockRepo.findByRequest(any())).thenReturn(Future.successful(None))
-        when(mockDesConnector.getPersonDetails(org.mockito.ArgumentMatchers.eq("AB123456C"))(using any[HeaderCarrier]))
-          .thenReturn(Future.successful(DesGetUnexpectedResponse))
+    "when NINO is not uppercase" must {
+      "reject the request as bad request and not call citizen-details" in {
+        val lowerCaseNinoRequest = calculationRequest.copy(nino = "ab123456c")
 
         val fakeRequest = FakeRequest(
           method = "POST",
           uri = "",
           headers = FakeHeaders(Seq("Content-type" -> "application/json")),
-          body = Json.toJson(calculationRequest)
+          body = Json.toJson(lowerCaseNinoRequest)
         )
-        val result       = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
-        val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
 
-        calcResponse.globalErrorCode must be(INTERNAL_SERVER_ERROR)
+        status(result) must be(BAD_REQUEST)
+        contentAsString(result) must include("NINO must be uppercase")
+        verify(mockRepo, never()).findByRequest(any())
+        verify(mockDesConnector, never()).getPersonDetails(any())(using any[HeaderCarrier])
         verify(mockHipConnector, never()).calculate(any(), any())(using any[HeaderCarrier])
       }
     }

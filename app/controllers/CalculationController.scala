@@ -33,6 +33,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.LoggingUtils
 
+import java.util.Locale
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -52,52 +53,56 @@ class CalculationController @Inject() (
 
   def requestCalculation(userId: String): Action[JsValue] = authAction.async(parse.json) { implicit request =>
     withJsonBody[CalculationRequest] { calculationRequest =>
-      val result = repository.findByRequest(calculationRequest).flatMap {
-        case Some(cr) =>
-          sendResultsEvent(cr, cached = true, userId)
-          Future.successful(Ok(Json.toJson(cr)))
-        case None =>
-          desConnector.getPersonDetails(calculationRequest.nino).flatMap {
-            case DesGetHiddenRecordResponse =>
-              val response = GmpCalculationResponse(
-                calculationRequest.firstForename + " " + calculationRequest.surname,
-                calculationRequest.nino,
-                calculationRequest.scon,
-                None,
-                None,
-                List(),
-                LOCKED,
-                None,
-                None,
-                None,
-                dualCalc = false,
-                calculationRequest.calctype.getOrElse(-1)
-              )
-              Future.successful(Ok(Json.toJson(response)))
-            case DesGetSuccessResponse =>
-              handleNewCalculation(userId, calculationRequest)
-                .flatMap { response =>
-                  for {
-                    _ <- repository.insertByRequest(calculationRequest, response)
-                    _ = sendResultsEvent(response, cached = false, userId)
-                  } yield Ok(Json.toJson(response))
-                }
-                .recover {
-                  case e: UpstreamErrorResponse if e.statusCode == 500 =>
-                    logger.error(s"[CalculationController][requestCalculation] Internal Server Error")
-                    logger.debug(s"[CalculationController][requestCalculation] Error details: ${LoggingUtils.redactError(e.getMessage)}")
-                    InternalServerError(e.getMessage)
-                }
-            case unexpected =>
-              logger.warn(s"[CalculationController][requestCalculation] Citizen details check did not return success: $unexpected")
-              Future.successful(Ok(Json.toJson(errorResponse(calculationRequest, INTERNAL_SERVER_ERROR))))
-          }
-      }
-      result.map { res =>
-        res
+      if !isCanonicalNino(calculationRequest.nino) then {
+        Future.successful(BadRequest("NINO must be uppercase"))
+      } else {
+        val result = repository.findByRequest(calculationRequest).flatMap {
+          case Some(cr) =>
+            sendResultsEvent(cr, cached = true, userId)
+            Future.successful(Ok(Json.toJson(cr)))
+          case None =>
+            desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+              case DesGetHiddenRecordResponse =>
+                val response = GmpCalculationResponse(
+                  calculationRequest.firstForename + " " + calculationRequest.surname,
+                  calculationRequest.nino,
+                  calculationRequest.scon,
+                  None,
+                  None,
+                  List(),
+                  LOCKED,
+                  None,
+                  None,
+                  None,
+                  dualCalc = false,
+                  calculationRequest.calctype.getOrElse(-1)
+                )
+                Future.successful(Ok(Json.toJson(response)))
+              case _ =>
+                handleNewCalculation(userId, calculationRequest)
+                  .flatMap { response =>
+                    for {
+                      _ <- repository.insertByRequest(calculationRequest, response)
+                      _ = sendResultsEvent(response, cached = false, userId)
+                    } yield Ok(Json.toJson(response))
+                  }
+                  .recover {
+                    case e: UpstreamErrorResponse if e.statusCode == 500 =>
+                      logger.error(s"[CalculationController][requestCalculation] Internal Server Error")
+                      logger.debug(s"[CalculationController][requestCalculation] Error details: ${LoggingUtils.redactError(e.getMessage)}")
+                      InternalServerError(e.getMessage)
+                  }
+            }
+        }
+        result.map { res =>
+          res
+        }
       }
     }
   }
+
+  private def isCanonicalNino(nino: String): Boolean =
+    nino == nino.toUpperCase(Locale.ROOT)
 
   private def handleNewCalculation(userId: String, calculationRequest: CalculationRequest)(implicit
     hc: HeaderCarrier
@@ -129,22 +134,6 @@ class CalculationController @Inject() (
       req.revaluationDate,
       req.dualCalc.contains(1),
       req.calctype.getOrElse(-1)
-    )
-
-  private def errorResponse(calculationRequest: CalculationRequest, globalErrorCode: Int): GmpCalculationResponse =
-    GmpCalculationResponse(
-      calculationRequest.firstForename + " " + calculationRequest.surname,
-      calculationRequest.nino,
-      calculationRequest.scon,
-      None,
-      None,
-      List(),
-      globalErrorCode,
-      None,
-      None,
-      None,
-      dualCalc = false,
-      calculationRequest.calctype.getOrElse(-1)
     )
 
   private def sendResultsEvent(response: GmpCalculationResponse, cached: Boolean, userId: String)(implicit hc: HeaderCarrier): Unit = {
