@@ -29,13 +29,13 @@ class HipMappingService {
       revaluationDate = req.revaluationDate,
       dualCalc = req.dualCalc.contains(1),
       calcType = req.calctype.getOrElse(-1),
-      nino = req.nino,
+      nino = req.nino.value,
       scon = req.scon
     )
 
   def mapFailures(f: HipCalculationFailuresResponse, status: Int, req: CalculationRequest): GmpCalculationResponse =
     GmpCalculationResponse.createFromHipFailures(f, status)(
-      nino = req.nino,
+      nino = req.nino.value,
       scon = req.scon,
       name = s"${req.firstForename} ${req.surname}",
       revaluationRate = req.revaluationRate.map(_.toString),

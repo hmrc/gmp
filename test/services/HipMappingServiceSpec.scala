@@ -19,6 +19,7 @@ package services
 import base.BaseSpec
 import models.*
 import play.api.libs.json.Json
+import uk.gov.hmrc.domain.Nino
 
 class HipMappingServiceSpec extends BaseSpec {
 
@@ -26,7 +27,7 @@ class HipMappingServiceSpec extends BaseSpec {
 
   private val request = CalculationRequest(
     scon = "S2123456B",
-    nino = "AA000001A",
+    nino = Nino("AA000001A"),
     surname = "Smith",
     firstForename = "Bill",
     revaluationRate = Some(1),
@@ -66,7 +67,7 @@ class HipMappingServiceSpec extends BaseSpec {
 
       val result = service.mapSuccess(hipJson, request)
 
-      result.nino mustBe request.nino
+      result.nino mustBe request.nino.value
       result.scon mustBe request.scon
       result.name mustBe s"${request.firstForename} ${request.surname}"
       result.revaluationRate mustBe Some(request.revaluationRate.get.toString)
@@ -89,7 +90,7 @@ class HipMappingServiceSpec extends BaseSpec {
       result.globalErrorCode mustBe 63119
       result.calculationPeriods mustBe empty
       result.scon mustBe request.scon
-      result.nino mustBe request.nino
+      result.nino mustBe request.nino.value
     }
 
     "use HTTP status as global error code when HIP failure has no code but has a type" in {

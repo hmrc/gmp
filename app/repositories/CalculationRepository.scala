@@ -107,5 +107,5 @@ class CalculationMongoRepository @Inject() (
   }
 
   private def responseMatchesRequest(request: CalculationRequest, response: GmpCalculationResponse): Boolean =
-    request.scon.equalsIgnoreCase(response.scon) && request.nino.equalsIgnoreCase(response.nino)
+    request.scon.equalsIgnoreCase(response.scon) && request.nino.value.equalsIgnoreCase(response.nino)
 }

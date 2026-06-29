@@ -12,7 +12,8 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc" %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
     "uk.gov.hmrc.mongo" %% s"hmrc-mongo-$playVersion" % hmrcMongoVersion,
-    "uk.gov.hmrc" %% "tax-year" % "6.0.0"
+    "uk.gov.hmrc" %% "tax-year" % "6.0.0",
+    "uk.gov.hmrc" %% "domain-play-30" % "13.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(

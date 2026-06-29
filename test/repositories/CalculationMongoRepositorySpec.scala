@@ -25,6 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.mongodb.scala.SingleObservableFuture
 import play.api.Configuration
 import play.api.libs.json.Json
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
@@ -41,7 +42,7 @@ class CalculationMongoRepositorySpec
   private val servicesConfig = new ServicesConfig(config)
   override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, servicesConfig, ExecutionContext.global)
 
-  val calculationRequest: CalculationRequest = CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
+  val calculationRequest: CalculationRequest = CalculationRequest("S2730000B", Nino("AA000004A"), "BILLING", "MARCUS", None)
 
   val response: GmpCalculationResponse = GmpCalculationResponse(
     name = "MARCUS BILLING",

@@ -18,6 +18,8 @@ package models
 
 import base.BaseSpec
 import play.api.libs.json.{JsString, JsSuccess, Json}
+import uk.gov.hmrc.domain.Nino
+
 import java.time.LocalDate
 
 class HipCalculationRequestSpec extends BaseSpec {
@@ -26,7 +28,7 @@ class HipCalculationRequestSpec extends BaseSpec {
     "correctly transform CalculationRequest into HipCalculationRequest" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "AA123456A",
+        nino = Nino("AA123456A"),
         surname = "lewis",
         firstForename = "stan",
         revaluationRate = None, // Maps to "(NONE)"
@@ -54,7 +56,7 @@ class HipCalculationRequestSpec extends BaseSpec {
     "correctly transform CalculationRequest int values into HipCalculationRequest String" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "AA123456A",
+        nino = Nino("AA123456A"),
         surname = "lewis",
         firstForename = "stan",
         revaluationRate = None, // Maps to "(NONE)"
@@ -82,7 +84,7 @@ class HipCalculationRequestSpec extends BaseSpec {
     "correctly transform CalculationRequest HMRC as revaluationRate into HipCalculationRequest None value" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "AA123456A",
+        nino = Nino("AA123456A"),
         surname = "lewis",
         firstForename = "stan",
         revaluationRate = Some(0), // Maps to "(NONE)"
@@ -110,7 +112,7 @@ class HipCalculationRequestSpec extends BaseSpec {
     "correctly transform CalculationRequest missing dates to HipCalculationRequest correctly" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "AA123456A",
+        nino = Nino("AA123456A"),
         surname = "lewis",
         firstForename = "stan",
         revaluationRate = None, // Maps to "(NONE)"
@@ -135,10 +137,10 @@ class HipCalculationRequestSpec extends BaseSpec {
       hipRequest.includeDualCalculation         must be(true)
     }
 
-    "normalise surname, firstForename and NINO with spaces and special characters" in {
+    "normalise surname and firstForename with spaces and special characters" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "aa123456a",
+        nino = Nino("AA123456A"),
         surname = " o'neill",
         firstForename = " ann-marie",
         revaluationRate = None,
@@ -159,7 +161,7 @@ class HipCalculationRequestSpec extends BaseSpec {
     "normalise surname and firstForename without spaces" in {
       val calcReq = CalculationRequest(
         scon = "S1234567T",
-        nino = "aa123456a",
+        nino = Nino("AA123456A"),
         surname = "O'Neill",
         firstForename = "Ann-Marie",
         revaluationRate = None,

@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor
 import play.api.Configuration
 import play.api.libs.json.*
 import play.api.test.Helpers.*
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -96,7 +97,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
 
         val result =
-          TestDesConnector.calculate("PSAID", CalculationRequest("S1234567T", "AB123456C", "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
+          TestDesConnector.calculate("PSAID", CalculationRequest("S1234567T", Nino("AB123456C"), "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
         val calcResponse = await(result)
 
         calcResponse.npsLgmpcalc.length must be(1)
@@ -110,7 +111,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(500, calcResponseJson, returnHeaders)))
 
         val result =
-          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", None, None, None, None, None, None))
+          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", None, None, None, None, None, None))
         intercept[UpstreamErrorResponse] {
           await(result)
         }
@@ -123,7 +124,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
         val result =
-          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(0)
@@ -134,7 +135,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(400, "400")))
         val result =
-          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+          TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(400)
@@ -143,7 +144,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
       "generate a DES url" in {
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -160,7 +161,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -170,7 +171,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
       "truncate surname to 3 chars if length greater than 3 chars" in {
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -180,7 +181,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
       "not truncate surname if length less than 3 chars" in {
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "Fr", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Fr", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -190,7 +191,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
       "trims whitespace from names" in {
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "LE BON", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "LE BON", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -202,18 +203,18 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "CB433298A", "O'Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "O'Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
         urlCaptor.getValue.toString must include("/surname/O%27S/")
       }
 
-      "generate correct url when nino is not all uppercase" in {
+      "use canonical NINO in generated url" in {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -224,7 +225,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(0), None, None, None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -235,7 +236,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None))
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -248,7 +249,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
         TestDesConnector.calculate(
           "PSAID",
-          CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None)
+          CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None)
         )
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
@@ -262,7 +263,7 @@ class DesConnectorSpec extends HttpClientV2Helper {
 
         when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
-        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", "cb433298a", "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+        TestDesConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None))
         // TODO: Assert something here?
       }
     }
