@@ -97,7 +97,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
 
         val result =
-          TestIfConnector.calculate("PSAID", CalculationRequest("S1234567T", Nino("AB123456C"), "Bixby", "Bill", Some(0), None, Some(1), None, None, None))
+          TestIfConnector.calculate(
+            "PSAID",
+            CalculationRequest("S1234567T", Nino("AB123456C"), "Bixby", "Bill", Some(0), None, Some(1), None, None, None)
+          )
         val calcResponse = await(result)
 
         calcResponse.npsLgmpcalc.length must be(1)
@@ -124,7 +127,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(422, calcResponseJson, returnHeaders)))
 
         val result =
-          TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
+          TestIfConnector.calculate(
+            "PSAID",
+            CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None)
+          )
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(0)
@@ -136,7 +142,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(400, "400")))
 
         val result =
-          TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None))
+          TestIfConnector.calculate(
+            "PSAID",
+            CalculationRequest("S1401234Q", Nino("CB433298A"), "Smith", "Bill", Some(0), None, None, None, None, None)
+          )
         val calcResponse = await(result)
 
         calcResponse.rejection_reason must be(400)
@@ -192,7 +201,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
       "trims whitespace from names" in {
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "LE BON", "Bill", Some(0), None, None, None, None, None))
+        TestIfConnector.calculate(
+          "PSAID",
+          CalculationRequest("S1401234Q", Nino("CB433298A"), "LE BON", "Bill", Some(0), None, None, None, None, None)
+        )
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -204,7 +216,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestIfConnector.calculate("PSAID", CalculationRequest("S1401234Q", Nino("CB433298A"), "O'Smith", "Bill", Some(0), None, None, None, None, None))
+        TestIfConnector.calculate(
+          "PSAID",
+          CalculationRequest("S1401234Q", Nino("CB433298A"), "O'Smith", "Bill", Some(0), None, None, None, None, None)
+        )
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -237,7 +252,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+        TestIfConnector.calculate(
+          "PSAID",
+          CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None)
+        )
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -248,7 +266,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         val urlCaptor: ArgumentCaptor[URL] = ArgumentCaptor.forClass(classOf[URL])
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson.toString(), returnHeaders)))
-        TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None))
+        TestIfConnector.calculate(
+          "PSAID",
+          CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), Some(1), None, None)
+        )
 
         verify(mockHttp).get(urlCaptor.capture())(using any[HeaderCarrier])
 
@@ -261,7 +282,10 @@ class IFConnectorSpec extends HttpClientV2Helper {
 
         when(mockAuditConnector.sendEvent(any())(using any(), any())).thenReturn(Future.failed(new Exception()))
         requestBuilderExecute[HttpResponse](Future.successful(HttpResponse(200, calcResponseJson, returnHeaders)))
-        TestIfConnector.calculate("PSAID", CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None))
+        TestIfConnector.calculate(
+          "PSAID",
+          CalculationRequest("s1401234q", Nino("CB433298A"), "Smith", "Bill", Some(1), None, Some(1), None, None, None)
+        )
         // TODO: Assert something here?
       }
     }

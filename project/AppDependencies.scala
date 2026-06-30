@@ -3,17 +3,17 @@ import sbt.*
 
 object AppDependencies {
 
-  private val playVersion = "play-30"
+  private val playVersion      = "play-30"
   private val bootstrapVersion = "10.7.0"
   private val hmrcMongoVersion = "2.12.0"
-  private val pekkoVersion = "1.2.1"
+  private val pekkoVersion     = "1.2.1"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
-    "uk.gov.hmrc" %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
-    "uk.gov.hmrc.mongo" %% s"hmrc-mongo-$playVersion" % hmrcMongoVersion,
-    "uk.gov.hmrc" %% "tax-year" % "6.0.0",
-    "uk.gov.hmrc" %% "domain-play-30" % "13.0.0"
+    "uk.gov.hmrc"       %% s"bootstrap-backend-$playVersion" % bootstrapVersion,
+    "uk.gov.hmrc.mongo" %% s"hmrc-mongo-$playVersion"        % hmrcMongoVersion,
+    "uk.gov.hmrc"       %% "tax-year"                        % "6.0.0",
+    "uk.gov.hmrc"       %% "domain-play-30"                  % "13.0.0"
   )
 
   val test: Seq[ModuleID] = Seq(
@@ -25,7 +25,7 @@ object AppDependencies {
     "org.apache.pekko"       %% "pekko-http"                    % "1.3.0",
     "org.apache.pekko"       %% "pekko-actor-typed"             % pekkoVersion,
     "org.apache.pekko"       %% "pekko-stream"                  % pekkoVersion,
-    "org.apache.pekko"       %% "pekko-serialization-jackson"   % pekkoVersion,
+    "org.apache.pekko"       %% "pekko-serialization-jackson"   % pekkoVersion
   ).map(_ % "test")
 
   val all: Seq[ModuleID] = compile ++ test
