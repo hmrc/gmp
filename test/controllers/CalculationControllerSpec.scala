@@ -33,6 +33,7 @@ import play.api.test.Helpers.*
 import play.api.test.{FakeHeaders, FakeRequest}
 import repositories.CalculationRepository
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
@@ -41,11 +42,11 @@ import scala.concurrent.Future
 
 class CalculationControllerSpec extends BaseSpec {
 
-  val calculationRequest  = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
+  val calculationRequest  = CalculationRequest("S1301234T", Nino("AB123456C"), "Smith", "Bill", Some(0), None, None, dualCalc = Some(1))
   val calculationResponse =
     GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = true, 1)
 
-  val dualCalcCalculationRequest  = CalculationRequest("S1301234T", "AB123456C", "Smith", "Bill", Some(0), None, None, dualCalc = Some(0))
+  val dualCalcCalculationRequest  = CalculationRequest("S1301234T", Nino("AB123456C"), "Smith", "Bill", Some(0), None, None, dualCalc = Some(0))
   val dualCalcCalculationResponse =
     GmpCalculationResponse("Bill Smith", "AB123456C", "S1301234T", None, None, List(), 0, None, None, None, dualCalc = false, 1)
 
@@ -1261,6 +1262,23 @@ class CalculationControllerSpec extends BaseSpec {
         val calcResponse = Json.fromJson[GmpCalculationResponse](contentAsJson(result)).get
 
         calcResponse.globalErrorCode must be(LOCKED)
+      }
+    }
+
+    "when NINO is not uppercase" must {
+      "reject the request as bad request and not call citizen-details" in {
+        val fakeRequest = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = Json.toJson(calculationRequest).as[JsObject] ++ Json.obj("nino" -> "ab123456c")
+        )
+        val result = testCalculationController.requestCalculation("PSAID").apply(fakeRequest)
+
+        status(result) must be(BAD_REQUEST)
+        verify(mockRepo, never()).findByRequest(any())
+        verify(mockDesConnector, never()).getPersonDetails(any())(using any[HeaderCarrier])
+        verify(mockHipConnector, never()).calculate(any(), any())(using any[HeaderCarrier])
       }
     }
   }

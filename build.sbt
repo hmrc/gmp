@@ -20,38 +20,37 @@ lazy val scoverageExcludePatterns = List(
   "models.*"
 )
 
-  lazy val scoverageSettings = {
-    Seq(
-      ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
-      ScoverageKeys.coverageMinimumStmtTotal := 95,
-      ScoverageKeys.coverageFailOnMinimum := true,
-      ScoverageKeys.coverageHighlighting := true
-    )
-  }
+lazy val scoverageSettings =
+  Seq(
+    ScoverageKeys.coverageExcludedPackages := scoverageExcludePatterns.mkString("", ";", ""),
+    ScoverageKeys.coverageMinimumStmtTotal := 95,
+    ScoverageKeys.coverageFailOnMinimum := true,
+    ScoverageKeys.coverageHighlighting := true
+  )
 
-  lazy val microservice = Project(appName, file("."))
-    .enablePlugins(plugins *)
-    .settings(
-      defaultSettings(),
-      scalaSettings,
-      scoverageSettings,
-      majorVersion := 3,
-      libraryDependencies ++= AppDependencies.all,
-      libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
-      Test / parallelExecution := false,
-      Test / fork := false,
-      retrieveManaged := true,
-      PlayKeys.playDefaultPort := 9942,
-      routesGenerator := InjectedRoutesGenerator
-    )
-    .settings(
-      scalacOptions ++= List(
-        "-feature",
-        "-language:implicitConversions",
-        "-unchecked",
-        "-Wconf:src=routes/.*:s"
-      ),
-      scalacOptions := scalacOptions.value.distinct
-    ).disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
-    .settings(scalaVersion := "3.7.1")
-
+lazy val microservice = Project(appName, file("."))
+  .enablePlugins(plugins *)
+  .settings(
+    defaultSettings(),
+    scalaSettings,
+    scoverageSettings,
+    majorVersion := 3,
+    libraryDependencies ++= AppDependencies.all,
+    libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
+    Test / parallelExecution := false,
+    Test / fork := false,
+    retrieveManaged := true,
+    PlayKeys.playDefaultPort := 9942,
+    routesGenerator := InjectedRoutesGenerator
+  )
+  .settings(
+    scalacOptions ++= List(
+      "-feature",
+      "-language:implicitConversions",
+      "-unchecked",
+      "-Wconf:src=routes/.*:s"
+    ),
+    scalacOptions := scalacOptions.value.distinct
+  )
+  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+  .settings(scalaVersion := "3.7.1")

@@ -125,12 +125,12 @@ class DesConnector @Inject() (
     val uri =
       s"""$calcURI/scon/${request.scon.substring(PrefixStart, PrefixEnd).toUpperCase}/${request.scon.substring(NumberStart, NumberEnd)}/${request.scon
           .substring(SuffixStart, SuffixEnd)
-          .toUpperCase}/nino/${request.nino.toUpperCase}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap) match {
+          .toUpperCase}/nino/${request.nino.value}/surname/$surname/firstname/$firstname/calculation/${buildEncodedQueryString(paramMap) match {
           case "?"    => ""
           case params => params
         }}"""
 
-    doAudit("gmpCalculation", userId, request.scon, Some(request.nino), Some(request.surname), Some(request.firstForename))
+    doAudit("gmpCalculation", userId, request.scon, Some(request.nino.value), Some(request.surname), Some(request.firstForename))
 
     val startTime = System.currentTimeMillis()
 
@@ -147,7 +147,7 @@ class DesConnector @Inject() (
           case BAD_REQUEST               =>
             logger.info("[DesConnector][calculate] : NPS returned code 400")
             CalculationResponse(
-              request.nino,
+              request.nino.value,
               BAD_REQUEST,
               None,
               None,

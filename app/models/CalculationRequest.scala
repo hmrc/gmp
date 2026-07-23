@@ -17,10 +17,11 @@
 package models
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.domain.Nino
 
 case class CalculationRequest(
   scon:            String,
-  nino:            String,
+  nino:            Nino,
   surname:         String,
   firstForename:   String,
   calctype:        Option[Int],

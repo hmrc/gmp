@@ -57,11 +57,11 @@ class CalculationController @Inject() (
           sendResultsEvent(cr, cached = true, userId)
           Future.successful(Ok(Json.toJson(cr)))
         case None =>
-          desConnector.getPersonDetails(calculationRequest.nino).flatMap {
+          desConnector.getPersonDetails(calculationRequest.nino.value).flatMap {
             case DesGetHiddenRecordResponse =>
               val response = GmpCalculationResponse(
                 calculationRequest.firstForename + " " + calculationRequest.surname,
-                calculationRequest.nino,
+                calculationRequest.nino.value,
                 calculationRequest.scon,
                 None,
                 None,
@@ -119,7 +119,7 @@ class CalculationController @Inject() (
 
   private def mapDesOrIfToGmp(c: CalculationResponse, req: CalculationRequest): GmpCalculationResponse =
     GmpCalculationResponse.createFromCalculationResponse(c)(
-      req.nino,
+      req.nino.value,
       req.scon,
       s"${req.firstForename} ${req.surname}",
       req.revaluationRate,
