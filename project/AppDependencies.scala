@@ -4,8 +4,8 @@ import sbt.*
 object AppDependencies {
 
   private val playVersion      = "play-30"
-  private val bootstrapVersion = "10.7.0"
-  private val hmrcMongoVersion = "2.12.0"
+  private val bootstrapVersion = "10.8.0"
+  private val hmrcMongoVersion = "2.14.0"
   private val pekkoVersion     = "1.2.1"
 
   val compile: Seq[ModuleID] = Seq(
@@ -22,7 +22,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test-$playVersion" % hmrcMongoVersion,
     "org.scalatestplus.play" %% "scalatestplus-play"            % "7.0.2",
     "org.scalatestplus"      %% "scalacheck-1-17"               % "3.2.18.0",
-    "org.apache.pekko"       %% "pekko-http"                    % "1.3.0",
+    "org.apache.pekko"       %% "pekko-http"                    % "1.4.0",
     "org.apache.pekko"       %% "pekko-actor-typed"             % pekkoVersion,
     "org.apache.pekko"       %% "pekko-stream"                  % pekkoVersion,
     "org.apache.pekko"       %% "pekko-serialization-jackson"   % pekkoVersion
